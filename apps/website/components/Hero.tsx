@@ -19,7 +19,7 @@ const Hero = () => {
 
         {/* H1 Title */}
         <h1 className="mb-6 bg-gradient-to-b from-zinc-900 to-zinc-500 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent sm:text-6xl md:text-7xl">
-          All your fellowship life — <br className="hidden sm:block" />
+          All your fellowship life <br className="hidden sm:block" />
           <span className="text-primary italic">in one place</span>
         </h1>
 

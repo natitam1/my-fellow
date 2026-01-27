@@ -30,7 +30,7 @@ const Navbar = () => {
 
   const navLinks = [
     { name: "Home", href: "/" },
-    { name: "Changelog", href: siteConfig.links.catalog },
+    { name: "Changelog", href: siteConfig.links.changelog },
     { name: "Support", href: siteConfig.links.support },
     { name: "FAQs", href: siteConfig.links.faqs },
     { name: "Docs", href: siteConfig.links.docs },
@@ -39,21 +39,18 @@ const Navbar = () => {
   return (
     <nav
       className={`fixed top-0 z-50 w-full transition-all duration-300 ${
-        isScrolled
-          ? "border-b border-zinc-200 bg-white/80 backdrop-blur-md"
-          : "bg-transparent"
+        isScrolled ? "bg-white/80 backdrop-blur-xl" : "bg-transparent"
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         {/* Left: Logo */}
-        <div className="flex shrink-0 items-center">
-          <Link href="/" className="flex items-center gap-2">
+        <div className="shrink-0">
+          <Link href="/">
             <Image
               src="/images/logo.png"
               alt={siteConfig.name}
               width={160}
               height={160}
-              className="object-contain -my-14"
             />
           </Link>
         </div>

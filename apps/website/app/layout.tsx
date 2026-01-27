@@ -1,21 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "My Fellow - Fellowship Landing Page",
+  title: "4kILO ECSF - Fellowship Page",
   description:
-    "Stay connected with AAU 4-killo Students Christian Fellowship through the My Fellow mobile app and Telegram bot.",
+    "Stay connected with AAU 4-killo Students Christian Fellowship through the My Fellow mobile app.",
 };
 
 export default function RootLayout({
@@ -25,11 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body className={`${inter.variable} antialiased`}>{children}</body>
     </html>
   );
 }

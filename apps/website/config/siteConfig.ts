@@ -6,15 +6,15 @@ export const siteConfig = {
   links: {
     catalog: "/catalog",
     appDownload: "#download",
-    telegramBot: "https://t.me/MyFellowBot",
-    githubRepo: "https://github.com/aau-4-killo/my-fellow-app",
+    // telegramBot: "https://t.me/MyFellowBot",
+    githubRepo: "https://github.com/4kilo-fellowship/my-fellow",
     docs: "/docs",
     changelog: "/changelog",
     support: "/support",
     faqs: "/#faqs",
   },
   github: {
-    owner: "aau-4-killo",
-    repo: "my-fellow-app",
+    owner: "4kilo-fellowship",
+    repo: "my-fellow",
   },
 };
