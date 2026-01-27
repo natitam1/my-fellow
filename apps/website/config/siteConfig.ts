@@ -8,7 +8,7 @@ export const siteConfig = {
     appDownload: "#download",
     telegramBot: "https://t.me/MyFellowBot",
     githubRepo: "https://github.com/aau-4-killo/my-fellow-app",
-    docs: "#docs",
+    docs: "/docs",
     changelog: "/changelog",
     support: "/support",
     faqs: "#faqs",
