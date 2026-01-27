@@ -4,12 +4,13 @@ export const siteConfig = {
   description:
     "Stay connected with AAU 4-killo Students Christian Fellowship through the My Fellow mobile app.",
   links: {
+    catalog: "/catalog",
     appDownload: "#download",
     telegramBot: "https://t.me/MyFellowBot",
     githubRepo: "https://github.com/aau-4-killo/my-fellow-app",
     docs: "#docs",
-    changelog: "#changelog",
-    support: "#support",
+    changelog: "/changelog",
+    support: "/support",
     faqs: "#faqs",
   },
   github: {

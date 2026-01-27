@@ -5,7 +5,7 @@ import { siteConfig } from "@/config/siteConfig";
 
 const Hero = () => {
   return (
-    <section className="relative flex min-h-[80vh] flex-col items-center justify-center overflow-hidden px-4 pt-32 pb-16 text-center sm:px-6 lg:px-8">
+    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 pt-32 pb-32 text-center sm:px-6 lg:px-8">
       {/* Background Glows */}
       <div className="absolute top-1/2 left-1/2 -z-10 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[120px]" />
       <div className="absolute top-1/4 left-1/4 -z-10 h-32 w-32 rounded-full bg-primary/10 blur-[80px]" />

@@ -30,7 +30,7 @@ const Navbar = () => {
 
   const navLinks = [
     { name: "Home", href: "/" },
-    { name: "Changelog", href: siteConfig.links.changelog },
+    { name: "Changelog", href: siteConfig.links.catalog },
     { name: "Support", href: siteConfig.links.support },
     { name: "FAQs", href: siteConfig.links.faqs },
     { name: "Docs", href: siteConfig.links.docs },
