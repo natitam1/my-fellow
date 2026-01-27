@@ -11,7 +11,7 @@ export const siteConfig = {
     docs: "/docs",
     changelog: "/changelog",
     support: "/support",
-    faqs: "#faqs",
+    faqs: "/#faqs",
   },
   github: {
     owner: "aau-4-killo",
