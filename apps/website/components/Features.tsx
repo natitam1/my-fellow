@@ -3,18 +3,17 @@
 import React from "react";
 import { motion } from "framer-motion";
 import {
-  Users,
-  Calendar,
-  Heart,
-  BookOpen,
-  MapPin,
-  CheckCircle2,
-} from "lucide-react";
+  FaUsers,
+  FaCalendarAlt,
+  FaHeart,
+  FaBookOpen,
+  FaCheckCircle,
+} from "react-icons/fa";
 
 const features = [
   {
     title: "Centralized Fellowship Information",
-    icon: <Users className="h-6 w-6 text-primary" />,
+    icon: <FaUsers className="h-6 w-6 text-primary" />,
     color: "bg-primary/10",
     description:
       "Access comprehensive details about the fellowship structure and teams.",
@@ -27,7 +26,7 @@ const features = [
   },
   {
     title: "Events & Registration",
-    icon: <Calendar className="h-6 w-6 text-primary" />,
+    icon: <FaCalendarAlt className="h-6 w-6 text-primary" />,
     color: "bg-primary/10",
     description:
       "Stay connected and never miss an important fellowship gathering.",
@@ -40,7 +39,7 @@ const features = [
   },
   {
     title: "Giving & Gifts",
-    icon: <Heart className="h-6 w-6 text-primary" />,
+    icon: <FaHeart className="h-6 w-6 text-primary" />,
     color: "bg-primary/10",
     description:
       "Integrated Chapa payment system for secure and easy financial support.",
@@ -53,7 +52,7 @@ const features = [
   },
   {
     title: "Daily Devotionals",
-    icon: <BookOpen className="h-6 w-6 text-primary" />,
+    icon: <FaBookOpen className="h-6 w-6 text-primary" />,
     color: "bg-primary/10",
     description: "Nurture your spiritual growth with consistent daily content.",
     points: [
@@ -106,7 +105,7 @@ const Features = () => {
                 <ul role="list" className="mt-auto space-y-4">
                   {feature.points.map((point) => (
                     <li key={point} className="flex gap-x-3 text-zinc-700">
-                      <CheckCircle2
+                      <FaCheckCircle
                         className="h-6 w-5 flex-none text-primary"
                         aria-hidden="true"
                       />

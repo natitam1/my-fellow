@@ -2,7 +2,12 @@
 
 import React from "react";
 import Navbar from "@/components/Navbar";
-import { Book, UserPlus, Smartphone, HelpCircle } from "lucide-react";
+import {
+  FaBook,
+  FaUserPlus,
+  FaMobileAlt,
+  FaQuestionCircle,
+} from "react-icons/fa";
 
 export default function DocsPage() {
   const guides = [
@@ -10,7 +15,7 @@ export default function DocsPage() {
       title: "Getting Started",
       description:
         "Learn the basics of the My Fellow app and how to install it on your device.",
-      icon: <Smartphone className="h-6 w-6 text-primary" />,
+      icon: <FaMobileAlt className="h-6 w-6 text-primary" />,
       content: (
         <ul className="space-y-2 text-zinc-600">
           <li>• Downloading the app from the landing page</li>
@@ -22,7 +27,7 @@ export default function DocsPage() {
     {
       title: "Account & Profile",
       description: "Setting up your digital identity within the fellowship.",
-      icon: <UserPlus className="h-6 w-6 text-primary" />,
+      icon: <FaUserPlus className="h-6 w-6 text-primary" />,
       content: (
         <ul className="space-y-2 text-zinc-600">
           <li>• Registering with your phone number</li>
@@ -35,7 +40,7 @@ export default function DocsPage() {
       title: "Using Features",
       description:
         "Deep dive into the core functionalities of the application.",
-      icon: <Book className="h-6 w-6 text-primary" />,
+      icon: <FaBook className="h-6 w-6 text-primary" />,
       content: (
         <ul className="space-y-2 text-zinc-600">
           <li>• Browsing the Team Directory</li>
@@ -48,7 +53,7 @@ export default function DocsPage() {
     {
       title: "Troubleshooting",
       description: "Common issues and how to resolve them quickly.",
-      icon: <HelpCircle className="h-6 w-6 text-primary" />,
+      icon: <FaQuestionCircle className="h-6 w-6 text-primary" />,
       content: (
         <ul className="space-y-2 text-zinc-600">
           <li>• Login issues and OTP verification</li>

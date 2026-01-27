@@ -4,13 +4,13 @@ import React from "react";
 import Navbar from "@/components/Navbar";
 import { siteConfig } from "@/config/siteConfig";
 import {
-  Github,
-  Heart,
-  Share2,
-  MessageCircle,
-  Code2,
-  ExternalLink,
-} from "lucide-react";
+  FaGithub,
+  FaHeart,
+  FaShareAlt,
+  FaRegComments,
+  FaCode,
+} from "react-icons/fa";
+import { HiExternalLink } from "react-icons/hi";
 
 export default function SupportPage() {
   const supportOptions = [
@@ -18,7 +18,7 @@ export default function SupportPage() {
       title: "Contribute Code",
       description:
         "We are an open-source project! Star our repository, report issues, or submit pull requests to help us improve.",
-      icon: <Github className="h-8 w-8 text-primary" />,
+      icon: <FaGithub className="h-8 w-8 text-primary" />,
       action: "Visit GitHub",
       href: siteConfig.links.githubRepo,
       primary: false,
@@ -27,7 +27,7 @@ export default function SupportPage() {
       title: "Financial Support",
       description:
         "Support the fellowship's mission and activities through financial giving. Every contribution helps us grow.",
-      icon: <Heart className="h-8 w-8 text-primary" />,
+      icon: <FaHeart className="h-8 w-8 text-primary" />,
       action: "Give Now",
       href: "#give", // Placeholder for actual giving link
       primary: true,
@@ -36,7 +36,7 @@ export default function SupportPage() {
       title: "Share the App",
       description:
         "Help us reach more students by sharing the My Fellow app with your friends and batchmates.",
-      icon: <Share2 className="h-8 w-8 text-primary" />,
+      icon: <FaShareAlt className="h-8 w-8 text-primary" />,
       action: "Share",
       href: "#share",
       primary: false,
@@ -45,9 +45,9 @@ export default function SupportPage() {
       title: "Send Feedback",
       description:
         "Have an idea or spotted a bug? Let us know! Your feedback is crucial for building a better app.",
-      icon: <MessageCircle className="h-8 w-8 text-primary" />,
+      icon: <FaRegComments className="h-8 w-8 text-primary" />,
       action: "Contact Us",
-      href: siteConfig.links.telegramBot,
+      href: siteConfig.links.githubRepo, // Updated from telegramBot since it was disabled
       primary: false,
     },
   ];
@@ -80,7 +80,7 @@ export default function SupportPage() {
                 {option.title}
               </h3>
 
-              <p className="mb-8 flex-grow text-zinc-600 leading-relaxed">
+              <p className="mb-8 grow text-zinc-600 leading-relaxed">
                 {option.description}
               </p>
 
@@ -100,7 +100,7 @@ export default function SupportPage() {
               >
                 {option.action}
                 {option.href.startsWith("http") && (
-                  <ExternalLink className="h-4 w-4" />
+                  <HiExternalLink className="h-4 w-4" />
                 )}
               </a>
             </div>
@@ -112,7 +112,7 @@ export default function SupportPage() {
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
           <div className="relative z-10">
-            <Code2 className="h-12 w-12 text-zinc-500 mx-auto mb-6" />
+            <FaCode className="h-12 w-12 text-zinc-500 mx-auto mb-6" />
             <h2 className="text-2xl font-bold text-white mb-4">
               Are you a Developer?
             </h2>
@@ -127,7 +127,7 @@ export default function SupportPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-primary font-semibold hover:text-primary/80 transition-colors"
             >
-              Check out our Tech Stack <ExternalLink className="h-4 w-4" />
+              Check out our Tech Stack <HiExternalLink className="h-4 w-4" />
             </a>
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { HiDownload } from "react-icons/hi";
 import { siteConfig } from "@/config/siteConfig";
 
 const Hero = () => {
@@ -35,19 +36,7 @@ const Hero = () => {
             className="group relative flex h-14 w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-primary px-8 text-lg font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] sm:w-auto"
           >
             <span>Download the App</span>
-            <svg
-              className="h-5 w-5 transition-transform duration-300 group-hover:translate-y-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
+            <HiDownload className="h-5 w-5 transition-transform duration-300 group-hover:translate-y-1" />
             <div className="absolute inset-0 bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" />
           </a>
         </div>
