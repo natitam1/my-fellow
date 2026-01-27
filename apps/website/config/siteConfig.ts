@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "My Fellow",
   version: "v1.0.0",
   description:
-    "Stay connected with AAU 4-killo Students Christian Fellowship through the My Fellow mobile app and Telegram bot.",
+    "Stay connected with AAU 4-killo Students Christian Fellowship through the My Fellow mobile app.",
   links: {
     appDownload: "#download",
     telegramBot: "https://t.me/MyFellowBot",
