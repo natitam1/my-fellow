@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "react-hot-toast";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const poppins = Poppins({
+  weight: ["300", "400", "500", "600", "700"],
   subsets: ["latin"],
+  variable: "--font-poppins",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-import { Sidebar } from "@/components/Sidebar";
-import { DashboardHeader } from "@/components/DashboardHeader";
+import LayoutWrapper from "@/components/LayoutWrapper";
 
 export const metadata: Metadata = {
   title: "FellowAdmin | Dashboard",
@@ -26,15 +22,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100`}
+        className={`${poppins.variable} antialiased bg-gray-50 text-gray-900`}
       >
-        <Sidebar />
-        <div className="pl-64 min-h-screen flex flex-col">
-          <DashboardHeader />
-          <main className="flex-1">{children}</main>
-        </div>
+        <LayoutWrapper>{children}</LayoutWrapper>
+        <Toaster position="top-right" />
       </body>
     </html>
   );
