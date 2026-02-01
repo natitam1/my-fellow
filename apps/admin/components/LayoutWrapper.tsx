@@ -1,13 +1,24 @@
 "use client";
 
 import React from "react";
+import { usePathname } from "next/navigation";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { Sidebar } from "@/components/Sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { cn } from "@/lib/utils";
 
+const AUTH_ROUTES = ["/signin"];
+
 const LayoutContent = ({ children }: { children: React.ReactNode }) => {
   const { isCollapsed } = useSidebar();
+  const pathname = usePathname();
+
+  const isAuthPage = AUTH_ROUTES.includes(pathname);
+
+  // For auth pages, render children without sidebar/header
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
 
   return (
     <>
