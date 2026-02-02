@@ -16,12 +16,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Always redirect to signin for protected routes and clear any existing token
-  if (!isPublicRoute) {
-    const response = NextResponse.redirect(new URL("/signin", request.url));
-    // Clear the admin token cookie to ensure fresh sign-in every time
-    response.cookies.delete("admin_token");
-    return response;
+  // Redirect to signin if accessing a protected route without a token
+  if (!isPublicRoute && !token) {
+    return NextResponse.redirect(new URL("/signin", request.url));
+  }
+
+  // Redirect to home if accessing signin while already authenticated
+  if (isPublicRoute && token) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

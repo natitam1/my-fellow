@@ -7,7 +7,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { cn } from "@/lib/utils";
 
-const AUTH_ROUTES = ["/signin"];
+const AUTH_ROUTES = ["/signin", "/signup"];
 
 const LayoutContent = ({ children }: { children: React.ReactNode }) => {
   const { isCollapsed } = useSidebar();
