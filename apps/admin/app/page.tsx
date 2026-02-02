@@ -29,18 +29,18 @@ export default function Home() {
 
   const fetchStats = async () => {
     try {
-      const [givingsResponse, registrationsResponse] = await Promise.all([
-        api.get("/admin/givings"),
+      const [transactionsResponse, registrationsResponse] = await Promise.all([
+        api.get("/admin/transactions"),
         api.get("/admin/registrations"),
       ]);
 
-      const givings: Giving[] = givingsResponse.data || [];
+      const transactions: Giving[] = transactionsResponse.data || [];
       const registrationsData = registrationsResponse.data || [];
 
-      // Calculate stats from givings data
-      const totalTransactions = givings.length;
-      const totalGivingsAmount = givings.reduce(
-        (sum, giving) => sum + (giving.amount || 0),
+      // Calculate stats from transactions data
+      const totalTransactions = transactions.length;
+      const totalGivingsAmount = transactions.reduce(
+        (sum, t) => sum + (t.amount || 0),
         0,
       );
       const totalRegistrations = registrationsData.length;
