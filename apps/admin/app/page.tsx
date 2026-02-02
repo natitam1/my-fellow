@@ -26,7 +26,7 @@ interface Stats {
 
 export default function Home() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchStats = async () => {

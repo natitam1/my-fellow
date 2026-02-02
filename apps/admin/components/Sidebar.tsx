@@ -43,26 +43,35 @@ export function Sidebar() {
       {/* Logo Area */}
       <div
         className={cn(
-          "flex items-center border-b border-gray-100 h-[73px]",
-          isCollapsed ? "justify-center" : "px-6",
+          "flex items-center border-b border-gray-100 h-24",
+          isCollapsed ? "justify-center" : "px-4 justify-between",
         )}
       >
-        {/* Logo - shown when expanded, or icon when collapsed if needed (but currently only expanded) */}
         {!isCollapsed ? (
-          <div className="w-32 h-12 relative">
-            <Image
-              src="/images/logo.png"
-              alt="FellowAdmin"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
+          <>
+            <div className="w-48 h-48 relative">
+              <Image
+                src="/images/logo.png"
+                alt="FellowAdmin"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <button
+              onClick={toggleSidebar}
+              className="text-gray-500 hover:text-gray-900 transition-colors p-1"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          </>
         ) : (
-          // Optional: Show a small logo icon when collapsed if desired, otherwise empty
-          <div className="w-8 h-8 relative">
-            {/* Placeholder or mini logo if available, otherwise just empty or keeping the layout stable */}
-          </div>
+          <button
+            onClick={toggleSidebar}
+            className="text-gray-500 hover:text-gray-900 transition-colors p-2"
+          >
+            <Menu size={24} />
+          </button>
         )}
       </div>
 
@@ -86,18 +95,6 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-gray-200 space-y-2">
-        <button
-          onClick={toggleSidebar}
-          className={cn(
-            "flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors",
-            isCollapsed && "justify-center",
-          )}
-          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isCollapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
-          {!isCollapsed && <span>Collapse Sidebar</span>}
-        </button>
-
         <button
           className={cn(
             "flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors",
