@@ -8,22 +8,29 @@ import {
   ArrowDownRight,
   CreditCard,
   Users,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface SummaryCardsProps {
   stats: {
+    users: number;
+    userIncrease: number;
     transactions: number;
+    transactionIncrease: number;
     totalGivingsAmount: number;
+    revenueIncrease: number;
     registrations: number;
   };
 }
 
-// Animated counter hook
+// Animated counter hook (unchanged)
 function useCountUp(end: number, duration: number = 2000) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
+    let target = isNaN(end) ? 0 : end;
     let startTime: number | null = null;
     let animationFrame: number;
 
@@ -31,9 +38,8 @@ function useCountUp(end: number, duration: number = 2000) {
       if (startTime === null) startTime = currentTime;
       const progress = Math.min((currentTime - startTime) / duration, 1);
 
-      // Easing function for smooth animation
       const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-      setCount(Math.floor(easeOutQuart * end));
+      setCount(Math.floor(easeOutQuart * target));
 
       if (progress < 1) {
         animationFrame = requestAnimationFrame(animate);
@@ -67,43 +73,58 @@ function AnimatedValue({
 }
 
 export function SummaryCards({ stats }: SummaryCardsProps) {
+  // Helper to format change text
+  const formatChange = (increase: number) => {
+    if (increase === 0) return "0";
+    return increase > 0 ? `+${increase}` : `${increase}`;
+  };
+
   const summaries = [
     {
-      label: "Total Transactions",
-      value: stats.transactions,
+      label: "Total Users",
+      value: stats.users || 0,
+      icon: Users,
+      color: "bg-blue-500",
+      gradient: "from-blue-500 to-blue-600",
+      lightBg: "bg-blue-50",
+      textColor: "text-blue-600",
+      change: formatChange(stats.userIncrease || 0),
+      changeType:
+        (stats.userIncrease || 0) > 0
+          ? ("increase" as const)
+          : ("neutral" as const),
+      description: "Signed-in users",
+    },
+    {
+      label: "Total Givings",
+      value: stats.transactions || 0,
       icon: CreditCard,
       color: "bg-emerald-500",
       gradient: "from-emerald-500 to-emerald-600",
       lightBg: "bg-emerald-50",
       textColor: "text-emerald-600",
-      change: "+5.4%", // Keeping static for now as requested
-      changeType: "increase" as const,
-      description: "Completed givings",
+      change: formatChange(stats.transactionIncrease || 0),
+      changeType:
+        (stats.transactionIncrease || 0) > 0
+          ? ("increase" as const)
+          : ("neutral" as const),
+      description: `${stats.registrations || 0} event registrations`,
     },
     {
-      label: "Total Givings",
-      value: stats.totalGivingsAmount,
+      label: "Total Amount",
+      value: stats.totalGivingsAmount || 0,
       icon: DollarSign,
       color: "bg-green-500",
       gradient: "from-green-500 to-green-600",
       lightBg: "bg-green-50",
       textColor: "text-green-600",
-      change: "+18.7%",
-      changeType: "increase" as const,
-      description: "Total amount received",
-      prefix: "$",
-    },
-    {
-      label: "User Registrations",
-      value: stats.registrations,
-      icon: Users,
-      color: "bg-pink-500",
-      gradient: "from-pink-500 to-pink-600",
-      lightBg: "bg-pink-50",
-      textColor: "text-pink-600",
-      change: "+12.5%",
-      changeType: "increase" as const,
-      description: "Total event registrations",
+      change: formatChange(stats.revenueIncrease || 0),
+      changeType:
+        (stats.revenueIncrease || 0) > 0
+          ? ("increase" as const)
+          : ("neutral" as const),
+      description: "Total amount in ETB",
+      prefix: "ETB ",
     },
   ];
 
@@ -128,21 +149,22 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
             >
               <item.icon size={24} className={item.textColor} />
             </div>
-            <div
-              className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold",
-                item.changeType === "increase"
-                  ? "bg-green-50 text-green-600"
-                  : "bg-red-50 text-red-600",
-              )}
-            >
-              {item.changeType === "increase" ? (
-                <ArrowUpRight size={12} />
-              ) : (
-                <ArrowDownRight size={12} />
-              )}
-              {item.change}
-            </div>
+            {item.change !== "" ? (
+              <div
+                className={cn(
+                  "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold",
+                  item.changeType === "increase"
+                    ? "bg-green-50 text-green-600"
+                    : "bg-gray-100 text-gray-600",
+                )}
+              >
+                {item.changeType === "increase" && <ArrowUpRight size={12} />}
+                {item.changeType === "neutral" && item.change !== "0" && (
+                  <ArrowDownRight size={12} />
+                )}
+                {item.change}
+              </div>
+            ) : null}
           </div>
 
           <div>

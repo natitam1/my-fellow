@@ -20,8 +20,15 @@ interface Giving {
 
 interface Stats {
   transactions: number;
+  transactionIncrease: number;
   totalGivingsAmount: number;
+  revenueIncrease: number;
   registrations: number;
+  registrationIncrease: number;
+  users: number;
+  userIncrease: number;
+  events: number;
+  pendingTransactions: number;
 }
 
 export default function Home() {
@@ -49,21 +56,23 @@ export default function Home() {
         console.warn("Failed to fetch registrations:", results[1].reason);
       }
 
-      // Handle Stats
-      // Assume stats return { transactions: number, totalRevenue: number, ... }
       const statsData = statsResponse?.data || {};
 
-      // Handle Registrations
       const registrationsData = Array.isArray(registrationsResponse?.data)
         ? registrationsResponse.data
         : registrationsResponse?.data?.data || [];
 
       setStats({
-        transactions: statsData.transactions || statsData.transactionCount || 0,
-        totalGivingsAmount:
-          statsData.totalRevenue || statsData.totalGivings || 0,
-        registrations:
-          registrationsData.length || statsData.registrationsCount || 0,
+        users: statsData.users || 0,
+        userIncrease: statsData.userIncrease || 0,
+        transactions: statsData.transactions || 0,
+        transactionIncrease: statsData.transactionIncrease || 0,
+        totalGivingsAmount: statsData.totalRevenue || 0,
+        revenueIncrease: statsData.revenueIncrease || 0,
+        registrations: statsData.registrations || registrationsData.length || 0,
+        registrationIncrease: statsData.registrationIncrease || 0,
+        events: statsData.events || 0,
+        pendingTransactions: statsData.pendingTransactions || 0,
       });
       setLastUpdated(new Date());
     } catch (error) {
@@ -90,9 +99,16 @@ export default function Home() {
   }
 
   const currentStats = stats || {
+    users: 0,
+    userIncrease: 0,
     transactions: 0,
+    transactionIncrease: 0,
     totalGivingsAmount: 0,
+    revenueIncrease: 0,
     registrations: 0,
+    registrationIncrease: 0,
+    events: 0,
+    pendingTransactions: 0,
   };
 
   return (

@@ -74,17 +74,19 @@ export const registrations = [
     eventTitle: "Manuscript",
     createdAt: "2026-01-29T11:12:31.879+00:00",
   },
+  {
+    _id: "69808ca7f9ab698defe314a6",
+    fullName: "Abe Keme",
+    phoneNumber: "0946794879",
+    team: "Bible Study Team",
+    department: "Information System",
+    yearOfStudy: "1st Year",
+    eventTitle: "Yoni Kimeme",
+    createdAt: "2026-02-02T11:38:15.564+00:00",
+  },
 ];
 
 export const donations = [
-  {
-    _id: "697b9c4df4607be322578840",
-    fullName: "Yoni",
-    amount: 100,
-    reason: "Donation",
-    status: "pending",
-    createdAt: "2026-01-29T17:43:41.223+00:00",
-  },
   {
     _id: "697d94793349f5652c896296",
     fullName: "Solo",
@@ -109,19 +111,17 @@ export const donations = [
     status: "pending",
     createdAt: "2026-01-31T05:41:31.263+00:00",
   },
+  {
+    _id: "69808b62f9ab698defe3149e",
+    fullName: "Abe Keme",
+    amount: 400,
+    reason: "Donation",
+    status: "pending",
+    createdAt: "2026-02-02T11:32:50.839+00:00",
+  },
 ];
 
 export const users = [
-  {
-    _id: "697d7fde3349f5652c89627b",
-    fullName: "Natnael Abebe",
-    phoneNumber: "0946794876",
-    team: "Evangelism Team",
-    department: "Applied Physics",
-    yearOfStudy: "4th Year",
-    role: "user",
-    createdAt: "2026-01-31T04:06:54.224+00:00",
-  },
   {
     _id: "697d835b3349f5652c89627f",
     fullName: "Natnael Abebe",
@@ -151,5 +151,15 @@ export const users = [
     yearOfStudy: "4th Year",
     role: "user",
     createdAt: "2026-01-31T09:36:03.345+00:00",
+  },
+  {
+    _id: "69808b4df9ab698defe3149c",
+    fullName: "Abe Keme",
+    phoneNumber: "0946794879",
+    team: "Bible Study Team",
+    department: "Information System",
+    yearOfStudy: "1st Year",
+    role: "user",
+    createdAt: "2026-02-02T11:32:29.093+00:00",
   },
 ];

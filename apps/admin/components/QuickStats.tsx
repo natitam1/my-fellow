@@ -19,6 +19,8 @@ interface QuickStatsProps {
     transactions: number;
     totalGivingsAmount: number;
     registrations: number;
+    // Allow other properties
+    [key: string]: any;
   };
 }
 
@@ -43,7 +45,7 @@ export function QuickStats({ stats }: QuickStatsProps) {
     },
     {
       title: "Total Givings",
-      value: `$${stats.totalGivingsAmount.toLocaleString()}`,
+      value: `ETB ${stats.totalGivingsAmount.toLocaleString()}`,
       subtitle: "Total amount",
       icon: Zap,
       color: "text-[#ff6719]",
