@@ -13,7 +13,7 @@ import LayoutWrapper from "@/components/LayoutWrapper";
 
 export const metadata: Metadata = {
   title: "FellowAdmin | Dashboard",
-  description: "Next Generation Fellowship Admin Dashboard",
+  description: "4kilo fellowship admin dashboard.",
 };
 
 export default function RootLayout({
