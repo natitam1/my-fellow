@@ -3,7 +3,7 @@ import Cookies from "js-cookie";
 const TOKEN_KEY = "admin_token";
 
 export const setToken = (token: string) => {
-  Cookies.set(TOKEN_KEY, token, { expires: 7 }); // Expires in 7 days
+  Cookies.set(TOKEN_KEY, token, { expires: 7, path: "/" }); // Expires in 7 days
 };
 
 export const getToken = () => {

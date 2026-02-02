@@ -118,6 +118,7 @@ export default function SignIn() {
                 value={formData.phoneNumber}
                 onChange={handleChange}
                 placeholder="0912345678"
+                autoComplete="username"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#ff6719] focus:ring-2 focus:ring-[#ff6719]/10 transition-all"
               />
             </div>
@@ -138,6 +139,7 @@ export default function SignIn() {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Enter your password"
+                autoComplete="current-password"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#ff6719] focus:ring-2 focus:ring-[#ff6719]/10 transition-all"
               />
             </div>
