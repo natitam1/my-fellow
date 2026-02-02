@@ -119,7 +119,7 @@ export default function SignIn() {
                 onChange={handleChange}
                 placeholder="0912345678"
                 autoComplete="username"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#ff6719] focus:ring-2 focus:ring-[#ff6719]/10 transition-all"
+                className="w-full px-4 py-3.5 border-2 border-gray-300 rounded-xl bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#ff6719] focus:ring-4 focus:ring-[#ff6719]/15 transition-all duration-200 hover:border-gray-400"
               />
             </div>
 
@@ -140,7 +140,7 @@ export default function SignIn() {
                 onChange={handleChange}
                 placeholder="Enter your password"
                 autoComplete="current-password"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#ff6719] focus:ring-2 focus:ring-[#ff6719]/10 transition-all"
+                className="w-full px-4 py-3.5 border-2 border-gray-300 rounded-xl bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#ff6719] focus:ring-4 focus:ring-[#ff6719]/15 transition-all duration-200 hover:border-gray-400"
               />
             </div>
 
