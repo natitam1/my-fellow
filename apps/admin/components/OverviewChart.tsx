@@ -37,9 +37,9 @@ export function OverviewChart() {
     >
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Revenue Overview</h3>
+          <h3 className="text-lg font-bold text-gray-900">Givings Overview</h3>
           <p className="text-sm text-gray-500">
-            Monthly revenue growth for 2026
+            Monthly givings growth for 2026
           </p>
         </div>
         <select className="bg-gray-50 border border-gray-200 rounded-md px-3 py-1 text-sm outline-none text-gray-700 focus:ring-2 focus:ring-[#ff6719] focus:border-[#ff6719]">

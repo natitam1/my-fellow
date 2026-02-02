@@ -18,7 +18,8 @@ interface Giving {
 
 interface Stats {
   transactions: number;
-  totalRevenue: number;
+  totalGivingsAmount: number;
+  registrations: number;
 }
 
 export default function Home() {
@@ -28,23 +29,30 @@ export default function Home() {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get("/admin/givings");
-      const givings: Giving[] = response.data || [];
+      const [givingsResponse, registrationsResponse] = await Promise.all([
+        api.get("/admin/givings"),
+        api.get("/admin/registrations"),
+      ]);
+
+      const givings: Giving[] = givingsResponse.data || [];
+      const registrationsData = registrationsResponse.data || [];
 
       // Calculate stats from givings data
       const totalTransactions = givings.length;
-      const totalRevenue = givings.reduce(
+      const totalGivingsAmount = givings.reduce(
         (sum, giving) => sum + (giving.amount || 0),
         0,
       );
+      const totalRegistrations = registrationsData.length;
 
       setStats({
         transactions: totalTransactions,
-        totalRevenue: totalRevenue,
+        totalGivingsAmount: totalGivingsAmount,
+        registrations: totalRegistrations,
       });
       setLastUpdated(new Date());
     } catch (error) {
-      console.error("Failed to fetch givings", error);
+      console.error("Failed to fetch dashboard data", error);
     } finally {
       setLoading(false);
     }
@@ -67,7 +75,8 @@ export default function Home() {
 
   const currentStats = stats || {
     transactions: 0,
-    totalRevenue: 0,
+    totalGivingsAmount: 0,
+    registrations: 0,
   };
 
   return (

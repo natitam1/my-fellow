@@ -6,15 +6,16 @@ import {
   DollarSign,
   ArrowUpRight,
   ArrowDownRight,
-  Activity,
   CreditCard,
+  Users,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface SummaryCardsProps {
   stats: {
     transactions: number;
-    totalRevenue: number;
+    totalGivingsAmount: number;
+    registrations: number;
   };
 }
 
@@ -66,11 +67,6 @@ function AnimatedValue({
 }
 
 export function SummaryCards({ stats }: SummaryCardsProps) {
-  const avgGiving =
-    stats.transactions > 0
-      ? Math.round(stats.totalRevenue / stats.transactions)
-      : 0;
-
   const summaries = [
     {
       label: "Total Transactions",
@@ -80,13 +76,13 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       gradient: "from-emerald-500 to-emerald-600",
       lightBg: "bg-emerald-50",
       textColor: "text-emerald-600",
-      change: "+5.4%",
+      change: "+5.4%", // Keeping static for now as requested
       changeType: "increase" as const,
       description: "Completed givings",
     },
     {
-      label: "Total Revenue",
-      value: stats.totalRevenue,
+      label: "Total Givings",
+      value: stats.totalGivingsAmount,
       icon: DollarSign,
       color: "bg-green-500",
       gradient: "from-green-500 to-green-600",
@@ -94,21 +90,20 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       textColor: "text-green-600",
       change: "+18.7%",
       changeType: "increase" as const,
-      description: "All time earnings",
+      description: "Total amount received",
       prefix: "$",
     },
     {
-      label: "Avg. Giving Amount",
-      value: avgGiving,
-      icon: Activity,
+      label: "User Registrations",
+      value: stats.registrations,
+      icon: Users,
       color: "bg-pink-500",
       gradient: "from-pink-500 to-pink-600",
       lightBg: "bg-pink-50",
       textColor: "text-pink-600",
-      change: "+3.2%",
+      change: "+12.5%",
       changeType: "increase" as const,
-      description: "Per transaction",
-      prefix: "$",
+      description: "Total event registrations",
     },
   ];
 

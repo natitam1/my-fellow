@@ -17,17 +17,13 @@ import { cn } from "@/lib/utils";
 interface QuickStatsProps {
   stats: {
     transactions: number;
-    totalRevenue: number;
+    totalGivingsAmount: number;
+    registrations: number;
   };
 }
 
 export function QuickStats({ stats }: QuickStatsProps) {
   // Calculate derived stats
-  const avgGivingAmount =
-    stats.transactions > 0
-      ? Math.round(stats.totalRevenue / stats.transactions)
-      : 0;
-
   const insights = [
     {
       title: "Performance Score",
@@ -38,25 +34,25 @@ export function QuickStats({ stats }: QuickStatsProps) {
       bgColor: "bg-green-50",
     },
     {
-      title: "Total Givings",
+      title: "Total Transactions",
       value: stats.transactions.toLocaleString(),
-      subtitle: "Completed",
+      subtitle: "Completed givings",
       icon: TrendingUp,
       color: "text-blue-500",
       bgColor: "bg-blue-50",
     },
     {
-      title: "Total Revenue",
-      value: `$${stats.totalRevenue.toLocaleString()}`,
-      subtitle: "All time",
+      title: "Total Givings",
+      value: `$${stats.totalGivingsAmount.toLocaleString()}`,
+      subtitle: "Total amount",
       icon: Zap,
       color: "text-[#ff6719]",
       bgColor: "bg-orange-50",
     },
     {
-      title: "Avg. Giving",
-      value: `$${avgGivingAmount.toLocaleString()}`,
-      subtitle: "Per transaction",
+      title: "Registrations",
+      value: stats.registrations.toLocaleString(),
+      subtitle: "User events",
       icon: CheckCircle2,
       color: "text-purple-500",
       bgColor: "bg-purple-50",
