@@ -1,23 +1,11 @@
 "use client";
 
 import React from "react";
-import { Bell, User, Menu } from "lucide-react";
-import { useSidebar } from "@/context/SidebarContext";
+import { Bell, User } from "lucide-react";
 
 export function DashboardHeader() {
-  const { toggleSidebar } = useSidebar();
-
   return (
-    <header className="h-16 border-b border-gray-200 bg-white/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-10 transition-all">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={toggleSidebar}
-          className="p-2 rounded-md hover:bg-gray-100 text-gray-600 transition-colors"
-        >
-          <Menu size={24} />
-        </button>
-      </div>
-
+    <header className="h-16 border-b border-gray-200 bg-white/80 backdrop-blur-md flex items-center justify-end px-8 sticky top-0 z-10 transition-all">
       <div className="flex items-center gap-4">
         <button className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
           <Bell size={20} className="text-gray-600" />

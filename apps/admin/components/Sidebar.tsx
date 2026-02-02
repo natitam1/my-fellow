@@ -10,6 +10,8 @@ import {
   LogOut,
   LayoutDashboard,
   Bell,
+  Menu,
+  ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -29,7 +31,7 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   return (
     <aside
@@ -38,18 +40,16 @@ export function Sidebar() {
         isCollapsed ? "w-20" : "w-64",
       )}
     >
-      <div className="flex items-center gap-2 px-4 py-6 mb-4 justify-center">
-        {isCollapsed ? (
-          <div className="w-10 h-10 relative">
-            <Image
-              src="/images/logo.png"
-              alt="FellowAdmin"
-              fill
-              className="object-contain"
-            />
-          </div>
-        ) : (
-          <div className="w-full h-12 relative">
+      {/* Toggle Button & Logo Area */}
+      <div
+        className={cn(
+          "flex items-center border-b border-gray-100",
+          isCollapsed ? "justify-center p-4" : "justify-between px-4 py-4",
+        )}
+      >
+        {/* Logo - only shown when sidebar is expanded */}
+        {!isCollapsed && (
+          <div className="w-32 h-12 relative">
             <Image
               src="/images/logo.png"
               alt="FellowAdmin"
@@ -59,6 +59,18 @@ export function Sidebar() {
             />
           </div>
         )}
+
+        {/* Toggle Button */}
+        <button
+          onClick={toggleSidebar}
+          className={cn(
+            "p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors",
+            isCollapsed && "mx-auto",
+          )}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
+        </button>
       </div>
 
       <nav className="flex-1 space-y-2 px-2">

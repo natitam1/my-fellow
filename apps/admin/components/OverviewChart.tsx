@@ -33,16 +33,16 @@ export function OverviewChart() {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="p-6 rounded-2xl bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 shadow-sm h-[400px] flex flex-col"
+      className="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm h-[400px] flex flex-col"
     >
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-bold">Revenue Overview</h3>
+          <h3 className="text-lg font-bold text-gray-900">Revenue Overview</h3>
           <p className="text-sm text-gray-500">
             Monthly revenue growth for 2026
           </p>
         </div>
-        <select className="bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md px-3 py-1 text-sm outline-none">
+        <select className="bg-gray-50 border border-gray-200 rounded-md px-3 py-1 text-sm outline-none text-gray-700 focus:ring-2 focus:ring-[#ff6719] focus:border-[#ff6719]">
           <option>Year 2026</option>
           <option>Year 2025</option>
         </select>
@@ -70,16 +70,21 @@ export function OverviewChart() {
               tickFormatter={(value) => `$${value}`}
             />
             <Tooltip
-              cursor={{ fill: "rgba(0,0,0,0.05)" }}
+              cursor={{ fill: "rgba(255,103,25,0.05)" }}
               contentStyle={{
                 borderRadius: "12px",
-                border: "none",
-                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                backgroundColor: "#18181b",
-                color: "#fff",
+                border: "1px solid #E5E7EB",
+                boxShadow:
+                  "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+                backgroundColor: "#ffffff",
+                color: "#111827",
               }}
-              itemStyle={{ color: "#fff" }}
-              labelStyle={{ color: "#9CA3AF", marginBottom: "4px" }}
+              itemStyle={{ color: "#ff6719", fontWeight: 600 }}
+              labelStyle={{
+                color: "#6B7280",
+                marginBottom: "4px",
+                fontWeight: 500,
+              }}
             />
             <Bar
               dataKey="total"
