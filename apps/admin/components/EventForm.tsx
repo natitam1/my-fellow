@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import axios from "axios";
 import api from "@/lib/api";
 import { Loader2, Upload, X } from "lucide-react";
 
@@ -73,12 +74,12 @@ export function EventForm({ initialData }: EventFormProps) {
 
     try {
       if (isEditing) {
-        await api.put(`/events/${initialData._id}`, form, {
+        await axios.put(`/api/events/${initialData._id}`, form, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         toast.success("Event updated successfully");
       } else {
-        await api.post("/events/", form, {
+        await axios.post("/api/events/", form, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         toast.success("Event created successfully");

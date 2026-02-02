@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import api from "@/lib/api";
 import { Loader2, Mail, Phone } from "lucide-react";
 
@@ -21,7 +22,7 @@ export default function UsersPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await api.get("/admin/users");
+        const response = await axios.get("/api/admin/users");
         setUsers(response.data);
       } catch (error) {
         console.error("Failed to fetch users", error);

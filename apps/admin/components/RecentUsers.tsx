@@ -23,8 +23,11 @@ export function RecentUsers() {
         const response = await api.get("/admin/users");
         setUsers(response.data.slice(0, 5)); // Take top 5
       } catch (error) {
-        console.error("Failed to fetch users from /admin/users", error);
-        // Fallback to empty list or handle gracefully
+        // Silently fail or log warning if admin endpoint is not ready
+        console.warn(
+          "Could not fetch recent users (admin endpoint may be missing)",
+        );
+        setUsers([]);
       } finally {
         setLoading(false);
       }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import api from "@/lib/api";
 import { SummaryCards } from "@/components/SummaryCards";
 import { OverviewChart } from "@/components/OverviewChart";
@@ -8,6 +9,7 @@ import { RecentUsers } from "@/components/RecentUsers";
 import { QuickStats } from "@/components/QuickStats";
 import { TrendChart } from "@/components/TrendChart";
 import { Loader2, RefreshCw } from "lucide-react";
+import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 
 interface Giving {
@@ -29,30 +31,44 @@ export default function Home() {
 
   const fetchStats = async () => {
     try {
-      const [transactionsResponse, registrationsResponse] = await Promise.all([
-        api.get("/admin/transactions"),
-        api.get("/admin/registrations"),
+      const results = await Promise.allSettled([
+        axios.get("/api/admin/stats"),
+        axios.get("/api/events/registrations"),
       ]);
 
-      const transactions: Giving[] = transactionsResponse.data || [];
-      const registrationsData = registrationsResponse.data || [];
+      const statsResponse =
+        results[0].status === "fulfilled" ? results[0].value : null;
+      const registrationsResponse =
+        results[1].status === "fulfilled" ? results[1].value : null;
 
-      // Calculate stats from transactions data
-      const totalTransactions = transactions.length;
-      const totalGivingsAmount = transactions.reduce(
-        (sum, t) => sum + (t.amount || 0),
-        0,
-      );
-      const totalRegistrations = registrationsData.length;
+      if (results[0].status === "rejected") {
+        console.warn("Failed to fetch admin stats:", results[0].reason);
+        // Optional: toast.error("Failed to load generic stats");
+      }
+      if (results[1].status === "rejected") {
+        console.warn("Failed to fetch registrations:", results[1].reason);
+      }
+
+      // Handle Stats
+      // Assume stats return { transactions: number, totalRevenue: number, ... }
+      const statsData = statsResponse?.data || {};
+
+      // Handle Registrations
+      const registrationsData = Array.isArray(registrationsResponse?.data)
+        ? registrationsResponse.data
+        : registrationsResponse?.data?.data || [];
 
       setStats({
-        transactions: totalTransactions,
-        totalGivingsAmount: totalGivingsAmount,
-        registrations: totalRegistrations,
+        transactions: statsData.transactions || statsData.transactionCount || 0,
+        totalGivingsAmount:
+          statsData.totalRevenue || statsData.totalGivings || 0,
+        registrations:
+          registrationsData.length || statsData.registrationsCount || 0,
       });
       setLastUpdated(new Date());
     } catch (error) {
-      console.error("Failed to fetch dashboard data", error);
+      console.error("Critical error in dashboard data fetch", error);
+      toast.error("Could not load dashboard data");
     } finally {
       setLoading(false);
     }

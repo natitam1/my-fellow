@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import api from "@/lib/api";
 import Link from "next/link";
 import { Plus, Edit, Trash2, Calendar, Loader2 } from "lucide-react";
@@ -21,7 +22,7 @@ export default function EventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const response = await api.get("/admin/events");
+      const response = await axios.get("/api/admin/events");
       setEvents(response.data);
     } catch (error) {
       console.error(error);
@@ -38,7 +39,7 @@ export default function EventsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this event?")) return;
     try {
-      await api.delete(`/events/${id}`);
+      await axios.delete(`/api/events/${id}`);
       toast.success("Event deleted");
       fetchEvents();
     } catch (error) {

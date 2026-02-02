@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import axios from "axios";
 import api from "@/lib/api";
 import { setToken } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
@@ -25,7 +26,7 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      const response = await api.post("/auth/signin", formData);
+      const response = await axios.post("/api/auth/signin", formData);
       const { token } = response.data;
 
       setToken(token);

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import api from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
@@ -24,7 +25,7 @@ export default function RegistrationsPage() {
   useEffect(() => {
     const fetchRegistrations = async () => {
       try {
-        const response = await api.get("/admin/registrations");
+        const response = await axios.get("/api/admin/registrations");
         setRegistrations(response.data);
       } catch (error) {
         console.error("Failed to fetch registrations", error);
