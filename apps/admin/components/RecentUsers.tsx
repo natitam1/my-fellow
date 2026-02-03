@@ -21,7 +21,9 @@ export function RecentUsers() {
     const fetchUsers = async () => {
       try {
         const response = await api.get("/admin/users");
-        setUsers(response.data.slice(0, 5)); // Take top 5
+        const raw = response.data;
+        const usersData = Array.isArray(raw) ? raw : raw?.data || [];
+        setUsers(usersData.slice(0, 5)); // Take top 5
       } catch (error) {
         // Silently fail or log warning if admin endpoint is not ready
         console.warn(

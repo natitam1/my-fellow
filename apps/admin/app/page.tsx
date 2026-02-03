@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import api from "@/lib/api";
 import { SummaryCards } from "@/components/SummaryCards";
 import { OverviewChart } from "@/components/OverviewChart";
@@ -39,8 +38,8 @@ export default function Home() {
   const fetchStats = async () => {
     try {
       const results = await Promise.allSettled([
-        axios.get("/api/admin/stats"),
-        axios.get("/api/events/registrations"),
+        api.get("/admin/stats"),
+        api.get("/admin/registrations"),
       ]);
 
       const statsResponse =
@@ -56,11 +55,13 @@ export default function Home() {
         console.warn("Failed to fetch registrations:", results[1].reason);
       }
 
-      const statsData = statsResponse?.data || {};
+      const statsRaw = statsResponse?.data;
+      const statsData = statsRaw?.data || statsRaw || {};
 
-      const registrationsData = Array.isArray(registrationsResponse?.data)
-        ? registrationsResponse.data
-        : registrationsResponse?.data?.data || [];
+      const regsRaw = registrationsResponse?.data;
+      const registrationsData = Array.isArray(regsRaw)
+        ? regsRaw
+        : regsRaw?.data || [];
 
       setStats({
         users: statsData.users || 0,

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import api from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
@@ -15,7 +14,7 @@ interface Registration {
     fullName: string;
     phoneNumber: string;
   };
-  registrationDate: string; // Assuming API returns this
+  registrationDate: string;
 }
 
 export default function RegistrationsPage() {
@@ -25,8 +24,24 @@ export default function RegistrationsPage() {
   useEffect(() => {
     const fetchRegistrations = async () => {
       try {
-        const response = await axios.get("/api/admin/registrations");
-        setRegistrations(response.data);
+        const response = await api.get("/admin/registrations");
+        const raw = response.data;
+        const backendRegs = Array.isArray(raw) ? raw : raw?.data || [];
+
+        const mapped: Registration[] = backendRegs.map((r: any) => ({
+          _id: r._id,
+          event: {
+            title: r.eventTitle || r.event?.title || "Unknown Event",
+          },
+          user: {
+            fullName: r.fullName || r.user?.fullName || "Unknown User",
+            phoneNumber: r.phoneNumber || r.user?.phoneNumber || "",
+          },
+          registrationDate:
+            r.registrationDate || r.createdAt || new Date().toISOString(),
+        }));
+
+        setRegistrations(mapped);
       } catch (error) {
         console.error("Failed to fetch registrations", error);
       } finally {
@@ -91,8 +106,9 @@ export default function RegistrationsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {/* Assuming there is a createdAt or similar if API doesn't send registrationDate */}
-                    N/A
+                    {reg.registrationDate
+                      ? format(new Date(reg.registrationDate), "MMM d, yyyy")
+                      : "N/A"}
                   </td>
                 </tr>
               ))}

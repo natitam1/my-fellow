@@ -1,47 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { donations, registrations, users, events } from "@/lib/data";
+import { requireAdmin } from "@/lib/server/adminAuth";
 
-export async function GET() {
-  const now = new Date();
-  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+export async function GET(req: NextRequest) {
+  const auth = requireAdmin(req);
+  if (!auth.ok) {
+    return NextResponse.json(
+      { success: false, message: auth.message },
+      { status: auth.status },
+    );
+  }
 
-  const totalRevenue = donations.reduce((sum, d) => sum + d.amount, 0);
-  const transactions = donations.length;
-  const registrationsCount = registrations.length;
-  const usersCount = users.length;
-  const eventsCount = events.length;
-
-  const pendingTransactionsCount = donations.filter(
-    (d) => d.status === "pending",
-  ).length;
-
-  // Calculate increases in the past week
-  const userIncrease = users.filter(
-    (u) => new Date(u.createdAt) > oneWeekAgo,
-  ).length;
-
-  const transactionIncrease = donations.filter(
-    (d) => new Date(d.createdAt) > oneWeekAgo,
-  ).length;
-
-  const revenueIncrease = donations
-    .filter((d) => new Date(d.createdAt) > oneWeekAgo)
-    .reduce((sum, d) => sum + d.amount, 0);
-
-  const registrationIncrease = registrations.filter(
-    (r) => new Date(r.createdAt) > oneWeekAgo,
-  ).length;
+  const totalRevenue = donations
+    .filter((t) => t.status === "success")
+    .reduce((sum, t) => sum + t.amount, 0);
 
   return NextResponse.json({
-    users: usersCount,
-    userIncrease,
-    transactions,
-    transactionIncrease,
-    totalRevenue,
-    revenueIncrease,
-    registrations: registrationsCount,
-    registrationIncrease,
-    events: eventsCount,
-    pendingTransactions: pendingTransactionsCount,
+    success: true,
+    data: {
+      users: users.length,
+      events: events.length,
+      registrations: registrations.length,
+      transactions: donations.length,
+      totalRevenue,
+    },
   });
 }

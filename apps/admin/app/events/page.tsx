@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import api from "@/lib/api";
 import Link from "next/link";
 import { Plus, Edit, Trash2, Calendar, Loader2 } from "lucide-react";
@@ -22,8 +21,10 @@ export default function EventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const response = await axios.get("/api/admin/events");
-      setEvents(response.data);
+      const response = await api.get("/admin/events");
+      const raw = response.data;
+      const eventsData = Array.isArray(raw) ? raw : raw?.data || [];
+      setEvents(eventsData);
     } catch (error) {
       console.error(error);
       toast.error("Failed to fetch events");
