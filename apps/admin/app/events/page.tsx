@@ -40,7 +40,7 @@ export default function EventsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this event?")) return;
     try {
-      await axios.delete(`/api/events/${id}`);
+      await api.delete(`/admin/events/${id}`);
       toast.success("Event deleted");
       fetchEvents();
     } catch (error) {

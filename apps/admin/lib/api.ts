@@ -3,12 +3,13 @@ import { getToken, removeToken } from "./auth";
 
 // Use external API URL if provided, otherwise fall back to Next.js API routes.
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://my-fellow-api.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
+    Accept: "application/json",
   },
 });
 

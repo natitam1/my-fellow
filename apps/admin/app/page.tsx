@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import api from "@/lib/api";
 import { SummaryCards } from "@/components/SummaryCards";
 import { OverviewChart } from "@/components/OverviewChart";
@@ -37,47 +38,30 @@ export default function Home() {
 
   const fetchStats = async () => {
     try {
-      const results = await Promise.allSettled([
-        api.get("/admin/stats"),
-        api.get("/admin/registrations"),
-      ]);
+      setLoading(true);
+      const response = await api.get("/admin/stats");
+      console.log("Dashboard Stats Response:", response.data);
 
-      const statsResponse =
-        results[0].status === "fulfilled" ? results[0].value : null;
-      const registrationsResponse =
-        results[1].status === "fulfilled" ? results[1].value : null;
-
-      if (results[0].status === "rejected") {
-        console.warn("Failed to fetch admin stats:", results[0].reason);
-        // Optional: toast.error("Failed to load generic stats");
-      }
-      if (results[1].status === "rejected") {
-        console.warn("Failed to fetch registrations:", results[1].reason);
-      }
-
-      const statsRaw = statsResponse?.data;
-      const statsData = statsRaw?.data || statsRaw || {};
-
-      const regsRaw = registrationsResponse?.data;
-      const registrationsData = Array.isArray(regsRaw)
-        ? regsRaw
-        : regsRaw?.data || [];
+      const rawData = response.data;
+      // Handle both { data: { ... } } and direct { ... } response formats
+      const statsData = rawData.data || rawData;
 
       setStats({
-        users: statsData.users || 0,
-        userIncrease: statsData.userIncrease || 0,
-        transactions: statsData.transactions || 0,
-        transactionIncrease: statsData.transactionIncrease || 0,
-        totalGivingsAmount: statsData.totalRevenue || 0,
-        revenueIncrease: statsData.revenueIncrease || 0,
-        registrations: statsData.registrations || registrationsData.length || 0,
-        registrationIncrease: statsData.registrationIncrease || 0,
-        events: statsData.events || 0,
-        pendingTransactions: statsData.pendingTransactions || 0,
+        users: statsData.users ?? 0,
+        userIncrease: statsData.userIncrease ?? 0,
+        transactions: statsData.transactions ?? 0,
+        transactionIncrease: statsData.transactionIncrease ?? 0,
+        totalGivingsAmount: statsData.totalRevenue ?? 0,
+        revenueIncrease: statsData.revenueIncrease ?? 0,
+        registrations: statsData.registrations ?? 0,
+        registrationIncrease: statsData.registrationIncrease ?? 0,
+        events: statsData.events ?? 0,
+        pendingTransactions:
+          statsData.pendingTransactions ?? statsData.transactions ?? 0,
       });
       setLastUpdated(new Date());
     } catch (error) {
-      console.error("Critical error in dashboard data fetch", error);
+      console.error("Critical error in dashboard data fetch:", error);
       toast.error("Could not load dashboard data");
     } finally {
       setLoading(false);
@@ -147,10 +131,8 @@ export default function Home() {
         </div>
       </motion.div>
 
-      {/* Summary Cards - 6 key metrics */}
       <SummaryCards stats={currentStats} />
 
-      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <OverviewChart />
@@ -160,14 +142,11 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Quick Stats & Activity */}
       <QuickStats stats={currentStats} />
 
-      {/* Trend Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TrendChart />
 
-        {/* Quick Actions Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -209,7 +188,6 @@ export default function Home() {
         </motion.div>
       </div>
 
-      {/* Footer Stats Bar */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

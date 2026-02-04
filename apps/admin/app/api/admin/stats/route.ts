@@ -11,18 +11,25 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const totalRevenue = donations
-    .filter((t) => t.status === "success")
-    .reduce((sum, t) => sum + t.amount, 0);
+  // Total amount in ETB (all givings: pending + success) for dashboard display
+  const totalRevenue = donations.reduce((sum, t) => sum + t.amount, 0);
+  const pendingTransactions = donations.filter(
+    (t) => t.status === "pending",
+  ).length;
 
   return NextResponse.json({
     success: true,
     data: {
       users: users.length,
+      userIncrease: 0,
       events: events.length,
       registrations: registrations.length,
+      registrationIncrease: 0,
       transactions: donations.length,
+      transactionIncrease: 0,
       totalRevenue,
+      revenueIncrease: 0,
+      pendingTransactions,
     },
   });
 }

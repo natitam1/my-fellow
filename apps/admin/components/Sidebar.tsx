@@ -12,6 +12,7 @@ import {
   Bell,
   Menu,
   ChevronLeft,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -22,6 +23,7 @@ import Image from "next/image";
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/" },
   { icon: Users, label: "Users", href: "/users" },
+  { icon: ClipboardList, label: "Registrations", href: "/registrations" },
   { icon: Calendar, label: "Events", href: "/events" },
   { icon: HeartHandshake, label: "Donations", href: "/donations" },
   { icon: Bell, label: "Notifications", href: "/notifications" },

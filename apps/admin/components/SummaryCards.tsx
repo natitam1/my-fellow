@@ -123,7 +123,7 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
         (stats.revenueIncrease || 0) > 0
           ? ("increase" as const)
           : ("neutral" as const),
-      description: "Total amount in ETB",
+      description: "Pending contributions",
       prefix: "ETB ",
     },
   ];
@@ -178,7 +178,7 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
           {/* Decorative gradient bar */}
           <div
             className={cn(
-              "h-1 w-full mt-4 rounded-full bg-gradient-to-r opacity-60 group-hover:opacity-100 transition-opacity",
+              "h-1 w-full mt-4 rounded-full bg-linear-to-r opacity-60 group-hover:opacity-100 transition-opacity",
               item.gradient,
             )}
           />
