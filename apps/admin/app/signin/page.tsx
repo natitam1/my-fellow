@@ -26,8 +26,7 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      // Hit the production login endpoint explicitly
-      const response = await api.post("/auth/login", formData);
+      const response = await api.post("/auth/signin", formData);
       const raw = response.data;
       const data = raw.data || raw;
       const { token, user } = data;
