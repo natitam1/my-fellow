@@ -149,9 +149,6 @@ export function DashboardHeader() {
                 >
                   {/* User Profile Summary */}
                   <div className="px-5 py-4 border-b border-gray-50 mb-2">
-                    <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3">
-                      Administrator
-                    </p>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-[#ff6719] font-bold">
                         {admin?.fullName?.charAt(0).toUpperCase() || "A"}
