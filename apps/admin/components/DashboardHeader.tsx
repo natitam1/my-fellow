@@ -1,17 +1,28 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Bell, User, LogOut } from "lucide-react";
+import React, { useEffect, useState, useRef } from "react";
+import {
+  Bell,
+  User,
+  LogOut,
+  Settings,
+  Shield,
+  ChevronDown,
+} from "lucide-react";
 import { getUser, removeToken, setUser } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import api from "@/lib/api";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export function DashboardHeader() {
   const router = useRouter();
   const [admin, setAdmin] = useState<any>(null);
-
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const fetchAdminProfile = async () => {
@@ -38,6 +49,34 @@ export function DashboardHeader() {
 
     fetchAdminProfile();
   }, []);
+
+  // Handle click outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isMenuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [isMenuOpen]);
 
   const handleSignOut = () => {
     removeToken();
@@ -67,49 +106,96 @@ export function DashboardHeader() {
 
           <div className="relative">
             <button
+              ref={buttonRef}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="w-10 h-10 rounded-full bg-linear-to-br from-gray-100 to-gray-200 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden ring-1 ring-gray-100 hover:ring-[#ff6719]/30 transition-all active:scale-90"
+              className="flex items-center gap-2 group focus:outline-none"
             >
-              {admin?.profileImage ? (
-                <img
-                  src={admin.profileImage}
-                  alt={admin.fullName}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="text-[#ff6719] font-bold text-lg">
-                  {admin?.fullName ? (
-                    admin.fullName.charAt(0).toUpperCase()
-                  ) : (
-                    <User size={20} className="text-gray-400" />
-                  )}
-                </div>
-              )}
+              <div className="w-10 h-10 rounded-full bg-linear-to-br from-gray-100 to-gray-200 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden ring-1 ring-gray-100 group-hover:ring-[#ff6719]/30 transition-all active:scale-95">
+                {admin?.profileImage ? (
+                  <img
+                    src={admin.profileImage}
+                    alt={admin.fullName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-[#ff6719] font-bold text-lg">
+                    {admin?.fullName ? (
+                      admin.fullName.charAt(0).toUpperCase()
+                    ) : (
+                      <User size={20} className="text-gray-400" />
+                    )}
+                  </div>
+                )}
+              </div>
+              <ChevronDown
+                size={14}
+                className={cn(
+                  "text-gray-400 transition-transform duration-200",
+                  isMenuOpen ? "rotate-180" : "rotate-0",
+                )}
+              />
             </button>
 
             {/* Dropdown Menu */}
-            {isMenuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setIsMenuOpen(false)}
-                />
-                <div className="absolute right-0 top-full mt-3 w-48 bg-white border border-gray-100 rounded-2xl shadow-2xl py-2 z-20 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
-                  <div className="px-4 py-2 border-b border-gray-50 mb-1">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                      Account
+            <AnimatePresence>
+              {isMenuOpen && (
+                <motion.div
+                  ref={menuRef}
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="absolute right-0 top-full mt-3 w-64 bg-white border border-gray-100 rounded-3xl shadow-2xl py-3 z-20 origin-top-right overflow-hidden"
+                >
+                  {/* User Profile Summary */}
+                  <div className="px-5 py-4 border-b border-gray-50 mb-2">
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3">
+                      Administrator
                     </p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-[#ff6719] font-bold">
+                        {admin?.fullName?.charAt(0).toUpperCase() || "A"}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate">
+                          {admin?.fullName || "Admin User"}
+                        </p>
+                        <p className="text-[11px] text-gray-500 truncate">
+                          {admin?.phoneNumber || "Admin Access"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors font-semibold"
-                  >
-                    <LogOut size={16} />
-                    Sign Out
-                  </button>
-                </div>
-              </>
-            )}
+
+                  <div className="px-2 space-y-1">
+                    <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors font-medium">
+                      <User size={16} className="text-gray-400" />
+                      View Profile
+                    </button>
+                    <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors font-medium">
+                      <Shield size={16} className="text-gray-400" />
+                      Security
+                    </button>
+                    <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors font-medium">
+                      <Settings size={16} className="text-gray-400" />
+                      Account Settings
+                    </button>
+
+                    <div className="h-px bg-gray-50 my-2 mx-2" />
+
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors font-bold group/logout"
+                    >
+                      <div className="p-1.5 rounded-lg bg-red-50 text-red-500 group-hover/logout:bg-red-100 transition-colors">
+                        <LogOut size={16} />
+                      </div>
+                      Sign Out
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
