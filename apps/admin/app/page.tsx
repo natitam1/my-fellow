@@ -43,7 +43,6 @@ export default function Home() {
       console.log("Dashboard Stats Response:", response.data);
 
       const rawData = response.data;
-      // Handle both { data: { ... } } and direct { ... } response formats
       const statsData = rawData.data || rawData;
 
       setStats({
@@ -109,7 +108,7 @@ export default function Home() {
             Dashboard Overview
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Welcome back! Here's what's happening with your platform.
+            Welcome back! Here's what's happening.
           </p>
         </div>
         <div className="flex items-center gap-3">
