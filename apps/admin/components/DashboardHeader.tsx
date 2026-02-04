@@ -15,6 +15,7 @@ import Image from "next/image";
 import api from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import toast from "react-hot-toast";
 
 export function DashboardHeader() {
   const router = useRouter();
@@ -83,10 +84,25 @@ export function DashboardHeader() {
     router.push("/signin");
   };
 
+  const handleComingSoon = () => {
+    toast("Feature coming soon! ", {
+      style: {
+        borderRadius: "12px",
+        background: "#fff",
+        color: "#ff6719",
+        fontSize: "13px",
+        fontWeight: "600",
+      },
+    });
+  };
+
   return (
     <header className="h-16 border-b border-gray-200 bg-white/80 backdrop-blur-md flex items-center justify-end px-8 sticky top-0 z-10 transition-all">
       <div className="flex items-center gap-6">
-        <button className="relative p-2 rounded-full hover:bg-gray-100 transition-all active:scale-95 group">
+        <button
+          onClick={handleComingSoon}
+          className="relative p-2 rounded-full hover:bg-gray-100 transition-all active:scale-95 group"
+        >
           <Bell
             size={20}
             className="text-gray-600 group-hover:text-[#ff6719] transition-colors"
@@ -145,13 +161,21 @@ export function DashboardHeader() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute right-0 top-full mt-3 w-64 bg-white border border-gray-100 rounded-3xl shadow-2xl py-3 z-20 origin-top-right overflow-hidden"
+                  className="absolute right-0 top-full mt-3 w-64 bg-white border border-gray-100 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-20 origin-top-right overflow-hidden backdrop-blur-xl bg-white/95"
                 >
                   {/* User Profile Summary */}
                   <div className="px-5 py-4 border-b border-gray-50 mb-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-[#ff6719] font-bold">
-                        {admin?.fullName?.charAt(0).toUpperCase() || "A"}
+                      <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-[#ff6719] font-bold overflow-hidden border border-orange-100">
+                        {admin?.profileImage ? (
+                          <img
+                            src={admin.profileImage}
+                            alt={admin.fullName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          admin?.fullName?.charAt(0).toUpperCase() || "A"
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-gray-900 truncate">
@@ -164,16 +188,25 @@ export function DashboardHeader() {
                     </div>
                   </div>
 
-                  <div className="px-2 space-y-1">
-                    <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors font-medium">
+                  <div className="px-2 pb-2 space-y-1">
+                    <button
+                      onClick={handleComingSoon}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors font-medium"
+                    >
                       <User size={16} className="text-gray-400" />
                       View Profile
                     </button>
-                    <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors font-medium">
+                    <button
+                      onClick={handleComingSoon}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors font-medium"
+                    >
                       <Shield size={16} className="text-gray-400" />
                       Security
                     </button>
-                    <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors font-medium">
+                    <button
+                      onClick={handleComingSoon}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors font-medium"
+                    >
                       <Settings size={16} className="text-gray-400" />
                       Account Settings
                     </button>
