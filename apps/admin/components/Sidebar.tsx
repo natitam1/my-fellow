@@ -20,6 +20,9 @@ import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
 import Image from "next/image";
 
+import { useRouter } from "next/navigation";
+import { removeToken } from "@/lib/auth";
+
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/" },
   { icon: Users, label: "Users", href: "/users" },
@@ -33,7 +36,13 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { isCollapsed, toggleSidebar } = useSidebar();
+
+  const handleSignOut = () => {
+    removeToken();
+    router.push("/signin");
+  };
 
   return (
     <aside
@@ -98,8 +107,9 @@ export function Sidebar() {
 
       <div className="p-4 border-t border-gray-200 space-y-2">
         <button
+          onClick={handleSignOut}
           className={cn(
-            "flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors",
+            "flex items-center gap-3 px-3 py-2 w-full rounded-md text-red-600 hover:bg-red-50 transition-colors",
             isCollapsed && "justify-center",
           )}
         >

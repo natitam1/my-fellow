@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import axios from "axios";
 import api from "@/lib/api";
-import { setToken } from "@/lib/auth";
+import { setToken, setUser } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 
 export default function SignIn() {
@@ -26,14 +26,27 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      const response = await axios.post("/api/auth/signin", formData);
-      const { token } = response.data;
+      // Hit the production login endpoint explicitly
+      const response = await api.post("/auth/login", formData);
+      const raw = response.data;
+      const data = raw.data || raw;
+      const { token, user } = data;
+
+      if (!token) throw new Error("Token missing from response");
 
       setToken(token);
+      if (user) {
+        setUser(user);
+      }
+
       toast.success("Successfully signed in!");
       router.push("/");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to sign in");
+      console.error("Login Error:", error);
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to sign in. Please check your credentials.",
+      );
     } finally {
       setLoading(false);
     }
@@ -53,7 +66,7 @@ export default function SignIn() {
         />
 
         {/* Dark Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-transparent" />
 
         {/* Content */}
         <div className="absolute bottom-16 left-12 right-12 z-10">
