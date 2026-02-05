@@ -29,7 +29,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       removeToken();
-      if (typeof window !== "undefined") {
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/signin"
+      ) {
         window.location.href = "/signin";
       }
     }

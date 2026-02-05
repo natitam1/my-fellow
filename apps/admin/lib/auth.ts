@@ -4,7 +4,7 @@ const TOKEN_KEY = "admin_token";
 const USER_KEY = "admin_user";
 
 export const setToken = (token: string) => {
-  Cookies.set(TOKEN_KEY, token, { expires: 7, path: "/" }); // Expires in 7 days
+  Cookies.set(TOKEN_KEY, token, { expires: 7, path: "/" });
 };
 
 export const getToken = () => {

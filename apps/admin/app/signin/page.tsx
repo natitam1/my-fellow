@@ -41,9 +41,11 @@ export default function SignIn() {
       toast.success("Successfully signed in!");
       router.push("/");
     } catch (error: any) {
-      console.error("Login Error:", error);
+      // Use console.warn instead of console.error to avoid triggering Next.js error overlay
+      console.warn("Login attempt failed:", error.message);
       toast.error(
         error.response?.data?.message ||
+          error.response?.data?.error ||
           "Failed to sign in. Please check your credentials.",
       );
     } finally {
