@@ -11,9 +11,7 @@ export class ProgramController {
       if (typeof data[field] === "string") {
         try {
           data[field] = JSON.parse(data[field]);
-        } catch (e) {
-          // parsing fails
-        }
+        } catch (e) {}
       }
     });
 
@@ -24,29 +22,12 @@ export class ProgramController {
     data: any,
     file?: Express.Multer.File,
   ): any {
-    // If a file is uploaded but no image URL is provided in body,
-    // we can temporarily unset it or allow validator to pass if optional.
-    // However, the validator expects a string URL or empty string if optional.
-    // We will let the service handle the actual upload and URL generation.
-    // For validation purposes, if a file is present, we can assume image is valid or optional.
-    // But since `image` is optional in schema, we don't strictly need to inject a placeholder unless required.
-    // In TeamController it injected a placeholder. I will follow that pattern if needed,
-    // but here `image` is optional in my validator.
-    // existing TeamController logic:
-    // if (file && (!data.imageUrl || data.imageUrl === "")) { data.imageUrl = "https://placeholder.com/image.jpg"; }
-
-    // For Program, `image` is optional in Zod schema, so we might not need this hack if we trust the service to handle it.
-    // But to be consistent with TeamController's pattern (which might be due to some specific Zod requirement or frontend behavior), I'll check.
-    // My Zod schema: image: z.union([z.string().url(), z.literal("")]).optional()
-    // So if it's missing, it's fine.
-
     return data;
   }
 
   static async createProgram(req: Request, res: Response) {
     try {
       let data = ProgramController.parseMultipartBody(req.body);
-      // data = ProgramController.ensureImageForValidator(data, req.file);
 
       const parseResult = programBaseSchema.safeParse(data);
 
