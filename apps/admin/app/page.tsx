@@ -47,6 +47,7 @@ export default function Home() {
     revenue: number;
     registrations: number;
   } | null>(null);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
 
   const fetchStats = async () => {
     try {
@@ -90,6 +91,7 @@ export default function Home() {
       };
 
       if (Array.isArray(usersData) && Array.isArray(transactionsData)) {
+        setAllTransactions(transactionsData);
         setGrowthStats({
           users: getGrowth(usersData),
           transactions: getGrowth(transactionsData),
@@ -195,7 +197,7 @@ export default function Home() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <OverviewChart />
+          <OverviewChart transactions={allTransactions} />
         </div>
         <div>
           <RecentUsers />

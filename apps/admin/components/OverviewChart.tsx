@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -9,26 +9,59 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import { motion } from "framer-motion";
 
-const data = [
-  { name: "Jan", total: 1200 },
-  { name: "Feb", total: 2100 },
-  { name: "Mar", total: 1800 },
-  { name: "Apr", total: 2400 },
-  { name: "May", total: 1700 },
-  { name: "Jun", total: 2800 },
-  { name: "Jul", total: 3200 },
-  { name: "Aug", total: 2900 },
-  { name: "Sep", total: 3500 },
-  { name: "Oct", total: 3100 },
-  { name: "Nov", total: 4200 },
-  { name: "Dec", total: 4800 },
+interface OverviewChartProps {
+  transactions?: any[];
+}
+
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
-export function OverviewChart() {
+export function OverviewChart({ transactions = [] }: OverviewChartProps) {
+  const currentYear = new Date().getFullYear();
+
+  const availableYears = useMemo(() => {
+    const years = transactions.map((t) =>
+      new Date(t.createdAt).getFullYear(),
+    );
+    const uniqueYears = Array.from(new Set(years)).sort((a, b) => b - a);
+    return uniqueYears.length > 0 ? uniqueYears : [currentYear];
+  }, [transactions, currentYear]);
+
+  const [selectedYear, setSelectedYear] = useState<number>(availableYears[0]);
+
+  const chartData = useMemo(() => {
+    const yearData = new Array(12).fill(0);
+    const currentYearTransactions = transactions.filter(
+      (t) => new Date(t.createdAt).getFullYear() === selectedYear,
+    );
+
+    currentYearTransactions.forEach((t) => {
+      const date = new Date(t.createdAt);
+      const month = date.getMonth();
+      yearData[month] += Number(t.amount) || 0;
+    });
+
+    return MONTHS.map((month, index) => ({
+      name: month,
+      total: yearData[index],
+    }));
+  }, [transactions, selectedYear]);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -39,18 +72,25 @@ export function OverviewChart() {
         <div>
           <h3 className="text-lg font-bold text-gray-900">Givings Overview</h3>
           <p className="text-sm text-gray-500">
-            Monthly givings growth for 2026
+            Monthly givings growth for {selectedYear}
           </p>
         </div>
-        <select className="bg-gray-50 border border-gray-200 rounded-md px-3 py-1 text-sm outline-none text-gray-700 focus:ring-2 focus:ring-[#ff6719] focus:border-[#ff6719]">
-          <option>Year 2026</option>
-          <option>Year 2025</option>
+        <select
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(Number(e.target.value))}
+          className="bg-gray-50 border border-gray-200 rounded-md px-3 py-1 text-sm outline-none text-gray-700 focus:ring-2 focus:ring-[#ff6719] focus:border-[#ff6719]"
+        >
+          {availableYears.map((year) => (
+            <option key={year} value={year}>
+              Year {year}
+            </option>
+          ))}
         </select>
       </div>
 
       <div className="flex-1 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
+          <BarChart data={chartData}>
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
@@ -67,7 +107,7 @@ export function OverviewChart() {
               axisLine={false}
               tickLine={false}
               tick={{ fill: "#9CA3AF", fontSize: 12 }}
-              tickFormatter={(value) => `$${value}`}
+              tickFormatter={(value) => `${value} ETB`}
             />
             <Tooltip
               cursor={{ fill: "rgba(255,103,25,0.05)" }}
