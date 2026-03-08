@@ -6,8 +6,6 @@ import api from "@/lib/api";
 import { SummaryCards } from "@/components/SummaryCards";
 import { OverviewChart } from "@/components/OverviewChart";
 import { RecentUsers } from "@/components/RecentUsers";
-import { QuickStats } from "@/components/QuickStats";
-import { TrendChart } from "@/components/TrendChart";
 import {
   Loader2,
   RefreshCw,
@@ -203,81 +201,6 @@ export default function Home() {
           <RecentUsers />
         </div>
       </div>
-
-      <QuickStats stats={currentStats} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TrendChart />
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="p-6 rounded-2xl bg-linear-to-br from-[#ff6719] to-orange-600 text-white shadow-lg h-[300px] flex flex-col justify-between"
-        >
-          <div>
-            <h3 className="text-lg font-bold">Quick Actions</h3>
-            <p className="text-orange-100 text-sm mt-1">
-              Common tasks at your fingertips
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <button className="p-4 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors text-left">
-              <span className="text-sm font-medium">Create Event</span>
-              <p className="text-xs text-orange-100 mt-1">Add new event</p>
-            </button>
-            <button className="p-4 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors text-left">
-              <span className="text-sm font-medium">View Users</span>
-              <p className="text-xs text-orange-100 mt-1">Manage members</p>
-            </button>
-            <button className="p-4 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors text-left">
-              <span className="text-sm font-medium">Reports</span>
-              <p className="text-xs text-orange-100 mt-1">Generate reports</p>
-            </button>
-            <button className="p-4 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors text-left">
-              <span className="text-sm font-medium">Settings</span>
-              <p className="text-xs text-orange-100 mt-1">Configure app</p>
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/20">
-            <span className="text-sm text-orange-100">Need help?</span>
-            <button className="text-sm font-medium hover:underline">
-              View Documentation →
-            </button>
-          </div>
-        </motion.div>
       </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-wrap items-center justify-center gap-8 text-center"
-      >
-        <div>
-          <p className="text-2xl font-bold text-gray-900">
-            {currentStats.transactions}
-          </p>
-          <p className="text-xs text-gray-500">Total Transactions</p>
-        </div>
-        <div className="w-px h-8 bg-gray-200" />
-        <div>
-          <p className="text-2xl font-bold text-green-600">99.9%</p>
-          <p className="text-xs text-gray-500">Uptime</p>
-        </div>
-        <div className="w-px h-8 bg-gray-200" />
-        <div>
-          <p className="text-2xl font-bold text-[#ff6719]">A+</p>
-          <p className="text-xs text-gray-500">Health Score</p>
-        </div>
-        <div className="w-px h-8 bg-gray-200" />
-        <div>
-          <p className="text-2xl font-bold text-blue-600">24/7</p>
-          <p className="text-xs text-gray-500">Monitoring</p>
-        </div>
-      </motion.div>
-    </div>
   );
 }
