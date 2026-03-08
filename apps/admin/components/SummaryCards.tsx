@@ -90,6 +90,8 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       gradient: "from-blue-500 to-blue-600",
       lightBg: "bg-blue-50",
       textColor: "text-blue-600",
+      hoverBorder: "hover:border-blue-200",
+      hoverBg: "hover:bg-blue-50",
       change: formatChange(stats.userIncrease || 0) + " users",
       changeType:
         (stats.userIncrease || 0) > 0
@@ -105,6 +107,8 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       gradient: "from-emerald-500 to-emerald-600",
       lightBg: "bg-emerald-50",
       textColor: "text-emerald-600",
+      hoverBorder: "hover:border-emerald-200",
+      hoverBg: "hover:bg-emerald-50",
       change: formatChange(stats.transactionIncrease || 0) + " givings",
       changeType:
         (stats.transactionIncrease || 0) > 0
@@ -120,6 +124,8 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       gradient: "from-green-500 to-green-600",
       lightBg: "bg-green-50",
       textColor: "text-green-600",
+      hoverBorder: "hover:border-green-200",
+      hoverBg: "hover:bg-green-50",
       change: formatChange(stats.revenueIncrease || 0) + " birr",
       changeType:
         (stats.revenueIncrease || 0) > 0
@@ -139,7 +145,11 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1, duration: 0.5 }}
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group"
+          className={cn(
+            "p-6 rounded-2xl bg-white border border-gray-100 transition-all duration-300 cursor-pointer group",
+            item.hoverBorder,
+            item.hoverBg
+          )}
         >
           <div className="flex justify-between items-start mb-4">
             <div

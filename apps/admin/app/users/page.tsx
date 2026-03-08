@@ -96,78 +96,80 @@ export default function UsersPage() {
             Users
           </h1>
           <p className="text-gray-500 mt-1">
-            Manage and view all registered community members.
+            Browse and manage all registered community members.
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
-          <div className="bg-[#ff6719]/10 p-2 rounded-lg">
+        <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-gray-100">
+          <div className="bg-[#ff6719]/10 p-2 rounded-xl">
             <UsersIcon className="text-[#ff6719] w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
               Total Users
             </div>
-            <div className="text-xl font-bold text-gray-900">
+            <div className="text-xl font-black text-gray-900 leading-none">
               {users.length}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white shadow-xl shadow-gray-100/50 overflow-hidden border border-gray-100 rounded-2xl">
+      <div className="bg-white overflow-hidden border border-gray-100 rounded-3xl">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-100">
+          <table className="min-w-full">
             <thead>
-              <tr className="bg-gray-50/50">
+              <tr className="border-b border-gray-50">
                 <th
                   scope="col"
-                  className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest"
+                  className="px-6 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]"
                 >
                   User Info
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest"
+                  className="px-6 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]"
                 >
                   Contact & Social
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest"
+                  className="px-6 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]"
                 >
-                  Academics / Fellowship
+                  Academics
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest"
+                  className="px-6 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]"
                 >
-                  Role & Status
+                  Role
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest"
+                  className="px-6 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]"
                 >
                   Joined
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-50/50">
               {users.map((user) => (
                 <tr
                   key={user._id}
-                  className="hover:bg-orange-50/30 transition-colors group"
+                  className="hover:bg-gray-50/80 transition-all duration-200 group relative"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-5 whitespace-nowrap relative">
+                    {/* Hover accent */}
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#ff6719] opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="flex items-center">
-                      <div className="relative h-12 w-12 flex-shrink-0">
+                      <div className="relative h-11 w-11 flex-shrink-0">
                         {user.profileImage ? (
                           <img
                             src={user.profileImage}
                             alt={user.fullName}
-                            className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-gray-100"
+                            className="h-11 w-11 rounded-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all"
                           />
                         ) : (
-                          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#ff6719] to-[#ff8c42] flex items-center justify-center text-white font-bold text-lg shadow-sm border-2 border-white ring-1 ring-gray-100">
+                          <div className="h-11 w-11 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-base group-hover:bg-[#ff6719]/10 group-hover:text-[#ff6719] transition-colors">
                             {user.fullName
                               ? user.fullName.charAt(0).toUpperCase()
                               : "U"}
@@ -178,7 +180,7 @@ export default function UsersPage() {
                         ></span>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-bold text-gray-900 group-hover:text-[#ff6719] transition-colors line-clamp-1">
+                        <div className="text-sm font-bold text-gray-900 group-hover:translate-x-0.5 transition-transform duration-200">
                           {user.fullName || "Unnamed User"}
                         </div>
                         <div className="text-xs text-gray-400">
@@ -223,16 +225,16 @@ export default function UsersPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-5 whitespace-nowrap">
                     <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold capitalize shadow-sm ${
+                      className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
                         user.role === "admin"
-                          ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
-                          : "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                          ? "bg-indigo-50 text-indigo-700"
+                          : "bg-emerald-50 text-emerald-700"
                       }`}
                     >
                       {user.role === "admin" && (
-                        <Shield size={12} className="mr-1" />
+                        <Shield size={10} className="mr-1.5" />
                       )}
                       {user.role || "user"}
                     </span>
