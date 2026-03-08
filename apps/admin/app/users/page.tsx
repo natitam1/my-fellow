@@ -99,16 +99,21 @@ export default function UsersPage() {
             Browse and manage all registered community members.
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-gray-100">
-          <div className="bg-[#ff6719]/10 p-2 rounded-xl">
-            <UsersIcon className="text-[#ff6719] w-5 h-5" />
+        <div className="flex items-center gap-4 bg-transparent">
+          <div className="bg-gray-100/80 p-3 rounded-2xl group transition-all duration-300 hover:scale-105 border border-gray-100">
+            <UsersIcon className="text-gray-600 w-6 h-6" />
           </div>
           <div>
-            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+            <div className="text-[11px] text-gray-400 font-black uppercase tracking-[0.2em] leading-none mb-1.5 font-mono">
               Total Users
             </div>
-            <div className="text-xl font-black text-gray-900 leading-none">
-              {users.length}
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-black text-gray-700 tracking-tighter">
+                {users.length}
+              </span>
+              <span className="text-[10px] text-gray-500 font-bold bg-gray-100 px-1.5 py-0.5 rounded-md border border-gray-200/50">
+                ACTIVE
+              </span>
             </div>
           </div>
         </div>
