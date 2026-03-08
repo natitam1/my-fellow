@@ -41,47 +41,60 @@ export default function Home() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [userGrowth, setUserGrowth] = useState<{
-    joinedLastWeek: number;
-    trend: "growing" | "dwindling" | "stable";
+  const [growthStats, setGrowthStats] = useState<{
+    users: number;
+    transactions: number;
+    revenue: number;
+    registrations: number;
   } | null>(null);
 
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const [statsRes, usersRes] = await Promise.all([
+      const [statsRes, usersRes, transactionsRes] = await Promise.all([
         api.get("/admin/stats"),
         api.get("/admin/users"),
+        api.get("/admin/transactions"),
       ]);
 
       console.log("Dashboard Stats Response:", statsRes.data);
 
       const statsData = statsRes.data.data || statsRes.data;
       const usersData = usersRes.data.data || usersRes.data;
+      const transactionsData =
+        transactionsRes.data.data || transactionsRes.data;
 
-      // Calculate growth from users data
-      if (Array.isArray(usersData)) {
+      // Modular growth calculation helper
+      const getGrowth = (
+        data: any[],
+        dateField: string = "createdAt",
+        amountField?: string,
+      ) => {
         const now = new Date();
         const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-        const joinedThisWeek = usersData.filter(
-          (u: any) => new Date(u.createdAt) >= oneWeekAgo,
-        ).length;
-        const joinedPreviousWeek = usersData.filter(
-          (u: any) =>
-            new Date(u.createdAt) >= twoWeeksAgo &&
-            new Date(u.createdAt) < oneWeekAgo,
-        ).length;
+        const currentWeek = data.filter(
+          (item) => new Date(item[dateField]) >= oneWeekAgo,
+        );
 
-        setUserGrowth({
-          joinedLastWeek: joinedThisWeek,
-          trend:
-            joinedThisWeek > joinedPreviousWeek
-              ? "growing"
-              : joinedThisWeek < joinedPreviousWeek
-                ? "dwindling"
-                : "stable",
+        if (amountField) {
+          const currentAmount = currentWeek.reduce(
+            (sum, item) => sum + (Number(item[amountField]) || 0),
+            0,
+          );
+          return currentAmount;
+        }
+
+        return currentWeek.length;
+      };
+
+      if (Array.isArray(usersData) && Array.isArray(transactionsData)) {
+        setGrowthStats({
+          users: getGrowth(usersData),
+          transactions: getGrowth(transactionsData),
+          revenue: getGrowth(transactionsData, "createdAt", "amount"),
+          registrations: getGrowth(transactionsData),
         });
       }
 
@@ -173,7 +186,10 @@ export default function Home() {
       <SummaryCards
         stats={{
           ...currentStats,
-          userIncrease: userGrowth?.joinedLastWeek ?? 0,
+          userIncrease: growthStats?.users ?? 0,
+          transactionIncrease: growthStats?.transactions ?? 0,
+          revenueIncrease: growthStats?.revenue ?? 0,
+          registrationIncrease: growthStats?.registrations ?? 0,
         }}
       />
 

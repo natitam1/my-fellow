@@ -22,6 +22,7 @@ interface SummaryCardsProps {
     totalGivingsAmount: number;
     revenueIncrease: number;
     registrations: number;
+    registrationIncrease: number;
   };
 }
 
@@ -74,9 +75,10 @@ function AnimatedValue({
 
 export function SummaryCards({ stats }: SummaryCardsProps) {
   // Helper to format change text
-  const formatChange = (increase: number) => {
+  const formatChange = (increase: number, prefix: string = "") => {
     if (increase === 0) return "0";
-    return increase > 0 ? `+${increase}` : `${increase}`;
+    const sign = increase > 0 ? "+" : "";
+    return `${sign}${prefix}${Math.abs(increase).toLocaleString()}`;
   };
 
   const summaries = [
@@ -88,9 +90,9 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       gradient: "from-blue-500 to-blue-600",
       lightBg: "bg-blue-50",
       textColor: "text-blue-600",
-      change: formatChange(stats.userIncrease || 0),
+      change: formatChange(stats.userIncrease || 0) + " users",
       changeType:
-        (stats.userIncrease || 0) >= 0
+        (stats.userIncrease || 0) > 0
           ? ("increase" as const)
           : ("neutral" as const),
       description: "Signed-in users",
@@ -103,12 +105,12 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       gradient: "from-emerald-500 to-emerald-600",
       lightBg: "bg-emerald-50",
       textColor: "text-emerald-600",
-      change: formatChange(stats.transactionIncrease || 0),
+      change: formatChange(stats.transactionIncrease || 0) + " givings",
       changeType:
         (stats.transactionIncrease || 0) > 0
           ? ("increase" as const)
           : ("neutral" as const),
-      description: `${stats.registrations || 0} event registrations`,
+      description: "Total contributions",
     },
     {
       label: "Total Amount",
@@ -118,12 +120,12 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       gradient: "from-green-500 to-green-600",
       lightBg: "bg-green-50",
       textColor: "text-green-600",
-      change: formatChange(stats.revenueIncrease || 0),
+      change: formatChange(stats.revenueIncrease || 0) + " birr",
       changeType:
         (stats.revenueIncrease || 0) > 0
           ? ("increase" as const)
           : ("neutral" as const),
-      description: "Pending contributions",
+      description: "Revenue performance",
       prefix: "ETB ",
     },
   ];
@@ -159,9 +161,6 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
                 )}
               >
                 {item.changeType === "increase" && <ArrowUpRight size={12} />}
-                {item.changeType === "neutral" && item.change !== "0" && (
-                  <ArrowDownRight size={12} />
-                )}
                 {item.change}
               </div>
             ) : null}
