@@ -90,7 +90,7 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       textColor: "text-blue-600",
       change: formatChange(stats.userIncrease || 0),
       changeType:
-        (stats.userIncrease || 0) > 0
+        (stats.userIncrease || 0) >= 0
           ? ("increase" as const)
           : ("neutral" as const),
       description: "Signed-in users",

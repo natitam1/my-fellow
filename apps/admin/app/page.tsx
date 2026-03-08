@@ -8,7 +8,13 @@ import { OverviewChart } from "@/components/OverviewChart";
 import { RecentUsers } from "@/components/RecentUsers";
 import { QuickStats } from "@/components/QuickStats";
 import { TrendChart } from "@/components/TrendChart";
-import { Loader2, RefreshCw } from "lucide-react";
+import {
+  Loader2,
+  RefreshCw,
+  Users,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 
@@ -35,15 +41,49 @@ export default function Home() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [userGrowth, setUserGrowth] = useState<{
+    joinedLastWeek: number;
+    trend: "growing" | "dwindling" | "stable";
+  } | null>(null);
 
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/admin/stats");
-      console.log("Dashboard Stats Response:", response.data);
+      const [statsRes, usersRes] = await Promise.all([
+        api.get("/admin/stats"),
+        api.get("/admin/users"),
+      ]);
 
-      const rawData = response.data;
-      const statsData = rawData.data || rawData;
+      console.log("Dashboard Stats Response:", statsRes.data);
+
+      const statsData = statsRes.data.data || statsRes.data;
+      const usersData = usersRes.data.data || usersRes.data;
+
+      // Calculate growth from users data
+      if (Array.isArray(usersData)) {
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+        const joinedThisWeek = usersData.filter(
+          (u: any) => new Date(u.createdAt) >= oneWeekAgo,
+        ).length;
+        const joinedPreviousWeek = usersData.filter(
+          (u: any) =>
+            new Date(u.createdAt) >= twoWeeksAgo &&
+            new Date(u.createdAt) < oneWeekAgo,
+        ).length;
+
+        setUserGrowth({
+          joinedLastWeek: joinedThisWeek,
+          trend:
+            joinedThisWeek > joinedPreviousWeek
+              ? "growing"
+              : joinedThisWeek < joinedPreviousWeek
+                ? "dwindling"
+                : "stable",
+        });
+      }
 
       setStats({
         users: statsData.users ?? 0,
@@ -130,7 +170,12 @@ export default function Home() {
         </div>
       </motion.div>
 
-      <SummaryCards stats={currentStats} />
+      <SummaryCards
+        stats={{
+          ...currentStats,
+          userIncrease: userGrowth?.joinedLastWeek ?? 0,
+        }}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
@@ -150,7 +195,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="p-6 rounded-2xl bg-gradient-to-br from-[#ff6719] to-orange-600 text-white shadow-lg h-[300px] flex flex-col justify-between"
+          className="p-6 rounded-2xl bg-linear-to-br from-[#ff6719] to-orange-600 text-white shadow-lg h-[300px] flex flex-col justify-between"
         >
           <div>
             <h3 className="text-lg font-bold">Quick Actions</h3>

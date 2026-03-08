@@ -4,7 +4,7 @@ type JwtPayload = {
   sub?: string;
   phoneNumber?: string;
   role?: string;
-  exp?: number; // seconds since epoch
+  exp?: number;
   [key: string]: unknown;
 };
 
@@ -27,7 +27,8 @@ function decodeJwtPayload(token: string): JwtPayload | null {
 }
 
 export function getBearerToken(req: NextRequest) {
-  const auth = req.headers.get("authorization") ?? req.headers.get("Authorization");
+  const auth =
+    req.headers.get("authorization") ?? req.headers.get("Authorization");
   if (!auth) return null;
   const match = auth.match(/^Bearer\s+(.+)$/i);
   return match?.[1]?.trim() || null;
@@ -36,7 +37,11 @@ export function getBearerToken(req: NextRequest) {
 export function requireAdmin(req: NextRequest) {
   const token = getBearerToken(req);
   if (!token) {
-    return { ok: false as const, status: 401 as const, message: "Unauthorized" };
+    return {
+      ok: false as const,
+      status: 401 as const,
+      message: "Unauthorized",
+    };
   }
 
   const payload = decodeJwtPayload(token);
@@ -69,4 +74,3 @@ export function requireAdmin(req: NextRequest) {
 
   return { ok: true as const, payload };
 }
-
