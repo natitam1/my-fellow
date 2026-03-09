@@ -90,8 +90,6 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       gradient: "from-blue-500 to-blue-600",
       lightBg: "bg-blue-50",
       textColor: "text-blue-600",
-      hoverBorder: "hover:border-blue-200",
-      hoverBg: "hover:bg-blue-50",
       change: formatChange(stats.userIncrease || 0) + " users",
       changeType:
         (stats.userIncrease || 0) > 0
@@ -107,8 +105,6 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       gradient: "from-emerald-500 to-emerald-600",
       lightBg: "bg-emerald-50",
       textColor: "text-emerald-600",
-      hoverBorder: "hover:border-emerald-200",
-      hoverBg: "hover:bg-emerald-50",
       change: formatChange(stats.transactionIncrease || 0) + " givings",
       changeType:
         (stats.transactionIncrease || 0) > 0
@@ -124,8 +120,6 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
       gradient: "from-green-500 to-green-600",
       lightBg: "bg-green-50",
       textColor: "text-green-600",
-      hoverBorder: "hover:border-green-200",
-      hoverBg: "hover:bg-green-50",
       change: formatChange(stats.revenueIncrease || 0) + " birr",
       changeType:
         (stats.revenueIncrease || 0) > 0
@@ -146,25 +140,29 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
           transition={{ delay: index * 0.1, duration: 0.5 }}
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
           className={cn(
-            "p-6 rounded-2xl bg-white border border-gray-100 transition-all duration-300 cursor-pointer group",
-            item.hoverBorder,
-            item.hoverBg
+            "p-6 rounded-2xl bg-white border border-gray-100 transition-all duration-300 cursor-pointer group hover:shadow-md",
           )}
         >
           <div className="flex justify-between items-start mb-4">
             <div
               className={cn(
-                "p-3 rounded-xl",
-                item.lightBg,
-                "group-hover:scale-110 transition-transform duration-300",
+                "p-3 rounded-xl transition-all duration-300",
+                "bg-gray-50 group-hover:" + item.lightBg,
+                "group-hover:scale-110",
               )}
             >
-              <item.icon size={24} className={item.textColor} />
+              <item.icon
+                size={24}
+                className={cn(
+                  "transition-colors duration-300",
+                  "text-gray-400 group-hover:" + item.textColor,
+                )}
+              />
             </div>
             {item.change !== "" ? (
               <div
                 className={cn(
-                  "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold",
+                  "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold grayscale group-hover:grayscale-0 transition-all duration-300",
                   item.changeType === "increase"
                     ? "bg-green-50 text-green-600"
                     : "bg-gray-100 text-gray-600",
@@ -187,8 +185,12 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
           {/* Decorative gradient bar */}
           <div
             className={cn(
-              "h-1 w-full mt-4 rounded-full bg-linear-to-r opacity-60 group-hover:opacity-100 transition-opacity",
-              item.gradient,
+              "h-1 w-full mt-4 rounded-full transition-all duration-300",
+              "bg-gray-200 opacity-40 group-hover:opacity-100 group-hover:bg-linear-to-r",
+              item.gradient
+                .split(" ")
+                .map((cls) => `group-hover:${cls}`)
+                .join(" "),
             )}
           />
         </motion.div>
