@@ -60,9 +60,9 @@ export function Sidebar() {
       >
         {!isCollapsed ? (
           <>
-            <div className="w-48 h-48 relative">
+            <div className="w-64 h-40 relative pointer-events-none overflow-hidden">
               <Image
-                src="/images/logo.png"
+                src="/images/logo-primary.png"
                 alt="FellowAdmin"
                 fill
                 className="object-contain"
@@ -86,7 +86,7 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav className="flex-1 space-y-2 px-2 py-4">
+      <nav className="flex-1 space-y-2 px-2 py-6 relative z-10">
         {menuItems.map((item) => (
           <Link
             key={item.href}
