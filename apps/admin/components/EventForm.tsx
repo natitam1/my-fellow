@@ -64,30 +64,53 @@ export function EventForm({ initialData }: EventFormProps) {
     e.preventDefault();
     setLoading(true);
 
-    const form = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      form.append(key, value);
-    });
-    if (imageFile) {
-      form.append("image", imageFile);
-    }
-
     try {
-      if (isEditing) {
-        await api.put(`/events/${initialData._id}`, form, {
-          headers: { "Content-Type": "multipart/form-data" },
+      const payload = {
+        ...formData,
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+      };
+
+      if (imageFile) {
+        const form = new FormData();
+        Object.entries(payload).forEach(([key, value]) => {
+          form.append(key, value);
         });
-        toast.success("Event updated successfully");
+        form.append("image", imageFile);
+
+        if (isEditing) {
+          await api.put(`/events/${initialData._id}`, form, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        } else {
+          await api.post("/events", form, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        }
       } else {
-        await api.post("/events", form, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("Event created successfully");
+        const jsonPayload = isEditing
+          ? { ...payload, imageUrl: initialData.imageUrl }
+          : payload;
+
+        if (isEditing) {
+          await api.put(`/events/${initialData._id}`, jsonPayload);
+        } else {
+          await api.post("/events", jsonPayload);
+        }
       }
+
+      toast.success(
+        isEditing ? "Event updated successfully" : "Event created successfully",
+      );
       router.push("/events");
       router.refresh();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to save event");
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to save event";
+      console.error("Event save error:", error.response?.data);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
