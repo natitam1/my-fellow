@@ -34,7 +34,7 @@ export function getBearerToken(req: NextRequest) {
   return match?.[1]?.trim() || null;
 }
 
-export function requireAdmin(req: NextRequest) {
+export function requireAuth(req: NextRequest) {
   const token = getBearerToken(req);
   if (!token) {
     return {
@@ -64,7 +64,14 @@ export function requireAdmin(req: NextRequest) {
     }
   }
 
-  if (payload.role !== "admin") {
+  return { ok: true as const, payload };
+}
+
+export function requireAdmin(req: NextRequest) {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth;
+
+  if (auth.payload.role !== "admin") {
     return {
       ok: false as const,
       status: 403 as const,
@@ -72,5 +79,5 @@ export function requireAdmin(req: NextRequest) {
     };
   }
 
-  return { ok: true as const, payload };
+  return auth;
 }

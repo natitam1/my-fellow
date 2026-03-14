@@ -21,7 +21,7 @@ export default function EventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const response = await api.get("/admin/events");
+      const response = await api.get("/events");
       const raw = response.data;
       const eventsData = Array.isArray(raw) ? raw : raw?.data || [];
       setEvents(eventsData);
@@ -40,7 +40,7 @@ export default function EventsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this event?")) return;
     try {
-      await api.delete(`/admin/events/${id}`);
+      await api.delete(`/events/${id}`);
       toast.success("Event deleted");
       fetchEvents();
     } catch (error) {

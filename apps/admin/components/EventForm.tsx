@@ -74,12 +74,12 @@ export function EventForm({ initialData }: EventFormProps) {
 
     try {
       if (isEditing) {
-        await axios.put(`/api/events/${initialData._id}`, form, {
+        await api.put(`/events/${initialData._id}`, form, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         toast.success("Event updated successfully");
       } else {
-        await axios.post("/api/events/", form, {
+        await api.post("/events", form, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         toast.success("Event created successfully");

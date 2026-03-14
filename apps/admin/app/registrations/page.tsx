@@ -37,7 +37,7 @@ export default function RegistrationsPage() {
 
   const fetchEvents = useCallback(async () => {
     try {
-      const response = await api.get("/admin/events");
+      const response = await api.get("/events");
       const raw = response.data;
       const eventsData = Array.isArray(raw) ? raw : raw?.data || [];
       setEvents(eventsData);
@@ -66,7 +66,7 @@ export default function RegistrationsPage() {
         params.append("department", departmentFilter);
 
       const response = await api.get(
-        `/admin/registrations?${params.toString()}`,
+        `/events/registrations?${params.toString()}`,
       );
       const raw = response.data;
 
