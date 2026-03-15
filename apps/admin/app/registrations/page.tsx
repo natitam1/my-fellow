@@ -66,7 +66,7 @@ export default function RegistrationsPage() {
         params.append("department", departmentFilter);
 
       const response = await api.get(
-        `/events/registrations?${params.toString()}`,
+        `/admin/registrations?${params.toString()}`,
       );
       const raw = response.data;
 
