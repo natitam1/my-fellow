@@ -13,6 +13,7 @@ import {
   Menu,
   ChevronLeft,
   ClipboardList,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -29,6 +30,7 @@ const menuItems = [
   { icon: ClipboardList, label: "Registrations", href: "/registrations" },
   { icon: Calendar, label: "Events", href: "/events" },
   { icon: HeartHandshake, label: "Givings", href: "/givings" },
+  { icon: BookOpen, label: "Devotions", href: "/devotions" },
   { icon: Bell, label: "Notifications", href: "/notifications" },
   { icon: BarChart3, label: "Reports", href: "/reports" },
   { icon: Settings, label: "Settings", href: "/settings" },
