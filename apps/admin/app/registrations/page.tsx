@@ -5,7 +5,7 @@ import api from "@/lib/api";
 import { ClipboardList } from "lucide-react";
 import RegistrationsFilter from "@/components/registrations/RegistrationsFilter";
 import RegistrationsTable from "@/components/registrations/RegistrationsTable";
-import RegistrationsPagination from "@/components/registrations/RegistrationsPagination";
+import AdminPagination from "@/components/shared/AdminPagination";
 
 export default function RegistrationsPage() {
   const [registrations, setRegistrations] = useState<any[]>([]);
@@ -14,7 +14,7 @@ export default function RegistrationsPage() {
 
   // Pagination state
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRegistrations, setTotalRegistrations] = useState(0);
 
@@ -118,32 +118,9 @@ export default function RegistrationsPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-700 pb-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-4">
-            Registrations
-            <span className="text-[10px] bg-[#ff6719]/10 text-[#ff6719] px-3 py-1 rounded-full font-black uppercase tracking-[0.2em] border border-[#ff6719]/20">
-              Live
-            </span>
-          </h1>
-          <p className="text-gray-500 mt-2 font-medium">
-            Monitor and manage event participation across the community.
-          </p>
-        </div>
-        <div className="flex items-center gap-6 bg-white p-5 rounded-3xl shadow-xl shadow-gray-200/40 border border-gray-100 transition-all hover:shadow-orange-100/30 group">
-          <div className="bg-orange-50 p-3.5 rounded-2xl group-hover:rotate-6 transition-transform">
-            <ClipboardList className="text-[#ff6719] w-7 h-7" />
-          </div>
-          <div>
-            <div className="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em] font-mono mb-1">
-              Total Entries
-            </div>
-            <div className="text-3xl font-black text-gray-900 tracking-tighter">
-              {totalRegistrations}
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6 animate-in fade-in duration-700 pb-12 max-w-(--screen-2xl) mx-auto">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Registrations</h1>
       </div>
 
       <RegistrationsFilter
@@ -161,19 +138,24 @@ export default function RegistrationsPage() {
         onReset={handleReset}
       />
 
-      <RegistrationsTable
-        registrations={registrations}
-        loading={loading}
-        error={error}
-      />
+      <div className="border border-gray-100 rounded-xl bg-white overflow-hidden shadow-xs">
+        <RegistrationsTable
+          registrations={registrations}
+          loading={loading}
+          error={error}
+        />
 
-      <RegistrationsPagination
-        page={page}
-        setPage={setPage}
-        totalPages={totalPages}
-        totalRegistrations={totalRegistrations}
-        currentCount={registrations.length}
-      />
+        <AdminPagination
+          page={page}
+          setPage={setPage}
+          limit={limit}
+          setLimit={setLimit}
+          totalPages={totalPages}
+          totalItems={totalRegistrations}
+          currentCount={registrations.length}
+          label="Entries"
+        />
+      </div>
     </div>
   );
 }

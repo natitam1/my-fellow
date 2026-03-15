@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 interface UsersPaginationProps {
   page: number;
   setPage: (page: number | ((prev: number) => number)) => void;
+  limit: number;
+  setLimit: (limit: number) => void;
   totalPages: number;
   totalUsers: number;
   currentCount: number;
@@ -12,66 +14,99 @@ interface UsersPaginationProps {
 const UsersPagination = ({
   page,
   setPage,
+  limit,
+  setLimit,
   totalPages,
   totalUsers,
   currentCount,
 }: UsersPaginationProps) => {
+  if (totalUsers === 0) return null;
+
   return (
-    <div className="flex items-center justify-between bg-white px-8 py-5 border border-gray-100 rounded-3xl shadow-sm">
-      <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-        Showing <span className="text-gray-900">{currentCount}</span> of{" "}
-        <span className="text-gray-900">{totalUsers}</span> users
+    <div className="flex flex-col md:flex-row items-center justify-between gap-6 py-6 px-8 bg-white rounded-4xl border border-gray-100 shadow-xl shadow-gray-200/30 transition-all duration-300">
+      <div className="flex items-center gap-6">
+        <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] bg-gray-50/80 px-4 py-2 rounded-xl border border-gray-100">
+          Showing{" "}
+          <span className="text-gray-900 font-bold">{currentCount}</span> of{" "}
+          <span className="text-gray-900 font-bold">{totalUsers}</span> Users
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+            Per Page:
+          </span>
+          <select
+            value={limit}
+            onChange={(e) => {
+              setLimit(Number(e.target.value));
+              setPage(1);
+            }}
+            className="bg-gray-50 border border-gray-100 text-gray-900 text-xs font-bold rounded-xl focus:ring-[#ff6719]/20 focus:border-[#ff6719] block px-3 py-1.5 outline-none cursor-pointer hover:bg-white transition-all"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          onClick={() => setPage((p) => Math.max(1, (p as number) - 1))}
           disabled={page === 1}
-          className="p-2.5 rounded-xl border border-gray-100 enabled:hover:bg-gray-50 disabled:opacity-30 transition-all group"
+          className="p-3 rounded-2xl border border-gray-100 text-gray-400 hover:text-[#ff6719] hover:border-orange-100 hover:bg-orange-50 disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 group"
         >
-          <ChevronLeft className="w-4 h-4 text-gray-600 group-enabled:group-hover:text-[#ff6719]" />
+          <ChevronLeft
+            size={18}
+            className="group-hover:-translate-x-0.5 transition-transform"
+          />
         </button>
 
-        <div className="flex items-center gap-1 mx-2">
-          {[...Array(totalPages)].map((_, i) => {
-            const p = i + 1;
-            // Only show current, first, last, and neighbors
+        <div className="flex items-center gap-1.5">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
             if (
-              p === 1 ||
-              p === totalPages ||
-              (p >= page - 1 && p <= page + 1)
+              totalPages > 7 &&
+              p !== 1 &&
+              p !== totalPages &&
+              Math.abs(p - page) > 1
             ) {
-              return (
-                <button
-                  key={p}
-                  onClick={() => setPage(p)}
-                  className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${
-                    page === p
-                      ? "bg-[#ff6719] text-white shadow-lg shadow-orange-200"
-                      : "hover:bg-gray-50 text-gray-500"
-                  }`}
-                >
-                  {p}
-                </button>
-              );
+              if (Math.abs(p - page) === 2)
+                return (
+                  <span key={p} className="text-gray-200 px-1 font-black">
+                    ...
+                  </span>
+                );
+              return null;
             }
-            if (p === page - 2 || p === page + 2) {
-              return (
-                <span key={p} className="text-gray-300 px-1">
-                  ...
-                </span>
-              );
-            }
-            return null;
+
+            return (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`w-10 h-10 rounded-2xl text-[11px] font-black transition-all active:scale-90 ${
+                  page === p
+                    ? "bg-[#ff6719] text-white shadow-lg shadow-orange-100 border border-[#ff6719]"
+                    : "text-gray-400 hover:text-gray-900 hover:bg-gray-50 border border-transparent hover:border-gray-100"
+                }`}
+              >
+                {p}
+              </button>
+            );
           })}
         </div>
 
         <button
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          onClick={() =>
+            setPage((p) => Math.min(totalPages, (p as number) + 1))
+          }
           disabled={page === totalPages}
-          className="p-2.5 rounded-xl border border-gray-100 enabled:hover:bg-gray-50 disabled:opacity-30 transition-all group"
+          className="p-3 rounded-2xl border border-gray-100 text-gray-400 hover:text-[#ff6719] hover:border-orange-100 hover:bg-orange-50 disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 group"
         >
-          <ChevronRight className="w-4 h-4 text-gray-600 group-enabled:group-hover:text-[#ff6719]" />
+          <ChevronRight
+            size={18}
+            className="group-hover:translate-x-0.5 transition-transform"
+          />
         </button>
       </div>
     </div>

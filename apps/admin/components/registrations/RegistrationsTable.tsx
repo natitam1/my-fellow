@@ -76,135 +76,122 @@ const RegistrationsTable = ({
   }
 
   return (
-    <div className="bg-white shadow-2xl shadow-gray-200/40 overflow-hidden border border-gray-100 rounded-3xl">
+    <div className="bg-white overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-100">
+        <table className="min-w-full">
           <thead>
-            <tr className="bg-gray-50/30 font-mono">
-              <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+            <tr className="border-b border-gray-100 bg-gray-50/50">
+              <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                 Attendee
               </th>
-              <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                Contact & Social
+              <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                Contact
               </th>
-              <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                Academics & Team
+              <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                Academic Info
               </th>
-              <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+              <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                 Event Details
               </th>
-              <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+              <th className="px-6 py-4 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                 Action
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-50/50">
+          <tbody className="divide-y divide-gray-100">
             {registrations.map((reg) => (
               <tr
                 key={reg._id}
-                className="hover:bg-orange-50/10 transition-all duration-300 group"
+                className="hover:bg-gray-50/50 transition-colors group"
               >
-                <td className="px-8 py-5 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <div className="relative h-11 w-11 shrink-0">
+                    <div className="relative h-10 w-10 shrink-0">
                       {reg.user?.profileImage ? (
                         <img
                           src={reg.user.profileImage}
                           alt={reg.user.fullName}
-                          className="h-11 w-11 rounded-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all shadow-sm group-hover:scale-110"
+                          className="h-10 w-10 rounded-full object-cover border border-gray-100"
                         />
                       ) : (
-                        <div className="h-11 w-11 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 border border-indigo-100 shadow-sm group-hover:scale-110 transition-transform font-bold text-sm">
+                        <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 font-semibold text-sm">
                           {reg.user?.fullName
                             ? reg.user.fullName.charAt(0).toUpperCase()
                             : "U"}
                         </div>
                       )}
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-bold text-gray-900 group-hover:text-[#ff6719] transition-colors">
+                    <div className="ml-3">
+                      <div className="text-sm font-semibold text-gray-900 group-hover:text-amber-600 transition-colors">
                         {reg.user?.fullName || "Unknown User"}
                       </div>
-                      <div className="text-[10px] text-gray-400 font-medium font-mono mt-0.5">
-                        ID: {reg.user?._id?.substring(0, 8) || "N/A"}...
+                      <div className="text-[10px] text-gray-400 font-mono">
+                        {reg.user?._id?.substring(0, 8) || "N/A"}
                       </div>
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-5 whitespace-nowrap">
-                  <div className="flex flex-col space-y-1.5">
-                    <div className="text-xs font-semibold text-gray-600 flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-orange-50 flex items-center justify-center">
-                        <Phone size={11} className="text-[#ff6719]/70" />
-                      </div>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col space-y-1">
+                    <div className="text-xs text-gray-600 flex items-center gap-1.5 font-medium">
+                      <Phone size={12} className="text-gray-400" />
                       {reg.user?.phoneNumber || "No Phone"}
                     </div>
                     {reg.user?.telegramUserName && (
-                      <div className="text-xs text-blue-600/70 flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center">
-                          <MessageSquare size={11} className="text-blue-400" />
-                        </div>
+                      <div className="text-xs text-brand-600 flex items-center gap-1.5 font-medium">
+                        <MessageSquare size={12} className="text-brand-400" />
                         {formatTelegram(reg.user.telegramUserName)}
                       </div>
                     )}
                   </div>
                 </td>
-                <td className="px-8 py-5 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
-                    <div className="text-sm font-bold text-gray-700">
-                      {reg.user?.department || "No Department"}
+                    <div className="text-xs font-semibold text-gray-700">
+                      {reg.user?.department || "N/A"}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[9px] px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 font-bold uppercase tracking-wider">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-bold">
                         {reg.user?.yearOfStudy || "N/A"}
                       </span>
-                      <span className="text-[9px] px-2 py-0.5 rounded-md bg-orange-50 text-[#ff6719] font-bold uppercase tracking-wider border border-orange-100/50">
-                        {reg.user?.team || "No Team"}
-                      </span>
+                      {reg.user?.team && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-bold border border-amber-100">
+                          {reg.user?.team}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-5 whitespace-nowrap">
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-orange-50">
-                        <Tag size={12} className="text-[#ff6719]" />
-                      </div>
-                      <span className="text-sm font-bold text-gray-700 truncate max-w-[200px]">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <Tag size={12} className="text-amber-600" />
+                      <span className="text-sm font-semibold text-gray-700 truncate max-w-[180px]">
                         {reg.event?.title || "Unknown Event"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] font-bold text-gray-400 bg-gray-50 w-fit px-3 py-1 rounded-full border border-gray-100 transition-colors group-hover:bg-white group-hover:border-orange-100">
-                      <Calendar
-                        size={11}
-                        className="text-gray-400 group-hover:text-[#ff6719]"
-                      />
+                    <div className="text-[10px] text-gray-400 flex items-center gap-1 font-medium">
+                      <Calendar size={11} className="text-gray-300" />
                       {reg.createdAt
                         ? format(new Date(reg.createdAt), "MMM d, yyyy")
                         : "Unknown"}
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-5 whitespace-nowrap text-right">
-                  <button className="text-gray-300 hover:text-[#ff6719] transition-all p-2.5 hover:bg-white rounded-xl shadow-none hover:shadow-md border border-transparent hover:border-orange-100 active:scale-90 group-hover:text-[#ff6719]">
-                    <ArrowRight size={20} />
+                <td className="px-6 py-4 whitespace-nowrap text-right">
+                  <button className="text-gray-300 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 border border-transparent hover:border-amber-100">
+                    <ArrowRight size={18} />
                   </button>
                 </td>
               </tr>
             ))}
             {registrations.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-8 py-24 text-center">
+                <td colSpan={5} className="px-6 py-20 text-center">
                   <div className="flex flex-col items-center">
-                    <div className="bg-gray-50 p-8 rounded-[2rem] mb-6 border border-gray-100 shadow-inner">
-                      <ClipboardList size={56} className="text-gray-200" />
-                    </div>
-                    <p className="text-xl font-black text-gray-400 uppercase tracking-[0.2em]">
-                      No Records
-                    </p>
-                    <p className="text-sm text-gray-300 mt-2 max-w-[280px] mx-auto font-medium leading-relaxed">
-                      Try adjusting your search or filters to find what you're
-                      looking for.
+                    <ClipboardList size={40} className="text-gray-200 mb-2" />
+                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                      No Records Found
                     </p>
                   </div>
                 </td>

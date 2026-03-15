@@ -156,14 +156,7 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Dashboard Overview
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Welcome back! Here's what's happening.
-          </p>
-        </div>
+        <div />
         <div className="flex items-center gap-3">
           {lastUpdated && (
             <span className="text-xs text-gray-400">
@@ -201,6 +194,6 @@ export default function Home() {
           <RecentUsers />
         </div>
       </div>
-      </div>
+    </div>
   );
 }

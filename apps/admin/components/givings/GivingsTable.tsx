@@ -1,15 +1,7 @@
 "use client";
 
 import React from "react";
-import {
-  Calendar,
-  DollarSign,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  MoreVertical,
-  ExternalLink,
-} from "lucide-react";
+import { Calendar, DollarSign, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 
 interface Giving {
@@ -23,133 +15,125 @@ interface Giving {
   reason: string;
   createdAt: string;
   tx_ref: string;
+  method: string;
+  event?: {
+    title: string;
+  };
 }
 
 interface GivingsTableProps {
-  givings: Giving[];
+  transactions: Giving[];
   loading: boolean;
 }
 
-export default function GivingsTable({ givings, loading }: GivingsTableProps) {
+export default function GivingsTable({
+  transactions,
+  loading,
+}: GivingsTableProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
-        <div className="p-12 flex flex-col items-center justify-center space-y-4">
-          <div className="w-12 h-12 border-4 border-[#ff6719]/20 border-t-[#ff6719] rounded-full animate-spin" />
-          <p className="text-gray-400 font-medium animate-pulse">
-            Syncing financial records...
-          </p>
-        </div>
+      <div className="p-20 flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+        <p className="text-gray-400 font-medium">
+          Syncing financial records...
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-2xl shadow-gray-200/30 border border-gray-100 overflow-hidden">
+    <div className="bg-white overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+        <table className="min-w-full">
           <thead>
-            <tr className="bg-gray-50/50">
-              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-                Contributor
+            <tr className="border-b border-gray-100 bg-gray-50/50">
+              <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                Giver
               </th>
-              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-                Purpose & Ref
+              <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                Purpose
               </th>
-              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-                Amount
+              <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                Amount (ETB)
               </th>
-              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-                Status
+              <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                Reference
               </th>
-              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+              <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                 Date
+              </th>
+              <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                Status
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
-            {givings.map((giving) => (
+          <tbody className="divide-y divide-gray-100">
+            {transactions.map((tx) => (
               <tr
-                key={giving._id}
-                className="group hover:bg-gray-50/50 transition-all duration-300"
+                key={tx._id}
+                className="hover:bg-gray-50/50 transition-colors group"
               >
-                <td className="px-8 py-5">
-                  <div className="flex items-center gap-4">
-                    <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/50 flex items-center justify-center text-[#ff6719] font-black text-sm border border-orange-100 group-hover:scale-110 transition-transform">
-                      {giving.userId?.fullName?.charAt(0) || "U"}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div className="h-9 w-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold text-sm border border-emerald-100/50 uppercase">
+                      {tx.userId?.fullName?.charAt(0) || "U"}
                     </div>
-                    <div>
-                      <div className="text-sm font-black text-gray-900 leading-none mb-1 group-hover:text-[#ff6719] transition-colors">
-                        {giving.userId?.fullName || "Anonymous Guest"}
+                    <div className="ml-3">
+                      <div className="text-sm font-semibold text-gray-900 group-hover:text-amber-600 transition-colors">
+                        {tx.userId?.fullName || "Anonymous"}
                       </div>
-                      <div className="text-[11px] text-gray-400 font-bold font-mono">
-                        {giving.userId?.phoneNumber || "N/A"}
+                      <div className="text-[10px] text-gray-400 font-mono">
+                        {tx.userId?.phoneNumber || "No Phone"}
                       </div>
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-5">
-                  <div className="space-y-1">
-                    <div className="text-xs font-bold text-gray-700 capitalize">
-                      {giving.reason || "General Offering"}
-                    </div>
-                    <div className="text-[10px] text-gray-300 font-medium font-mono">
-                      {giving.tx_ref}
-                    </div>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-xs font-semibold text-gray-700 truncate max-w-[150px]">
+                    {tx.event?.title || tx.reason || "Direct Giving"}
                   </div>
                 </td>
-                <td className="px-8 py-5">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-black text-gray-900 tabular-nums">
-                      {giving.amount.toLocaleString()}{" "}
-                      <span className="text-[10px] text-gray-400 font-bold">
-                        ETB
-                      </span>
-                    </span>
-                    {giving.amount > 5000 && (
-                      <span className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest mt-0.5">
-                        High Value
-                      </span>
-                    )}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-bold text-gray-900">
+                    {tx.amount?.toLocaleString() || 0}
                   </div>
                 </td>
-                <td className="px-8 py-5">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-sm transition-all ${
-                      giving.status === "success"
-                        ? "bg-emerald-50 text-emerald-600 border-emerald-100 shadow-emerald-100/20"
-                        : giving.status === "pending"
-                          ? "bg-amber-50 text-amber-600 border-amber-100 shadow-amber-100/20"
-                          : "bg-red-50 text-red-600 border-red-100 shadow-red-100/20"
-                    }`}
-                  >
-                    {giving.status === "success" && <CheckCircle2 size={12} />}
-                    {giving.status === "pending" && <Clock size={12} />}
-                    {giving.status === "failed" && <XCircle size={12} />}
-                    {giving.status}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-600 font-bold uppercase tracking-tight">
+                    {tx.tx_ref || "N/A"}
                   </span>
                 </td>
-                <td className="px-8 py-5">
-                  <div className="flex items-center gap-3 text-gray-400 text-[11px] font-bold">
-                    <Calendar size={13} className="text-gray-300" />
-                    {format(new Date(giving.createdAt), "MMM dd, yyyy")}
-                  </div>
+                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-medium font-mono">
+                  {format(new Date(tx.createdAt), "MMM d, yyyy")}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      tx.status === "confirmed" || tx.status === "success"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                        : tx.status === "pending"
+                          ? "bg-amber-50 text-amber-700 border border-amber-100"
+                          : "bg-red-50 text-red-700 border border-red-100"
+                    }`}
+                  >
+                    {tx.status || "pending"}
+                  </span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {givings.length === 0 && !loading && (
+        {transactions.length === 0 && !loading && (
           <div className="p-20 text-center flex flex-col items-center">
             <div className="bg-gray-50 p-6 rounded-full mb-4">
               <DollarSign size={40} className="text-gray-200" />
             </div>
-            <h3 className="text-gray-900 font-black text-xl mb-1">
-              No Givings Found
+            <h3 className="text-gray-900 font-bold text-lg mb-1">
+              No Transactions Found
             </h3>
             <p className="text-gray-400 text-sm font-medium max-w-xs">
               We couldn't find any financial records matching your current
-              filter criteria.
+              filter.
             </p>
           </div>
         )}

@@ -6,7 +6,7 @@ import { Users as UsersIcon } from "lucide-react";
 import { User } from "./types";
 import UsersFilter from "../../components/users/UsersFilter";
 import UsersTable from "../../components/users/UsersTable";
-import UsersPagination from "../../components/users/UsersPagination";
+import AdminPagination from "@/components/shared/AdminPagination";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -15,7 +15,7 @@ export default function UsersPage() {
 
   // Pagination state
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
 
@@ -88,42 +88,9 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-        <div className="flex-1">
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">
-            Users
-          </h1>
-          <p className="text-gray-500 mt-2 font-medium">
-            Browse and manage all registered community members with advanced
-            filters.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-6 bg-white px-8 py-5 rounded-4xl border border-gray-100 shadow-xl shadow-orange-50/40 transition-all duration-300 hover:shadow-orange-100/50">
-          <div className="bg-orange-50 p-4 rounded-2xl group transition-all duration-300 hover:rotate-6">
-            <UsersIcon className="text-[#ff6719] w-7 h-7" />
-          </div>
-          <div className="flex flex-col justify-center min-w-[120px]">
-            <div className="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em] leading-none mb-3 font-mono">
-              Total Community
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">
-                {totalUsers}
-              </span>
-              <div className="h-6 w-[2px] bg-emerald-100 rounded-full" />
-              <div className="flex flex-col">
-                <span className="text-[10px] text-emerald-600 font-black tracking-widest leading-none mb-1">
-                  ACTIVE
-                </span>
-                <span className="text-[9px] text-gray-400 font-bold uppercase">
-                  Real-time
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-(--screen-2xl) mx-auto">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Users</h1>
       </div>
 
       <UsersFilter
@@ -138,15 +105,20 @@ export default function UsersPage() {
         onReset={handleReset}
       />
 
-      <UsersTable users={users} loading={loading} error={error} />
+      <div className="border border-gray-100 rounded-xl bg-white overflow-hidden shadow-xs">
+        <UsersTable users={users} loading={loading} error={error} />
 
-      <UsersPagination
-        page={page}
-        setPage={setPage}
-        totalPages={totalPages}
-        totalUsers={totalUsers}
-        currentCount={users.length}
-      />
+        <AdminPagination
+          page={page}
+          setPage={setPage}
+          limit={limit}
+          setLimit={setLimit}
+          totalPages={totalPages}
+          totalItems={totalUsers}
+          currentCount={users.length}
+          label="Users"
+        />
+      </div>
     </div>
   );
 }
