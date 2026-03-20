@@ -1,19 +1,12 @@
 import { publicApi, createApiClient } from "./client";
-
-// ── Public ──────────────────────────────────────────────
-
 export async function getAllTeams() {
   const { data } = await publicApi.get("/api/teams");
   return data;
 }
-
 export async function getTeamById(id: string) {
   const { data } = await publicApi.get(`/api/teams/${id}`);
   return data;
 }
-
-// ── Authenticated ───────────────────────────────────────
-
 export async function createJoinRequest(
   token: string,
   body: {
@@ -30,7 +23,6 @@ export async function createJoinRequest(
   const { data } = await api.post("/api/join-requests", body);
   return data;
 }
-
 export async function getMyJoinRequests(token: string) {
   const api = createApiClient(token);
   const { data } = await api.get("/api/join-requests/my");

@@ -1,11 +1,7 @@
 import { Bot, session } from "grammy";
 import { config } from "./config";
 import { BotContext, SessionData } from "./bot/context";
-
-// Menu
 import { sendMainMenu } from "./bot/menus/main";
-
-// Handlers
 import {
   handleViewEvents,
   handleEventDetail,
@@ -33,72 +29,54 @@ import {
   handleProgramDetail,
 } from "./bot/handlers/programs";
 import { handleViewLeaders, handleLeaderDetail } from "./bot/handlers/leaders";
-
-// ── Bot Setup ───────────────────────────────────────────
-
 const bot = new Bot<BotContext>(config.BOT_TOKEN);
-
-// Session middleware
 bot.use(
   session({
     initial: (): SessionData => ({}),
   }),
 );
-
-// ── Commands ────────────────────────────────────────────
-
 bot.command("start", async (ctx) => {
   ctx.session = {} as SessionData;
   await ctx.reply(
-    "👋 *Welcome to My Fellow Bot!*\n\n" +
+    "\uD83D\uDC4B *Welcome to My Fellow Bot!*\n\n" +
       "Your gateway to events, devotions, teams, and more.\n\n" +
       "Use the menu below to get started, or type /menu at any time.",
     { parse_mode: "Markdown" },
   );
   await sendMainMenu(ctx);
 });
-
 bot.command("menu", async (ctx) => {
   await sendMainMenu(ctx);
 });
-
 bot.command("help", async (ctx) => {
   await ctx.reply(
-    "ℹ️ *My Fellow Bot Help*\n\n" +
+    "\u2139\uFE0F *My Fellow Bot Help*\n\n" +
       "Available commands:\n" +
-      "/start — Start the bot\n" +
-      "/menu — Show main menu\n" +
-      "/login — Log in to your account\n" +
-      "/help — Show this help message\n\n" +
+      "/start \u2014 Start the bot\n" +
+      "/menu \u2014 Show main menu\n" +
+      "/login \u2014 Log in to your account\n" +
+      "/help \u2014 Show this help message\n\n" +
       "You can also use the inline buttons to navigate.",
     { parse_mode: "Markdown" },
   );
 });
-
 bot.command("login", async (ctx) => {
   await ctx.reply(
-    "🔒 *Login*\n\nPlease send your phone number and password separated by a space.\n\n" +
+    "\uD83D\uDD12 *Login*\n\nPlease send your phone number and password separated by a space.\n\n" +
       "Example: `0912345678 MyPass1`\n\n" +
-      "⚠️ Password must be at least 6 characters.",
+      "\u26A0\uFE0F Password must be at least 6 characters.",
     { parse_mode: "Markdown" },
   );
   (ctx.session as any).__pendingLogin = true;
 });
-
-// ── Callback Query Router ───────────────────────────────
-
 bot.on("callback_query:data", async (ctx) => {
   const data = ctx.callbackQuery.data;
-
   try {
-    // Main menu
     if (data === "back_to_menu") {
       await ctx.answerCallbackQuery();
       await sendMainMenu(ctx);
       return;
     }
-
-    // Events
     if (data === "view_events") {
       await ctx.answerCallbackQuery();
       await handleViewEvents(ctx);
@@ -112,14 +90,11 @@ bot.on("callback_query:data", async (ctx) => {
     }
     if (data.startsWith("register_event_")) {
       await ctx.answerCallbackQuery();
-      // format: register_event_{id}_{title}
       const parts = data.replace("register_event_", "").split("_");
       const title = parts.slice(1).join("_");
       await handleEventRegistration(ctx, title);
       return;
     }
-
-    // Devotions
     if (data === "view_devotions") {
       await ctx.answerCallbackQuery();
       await handleViewDevotions(ctx);
@@ -144,7 +119,6 @@ bot.on("callback_query:data", async (ctx) => {
     }
     if (data.startsWith("listen_dev_")) {
       await ctx.answerCallbackQuery();
-      // format: listen_dev_{id}_{mediaUrl}
       const parts = data.replace("listen_dev_", "").split("_");
       const mediaUrl = parts.slice(1).join("_");
       await ctx.replyWithAudio(mediaUrl);
@@ -157,8 +131,6 @@ bot.on("callback_query:data", async (ctx) => {
       await ctx.replyWithDocument(mediaUrl);
       return;
     }
-
-    // Teams
     if (data === "view_teams") {
       await ctx.answerCallbackQuery();
       await handleViewTeams(ctx);
@@ -176,15 +148,11 @@ bot.on("callback_query:data", async (ctx) => {
       await handleJoinTeam(ctx, teamId);
       return;
     }
-
-    // Payments
     if (data === "start_payment") {
       await ctx.answerCallbackQuery();
       await handleStartPayment(ctx);
       return;
     }
-
-    // Locations
     if (data === "view_locations") {
       await ctx.answerCallbackQuery();
       await handleViewLocations(ctx);
@@ -196,8 +164,6 @@ bot.on("callback_query:data", async (ctx) => {
       await handleLocationDetail(ctx, locationId);
       return;
     }
-
-    // Programs
     if (data === "view_programs") {
       await ctx.answerCallbackQuery();
       await handleViewPrograms(ctx);
@@ -209,8 +175,6 @@ bot.on("callback_query:data", async (ctx) => {
       await handleProgramDetail(ctx, programId);
       return;
     }
-
-    // Leaders
     if (data === "view_leaders") {
       await ctx.answerCallbackQuery();
       await handleViewLeaders(ctx);
@@ -222,50 +186,42 @@ bot.on("callback_query:data", async (ctx) => {
       await handleLeaderDetail(ctx, leaderId);
       return;
     }
-
-    // About
     if (data === "about") {
       await ctx.answerCallbackQuery();
       await ctx.reply(
-        "ℹ️ *About My Fellow*\n\n" +
-          "My Fellow is your community companion — connecting you to events, devotions, " +
+        "\u2139\uFE0F *About My Fellow*\n\n" +
+          "My Fellow is your community companion \u2014 connecting you to events, devotions, " +
           "teams, programs, and more.\n\n" +
-          "Built with ❤️ for the fellowship.",
+          "Built with \u2764\uFE0F for the fellowship.",
         { parse_mode: "Markdown" },
       );
       return;
     }
-
-    // Settings
     if (data === "settings") {
       await ctx.answerCallbackQuery();
-      const logStatus = ctx.session.token ? "✅ Logged in" : "❌ Not logged in";
+      const logStatus = ctx.session.token
+        ? "\u2705 Logged in"
+        : "\u274C Not logged in";
       await ctx.reply(
         `⚙️ *Settings*\n\nLogin status: ${logStatus}\n\nUse /login to log in or /start to restart.`,
         { parse_mode: "Markdown" },
       );
       return;
     }
-
     await ctx.answerCallbackQuery("Unknown action");
   } catch (err: any) {
     console.error("Callback error:", err.message);
     await ctx.answerCallbackQuery("An error occurred").catch(() => {});
   }
 });
-
-// ── Text Message Router (for multi-step forms) ─────────
-
 bot.on("message:text", async (ctx) => {
   const text = ctx.message.text;
   const s = ctx.session as any;
-
-  // Login flow
   if (s.__pendingLogin) {
     const parts = text.split(" ");
     if (parts.length < 2) {
       await ctx.reply(
-        "⚠️ Please send: `phone password` (separated by a space)",
+        "\u26A0\uFE0F Please send: `phone password` (separated by a space)",
         {
           parse_mode: "Markdown",
         },
@@ -274,7 +230,7 @@ bot.on("message:text", async (ctx) => {
     }
     const [phone, password] = parts;
     if (password.length < 6) {
-      await ctx.reply("⚠️ Password must be at least 6 characters.");
+      await ctx.reply("\u26A0\uFE0F Password must be at least 6 characters.");
       return;
     }
     try {
@@ -291,7 +247,7 @@ bot.on("message:text", async (ctx) => {
         role: data.user?.role || data.role || "user",
       };
       delete s.__pendingLogin;
-      await ctx.reply("✅ *Logged in successfully!*", {
+      await ctx.reply("\u2705 *Logged in successfully!*", {
         parse_mode: "Markdown",
       });
       await sendMainMenu(ctx);
@@ -301,36 +257,22 @@ bot.on("message:text", async (ctx) => {
     }
     return;
   }
-
-  // Event registration flow
   if (s.__pendingEventReg) {
     const consumed = await completeEventRegistration(ctx, text);
     if (consumed) return;
   }
-
-  // Team join request flow
   if (s.__pendingJoinReq) {
     const consumed = await completeJoinRequest(ctx, text);
     if (consumed) return;
   }
-
-  // Payment flow
   if (s.__pendingPayment) {
     const consumed = await completePayment(ctx, text);
     if (consumed) return;
   }
-
-  // Default: show menu
   await ctx.reply("I didn't understand that. Use /menu to see your options.");
 });
-
-// ── Error Handler ───────────────────────────────────────
-
 bot.catch((err) => {
   console.error(`Bot error for update ${err.ctx.update.update_id}:`, err.error);
 });
-
-// ── Start ───────────────────────────────────────────────
-
-console.log("🚀 My Fellow Bot is starting...");
+console.log("\uD83D\uDE80 My Fellow Bot is starting...");
 bot.start();

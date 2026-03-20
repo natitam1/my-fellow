@@ -1,31 +1,26 @@
 import { InlineKeyboard } from "grammy";
 import { BotContext } from "../context";
-
-/**
- * Sends the main menu with all available options as inline keyboard buttons.
- */
 export async function sendMainMenu(ctx: BotContext) {
   const isLoggedIn = !!ctx.session.token;
-
   const text =
-    "🏠 *Main Menu*\n\n" + "Welcome to My Fellow Bot! Choose an option below:";
-
+    "\uD83C\uDFE0 *Main Menu*\n\n" +
+    "Welcome to My Fellow Bot! Choose an option below:";
   const kb = new InlineKeyboard()
-    .text("📅 Events", "view_events")
-    .text("📖 Devotions", "view_devotions")
+    .text("\uD83D\uDCC5 Events", "view_events")
+    .text("\uD83D\uDCD6 Devotions", "view_devotions")
     .row()
-    .text("👥 Teams", "view_teams")
-    .text("📆 Programs", "view_programs")
+    .text("\uD83D\uDC65 Teams", "view_teams")
+    .text("\uD83D\uDCC6 Programs", "view_programs")
     .row()
-    .text("📍 Locations", "view_locations")
-    .text("👤 Leaders", "view_leaders")
+    .text("\uD83D\uDCCD Locations", "view_locations")
+    .text("\uD83D\uDC64 Leaders", "view_leaders")
     .row();
-
   if (isLoggedIn) {
-    kb.text("💸 Contribute", "start_payment").row();
+    kb.text("\uD83D\uDCB8 Contribute", "start_payment").row();
   }
-
-  kb.text("ℹ️ About", "about").text("⚙️ Settings", "settings");
-
+  kb.text("\u2139\uFE0F About", "about").text(
+    "\u2699\uFE0F Settings",
+    "settings",
+  );
   await ctx.reply(text, { parse_mode: "Markdown", reply_markup: kb });
 }
