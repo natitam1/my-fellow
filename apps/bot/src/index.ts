@@ -5,6 +5,7 @@ import {
   handleStart,
   handleContact,
   handleNameCollected,
+  handlePasswordSubmitted,
   handleLogout,
 } from "./bot/handlers/auth";
 import { handleHome } from "./bot/handlers/home";
@@ -170,6 +171,9 @@ bot.on("message:text", async (ctx) => {
   }
 
   const p = s as any;
+  if (p.__pendingPassword) {
+    return handlePasswordSubmitted(ctx, text);
+  }
   if (p.__pendingPayment) {
     return completePayment(ctx, text);
   }
