@@ -1,60 +1,47 @@
 import { BotContext } from "../context";
 import { getAllLeaders, getLeaderById } from "../../api/leaders";
+import { editOrSend } from "../message-manager";
+import { buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard } from "grammy";
-export async function handleViewLeaders(ctx: BotContext) {
-  try {
-    const result = await getAllLeaders();
-    const leaders = Array.isArray(result)
-      ? result
-      : result.leaders || result.data || [];
-    if (!leaders.length) {
-      await ctx.reply("\uD83D\uDC64 No leaders listed.");
-      return;
-    }
-    const kb = new InlineKeyboard();
-    for (const l of leaders.slice(0, 15)) {
-      kb.text(`👤 ${l.name}`, `leader_${l._id}`).row();
-    }
-    kb.text("\uD83D\uDD19 Back to Menu", "back_to_menu");
-    await ctx.reply(
-      "\uD83D\uDC64 *Our Leaders*\n\nSelect a leader to learn more:",
-      {
-        parse_mode: "Markdown",
-        reply_markup: kb,
-      },
-    );
-  } catch {
-    await ctx.reply("\u274C Failed to load leaders.");
+
+const PAGE_SIZE = 5;
+
+export async function handleLeadersList(ctx: BotContext) {
+  ctx.session.currentSection = "leaders";
+  const page = ctx.session.currentPage || 1;
+  const result = await getAllLeaders();
+  const allLeaders = Array.isArray(result) ? result : result.leaders || result.data || [];
+  
+  if (!allLeaders.length) return editOrSend(ctx, "No leaders found.");
+  
+  const start = (page - 1) * PAGE_SIZE;
+  const pagedLeaders = allLeaders.slice(start, start + PAGE_SIZE);
+  const hasMore = allLeaders.length > start + PAGE_SIZE;
+
+  let text = `Leaders\n\nPage ${page} of ${Math.ceil(allLeaders.length / PAGE_SIZE)}\n\nMeet our leadership team:\n\n`;
+  const kb = buildPaginationKeyboard("leaders", page, hasMore, "fi_menu");
+  
+  for (const leader of pagedLeaders) {
+    kb.text(leader.name, `leader_view_${leader._id}`).row();
   }
+  
+  await editOrSend(ctx, text, { reply_markup: kb });
 }
-export async function handleLeaderDetail(ctx: BotContext, leaderId: string) {
+
+export async function handleLeaderDetail(ctx: BotContext, id: string) {
   try {
-    const result = await getLeaderById(leaderId);
+    const result = await getLeaderById(id);
     const l = result.leader || result;
-    let text = `👤 *${l.name}*\n\n`;
-    if (l.role) text += `💼 Role: ${l.role}\n`;
-    if (l.bio) text += `📝 ${l.bio}\n\n`;
-    if (l.phoneNumber) text += `📱 Phone: ${l.phoneNumber}\n`;
-    if (l.telegram) text += `✈️ Telegram: ${l.telegram}\n`;
-    if (l.type) text += `🏷 Type: ${l.type}\n`;
+    const text = `Leader Detail\n\nName: ${l.name}\nRole: ${l.role || "N/A"}\n\nPhone: ${l.phoneNumber || "N/A"}\nTelegram: ${l.telegram || "N/A"}\n\nBio:\n${l.bio || "N/A"}`;
+    
     const kb = new InlineKeyboard();
     if (l.telegram) {
-      kb.url(
-        "\uD83D\uDCAC Message on Telegram",
-        `https://t.me/${l.telegram.replace("@", "")}`,
-      ).row();
+      kb.url("Message on Telegram", `https://t.me/${l.telegram.replace("@", "")}`).row();
     }
-    kb.text("\uD83D\uDD19 Back to Leaders", "view_leaders");
-    if (l.image) {
-      await ctx.replyWithPhoto(l.image, {
-        caption: text,
-        parse_mode: "Markdown",
-        reply_markup: kb,
-      });
-    } else {
-      await ctx.reply(text, { parse_mode: "Markdown", reply_markup: kb });
-    }
+    kb.text("Back", "fi_leaders");
+      
+    await editOrSend(ctx, text, { reply_markup: kb });
   } catch {
-    await ctx.reply("\u274C Could not load leader details.");
+    await editOrSend(ctx, "Could not load leader detail.");
   }
 }

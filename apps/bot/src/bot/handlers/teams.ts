@@ -1,108 +1,45 @@
 import { BotContext } from "../context";
-import { getAllTeams, getTeamById, createJoinRequest } from "../../api/teams";
+import { getAllTeams, getTeamById } from "../../api/teams";
+import { editOrSend } from "../message-manager";
+import { buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard } from "grammy";
-export async function handleViewTeams(ctx: BotContext) {
-  try {
-    const result = await getAllTeams();
-    const teams = Array.isArray(result)
-      ? result
-      : result.teams || result.data || [];
-    if (!teams.length) {
-      await ctx.reply("\uD83D\uDC65 No teams available.");
-      return;
-    }
-    const kb = new InlineKeyboard();
-    for (const team of teams.slice(0, 15)) {
-      kb.text(team.name, `team_${team._id}`).row();
-    }
-    kb.text("\uD83D\uDD19 Back to Menu", "back_to_menu");
-    await ctx.reply("\uD83D\uDC65 *Teams*\n\nSelect a team to learn more:", {
-      parse_mode: "Markdown",
-      reply_markup: kb,
-    });
-  } catch (err: any) {
-    await ctx.reply("\u274C Failed to load teams.");
-    console.error("handleViewTeams error:", err.message);
+
+const PAGE_SIZE = 5;
+
+export async function handleTeamsList(ctx: BotContext) {
+  ctx.session.currentSection = "teams";
+  const page = ctx.session.currentPage || 1;
+  const result = await getAllTeams();
+  const allTeams = Array.isArray(result) ? result : result.teams || result.data || [];
+  
+  if (!allTeams.length) return editOrSend(ctx, "No teams found.");
+  
+  const start = (page - 1) * PAGE_SIZE;
+  const pagedTeams = allTeams.slice(start, start + PAGE_SIZE);
+  const hasMore = allTeams.length > start + PAGE_SIZE;
+
+  let text = `Teams\n\nPage ${page} of ${Math.ceil(allTeams.length / PAGE_SIZE)}\n\nExplore our teams and ministries:\n\n`;
+  const kb = buildPaginationKeyboard("teams", page, hasMore, "fi_menu");
+  
+  for (const team of pagedTeams) {
+    kb.text(team.name, `team_view_${team._id}`).row();
   }
+  
+  await editOrSend(ctx, text, { reply_markup: kb });
 }
-export async function handleTeamDetail(ctx: BotContext, teamId: string) {
+
+export async function handleTeamDetail(ctx: BotContext, id: string) {
   try {
-    const result = await getTeamById(teamId);
+    const result = await getTeamById(id);
     const team = result.team || result;
-    let text = `👥 *${team.name}*\n\n`;
-    text += `📝 ${team.description || ""}\n\n`;
-    if (team.category) text += `📂 Category: ${team.category}\n`;
-    if (team.location) text += `📍 Location: ${team.location}\n`;
-    if (team.meetingDay) text += `📅 Meeting: ${team.meetingDay}`;
-    if (team.time) text += ` at ${team.time}`;
-    text += "\n";
-    if (team.leader?.name) text += `\n👤 Leader: ${team.leader.name}`;
-    const kb = new InlineKeyboard();
-    if (ctx.session.token) {
-      kb.text("\uD83D\uDCDD Request to Join", `join_team_${team._id}`).row();
-    }
-    kb.text("\uD83D\uDD19 Back to Teams", "view_teams");
-    if (team.image) {
-      await ctx.replyWithPhoto(team.image, {
-        caption: text,
-        parse_mode: "Markdown",
-        reply_markup: kb,
-      });
-    } else {
-      await ctx.reply(text, { parse_mode: "Markdown", reply_markup: kb });
-    }
-  } catch (err: any) {
-    await ctx.reply("\u274C Could not load team details.");
+    const text = `Team Detail\n\nName: ${team.name}\nDescription: ${team.description || "N/A"}\n\nCategory: ${team.category || "N/A"}\nLocation: ${team.location || "N/A"}\nLeader: ${team.leader?.name || "N/A"}`;
+    
+    const kb = new InlineKeyboard()
+      .text("Join Team", `team_join_${team._id}`).row()
+      .text("Back", "fi_teams");
+      
+    await editOrSend(ctx, text, { reply_markup: kb });
+  } catch {
+    await editOrSend(ctx, "Could not load team detail.");
   }
-}
-export async function handleJoinTeam(ctx: BotContext, teamId: string) {
-  if (!ctx.session.token) {
-    await ctx.reply("\uD83D\uDD12 Please log in first to join a team.");
-    return;
-  }
-  await ctx.reply(
-    "\uD83D\uDCDD *Join Request*\n\n" +
-      "Please send your details (each on a new line):\n\n" +
-      "Full Name\n" +
-      "Phone Number\n" +
-      "Department\n" +
-      "Year\n" +
-      "Your Telegram Handle (e.g. @username)\n" +
-      "Why do you want to join? (short message)",
-    { parse_mode: "Markdown" },
-  );
-  (ctx.session as any).__pendingJoinReq = { teamId };
-}
-export async function completeJoinRequest(ctx: BotContext, text: string) {
-  const pending = (ctx.session as any).__pendingJoinReq;
-  if (!pending) return false;
-  const lines = text.split("\n").map((l) => l.trim());
-  if (lines.length < 6) {
-    await ctx.reply(
-      "\u26A0\uFE0F Please provide all 6 lines:\nFull Name\nPhone\nDepartment\nYear\nTelegram Handle\nMessage",
-    );
-    return true;
-  }
-  try {
-    await createJoinRequest(ctx.session.token!, {
-      teamId: pending.teamId,
-      fullName: lines[0],
-      phoneNumber: lines[1],
-      department: lines[2],
-      year: lines[3],
-      telegramHandle: lines[4],
-      message: lines[5],
-    });
-    await ctx.reply(
-      "\uD83C\uDF89 *Join request submitted!* You will be notified when it is reviewed.",
-      {
-        parse_mode: "Markdown",
-      },
-    );
-  } catch (err: any) {
-    const msg = err.response?.data?.message || err.message;
-    await ctx.reply(`❌ Join request failed: ${msg}`);
-  }
-  delete (ctx.session as any).__pendingJoinReq;
-  return true;
 }

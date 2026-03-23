@@ -1,115 +1,61 @@
 import { BotContext } from "../context";
-import { getAllEvents, getEventById, registerForEvent } from "../../api/events";
+import { getAllEvents, getEventById } from "../../api/events";
+import { editOrSend } from "../message-manager";
+import { buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard } from "grammy";
-export async function handleViewEvents(ctx: BotContext) {
+
+const PAGE_SIZE = 5;
+
+export async function handleEventsList(ctx: BotContext) {
+  ctx.session.currentSection = "events";
+  const page = ctx.session.currentPage || 1;
+  
   try {
     const result = await getAllEvents();
-    const events = Array.isArray(result)
-      ? result
-      : result.events || result.data || [];
-    if (!events.length) {
-      await ctx.reply(
-        "\uD83D\uDCC5 No upcoming events at the moment. Check back later!",
-      );
-      return;
+    const allEvents = Array.isArray(result) ? result : result.events || result.data || [];
+    
+    if (!allEvents.length) {
+      return editOrSend(ctx, "No events available at this time.");
     }
-    const kb = new InlineKeyboard();
-    for (const event of events.slice(0, 10)) {
-      kb.text(event.title, `event_${event._id}`).row();
+
+    const start = (page - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    const pagedEvents = allEvents.slice(start, end);
+    const hasMore = allEvents.length > end;
+
+    let text = `Events\n\nPage ${page} of ${Math.ceil(allEvents.length / PAGE_SIZE)}\n\nSelect an event for more detail:\n\n`;
+    
+    const kb = buildPaginationKeyboard("events", page, hasMore, "fi_menu");
+    
+    for (const event of pagedEvents) {
+      kb.text(event.title, `event_view_${event._id}`).row();
     }
-    kb.text("\uD83D\uDD19 Back to Menu", "back_to_menu");
-    await ctx.reply(
-      "\uD83D\uDCC5 *Upcoming Events*\n\nSelect an event to view details:",
-      {
-        parse_mode: "Markdown",
-        reply_markup: kb,
-      },
-    );
+
+    await editOrSend(ctx, text, { reply_markup: kb });
   } catch (err: any) {
-    await ctx.reply("\u274C Failed to load events. Please try again later.");
-    console.error("handleViewEvents error:", err.message);
+    await editOrSend(ctx, "Failed to load events. Try again later.");
   }
 }
+
 export async function handleEventDetail(ctx: BotContext, eventId: string) {
   try {
     const result = await getEventById(eventId);
     const event = result.event || result;
-    const startDate = new Date(event.startDate).toLocaleDateString("en-US", {
+    
+    const dateStr = new Date(event.startDate).toLocaleDateString("en-GB", {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
     });
-    let text = `📅 *${event.title}*\n\n`;
-    text += `📝 ${event.shortDescription || ""}\n\n`;
-    if (event.fullDescription) text += `${event.fullDescription}\n\n`;
-    text += `🗓 *Date:* ${startDate}\n`;
+
+    const text = `Event Detail\n\nTitle: ${event.title}\nDate: ${dateStr}\n\nDescription: ${event.shortDescription || ""}\n\n${event.fullDescription || ""}`;
+
     const kb = new InlineKeyboard()
-      .text(
-        "\u2705 Register for this Event",
-        `register_event_${event._id}_${event.title}`,
-      )
-      .row()
-      .text("\uD83D\uDD19 Back to Events", "view_events");
-    if (event.image) {
-      await ctx.replyWithPhoto(event.image, {
-        caption: text,
-        parse_mode: "Markdown",
-        reply_markup: kb,
-      });
-    } else {
-      await ctx.reply(text, { parse_mode: "Markdown", reply_markup: kb });
-    }
+      .text("Back", "fi_events");
+
+    await editOrSend(ctx, text, { reply_markup: kb });
   } catch (err: any) {
-    await ctx.reply("\u274C Could not load event details.");
-    console.error("handleEventDetail error:", err.message);
+    await editOrSend(ctx, "Error loading event detail.");
   }
-}
-export async function handleEventRegistration(
-  ctx: BotContext,
-  eventTitle: string,
-) {
-  const username = ctx.from?.username ? `@${ctx.from.username}` : "";
-  await ctx.reply(
-    `✅ *Registering for: ${eventTitle}*\n\n` +
-      "Please send your details in the following format (each on a new line):\n\n" +
-      "Full Name\n" +
-      "Phone Number\n" +
-      "Team (e.g. Worship, Outreach)\n" +
-      "Department\n" +
-      "Year of Study",
-    { parse_mode: "Markdown" },
-  );
-  (ctx.session as any).__pendingEventReg = { eventTitle, username };
-}
-export async function completeEventRegistration(ctx: BotContext, text: string) {
-  const pending = (ctx.session as any).__pendingEventReg;
-  if (!pending) return false;
-  const lines = text.split("\n").map((l) => l.trim());
-  if (lines.length < 5) {
-    await ctx.reply(
-      "\u26A0\uFE0F Please provide all 5 lines:\nFull Name\nPhone Number\nTeam\nDepartment\nYear of Study",
-    );
-    return true;
-  }
-  try {
-    await registerForEvent({
-      fullName: lines[0],
-      phoneNumber: lines[1],
-      team: lines[2],
-      department: lines[3],
-      yearOfStudy: lines[4],
-      telegramUserName: pending.username,
-      eventTitle: pending.eventTitle,
-    });
-    await ctx.reply(
-      `🎉 *Registration Successful!*\n\nYou are registered for *${pending.eventTitle}*.`,
-      { parse_mode: "Markdown" },
-    );
-  } catch (err: any) {
-    const msg = err.response?.data?.message || err.message;
-    await ctx.reply(`❌ Registration failed: ${msg}`);
-  }
-  delete (ctx.session as any).__pendingEventReg;
-  return true;
 }

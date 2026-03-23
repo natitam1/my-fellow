@@ -1,115 +1,62 @@
 import { BotContext } from "../context";
-import {
-  getAllDevotions,
-  recordDevotionView,
-  likeUnlikeDevotion,
-} from "../../api/devotions";
+import { getAllDevotions, recordDevotionView, likeUnlikeDevotion } from "../../api/devotions";
+import { editOrSend } from "../message-manager";
+import { buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard } from "grammy";
-export async function handleViewDevotions(
-  ctx: BotContext,
-  type?: "text" | "voice" | "pdf" | "book",
-) {
+
+const PAGE_SIZE = 5;
+
+export async function handleDevotionsList(ctx: BotContext) {
+  ctx.session.currentSection = "devotions";
+  const page = ctx.session.currentPage || 1;
+  const type = ctx.session.onboardingData?.team as any; // Temporary use as type filter
+
   try {
-    const result = await getAllDevotions({
-      page: ctx.session.page || 1,
-      limit: 10,
-      type,
-    });
-    const devotions = Array.isArray(result)
-      ? result
-      : result.devotions || result.data || [];
-    if (!devotions.length) {
-      await ctx.reply("\uD83D\uDCD6 No devotions found.");
-      return;
+    const result = await getAllDevotions({ page, limit: PAGE_SIZE, type });
+    const allDevotions = Array.isArray(result) ? result : result.devotions || result.data || [];
+    const total = result.total || allDevotions.length;
+
+    if (!allDevotions.length) {
+      return editOrSend(ctx, "No devotions available.");
     }
-    const kb = new InlineKeyboard();
-    for (const d of devotions.slice(0, 10)) {
-      const icon =
-        d.type === "voice"
-          ? "\uD83C\uDFA7"
-          : d.type === "pdf"
-            ? "\uD83D\uDCC4"
-            : d.type === "book"
-              ? "\uD83D\uDCDA"
-              : "\uD83D\uDCDD";
-      kb.text(`${icon} ${d.title}`, `devotion_${d._id}`).row();
+
+    const hasMore = total > page * PAGE_SIZE;
+
+    let text = `Devotions\n\nPage ${page} of ${Math.ceil(total / PAGE_SIZE)}\n\nSelect a devotion for more detail:\n\n`;
+    
+    const kb = buildPaginationKeyboard("devotions", page, hasMore, "fi_menu");
+    
+    for (const dev of allDevotions) {
+      kb.text(dev.title, `devotion_view_${dev._id}`).row();
     }
-    kb.text("\uD83D\uDCDD Text", "devfilter_text")
-      .text("\uD83C\uDFA7 Voice", "devfilter_voice")
-      .text("\uD83D\uDCC4 PDF", "devfilter_pdf")
-      .row();
-    kb.text("\uD83D\uDD19 Back to Menu", "back_to_menu");
-    await ctx.reply(
-      "\uD83D\uDCD6 *Devotions*\n\nSelect a devotion to read or listen:",
-      {
-        parse_mode: "Markdown",
-        reply_markup: kb,
-      },
-    );
+
+    await editOrSend(ctx, text, { reply_markup: kb });
   } catch (err: any) {
-    await ctx.reply("\u274C Failed to load devotions.");
-    console.error("handleViewDevotions error:", err.message);
+    await editOrSend(ctx, "Failed to load devotions.");
   }
 }
-export async function handleDevotionDetail(
-  ctx: BotContext,
-  devotionId: string,
-) {
+
+export async function handleDevotionDetail(ctx: BotContext, devotionId: string) {
   try {
     await recordDevotionView(devotionId).catch(() => {});
     const result = await getAllDevotions();
-    const devotions = Array.isArray(result)
-      ? result
-      : result.devotions || result.data || [];
+    const devotions = Array.isArray(result) ? result : result.devotions || result.data || [];
     const d = devotions.find((dev: any) => dev._id === devotionId);
+    
     if (!d) {
-      await ctx.reply("\u274C Devotion not found.");
-      return;
+      return editOrSend(ctx, "Devotion not found.");
     }
-    let text = `📖 *${d.title}*\n`;
-    text += `✍️ _by ${d.author}_\n\n`;
-    if (d.type === "text" && d.content) {
-      text += d.content.substring(0, 3000);
-    }
-    if (d.duration) text += `\n⏱ Duration: ${d.duration}`;
-    if (d.tags) text += `\n🏷 Tags: ${d.tags}`;
+
+    const text = `Devotion Detail\n\nTitle: ${d.title}\nAuthor: ${d.author}\n\nContent:\n${d.content?.substring(0, 1000) || ""}`;
+
     const kb = new InlineKeyboard();
     if (ctx.session.token) {
-      kb.text("\u2764\uFE0F Like / Unlike", `like_dev_${d._id}`).row();
+      kb.text("Like / Unlike", `devotion_like_${d._id}`).row();
     }
-    if (d.type === "voice" && d.media) {
-      kb.text("\uD83C\uDFA7 Listen", `listen_dev_${d._id}_${d.media}`).row();
-    }
-    if ((d.type === "pdf" || d.type === "book") && d.media) {
-      kb.text(
-        "\uD83D\uDCC4 Download",
-        `download_dev_${d._id}_${d.media}`,
-      ).row();
-    }
-    kb.text("\uD83D\uDD19 Back to Devotions", "view_devotions");
-    if (d.image) {
-      await ctx.replyWithPhoto(d.image, {
-        caption: text,
-        parse_mode: "Markdown",
-        reply_markup: kb,
-      });
-    } else {
-      await ctx.reply(text, { parse_mode: "Markdown", reply_markup: kb });
-    }
+    kb.text("Back", "fi_devotions");
+
+    await editOrSend(ctx, text, { reply_markup: kb });
   } catch (err: any) {
-    await ctx.reply("\u274C Could not load devotion.");
-    console.error("handleDevotionDetail error:", err.message);
-  }
-}
-export async function handleLikeDevotion(ctx: BotContext, devotionId: string) {
-  if (!ctx.session.token) {
-    await ctx.reply("\uD83D\uDD12 Please log in first to like devotions.");
-    return;
-  }
-  try {
-    const result = await likeUnlikeDevotion(ctx.session.token, devotionId);
-    await ctx.answerCallbackQuery(result.message || "Toggled like!");
-  } catch (err: any) {
-    await ctx.answerCallbackQuery("Failed to toggle like.");
+    await editOrSend(ctx, "Error loading devotion detail.");
   }
 }

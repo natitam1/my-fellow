@@ -1,278 +1,196 @@
 import { Bot, session } from "grammy";
 import { config } from "./config";
 import { BotContext, SessionData } from "./bot/context";
-import { sendMainMenu } from "./bot/menus/main";
 import {
-  handleViewEvents,
-  handleEventDetail,
-  handleEventRegistration,
-  completeEventRegistration,
-} from "./bot/handlers/events";
+  handleStart,
+  handleContact,
+  handleNameCollected,
+  handleLogout,
+} from "./bot/handlers/auth";
+import { handleHome } from "./bot/handlers/home";
+import { handleFellowInfo } from "./bot/handlers/fellow-info";
+import { handleEventsList, handleEventDetail } from "./bot/handlers/events";
 import {
-  handleViewDevotions,
+  handleDevotionsList,
   handleDevotionDetail,
-  handleLikeDevotion,
 } from "./bot/handlers/devotions";
+import { handleTeamsList, handleTeamDetail } from "./bot/handlers/teams";
 import {
-  handleViewTeams,
-  handleTeamDetail,
-  handleJoinTeam,
-  completeJoinRequest,
-} from "./bot/handlers/teams";
-import { handleStartPayment, completePayment } from "./bot/handlers/payments";
-import {
-  handleViewLocations,
+  handleLocationsList,
   handleLocationDetail,
 } from "./bot/handlers/locations";
 import {
-  handleViewPrograms,
+  handleProgramsList,
   handleProgramDetail,
 } from "./bot/handlers/programs";
-import { handleViewLeaders, handleLeaderDetail } from "./bot/handlers/leaders";
+import { handleLeadersList, handleLeaderDetail } from "./bot/handlers/leaders";
+import {
+  handleProductsList,
+  handleProductDetail,
+} from "./bot/handlers/marketplace";
+import {
+  handleMyProfile,
+  handleJoinRequests,
+  handleMyOrders,
+  handleMyGivings,
+} from "./bot/handlers/profile";
+import {
+  handlePayments,
+  handleDonateStart,
+  completePayment,
+} from "./bot/handlers/payments";
+import { handleHelp } from "./bot/handlers/help";
+import { deleteLastBotMessage } from "./bot/message-manager";
+
 const bot = new Bot<BotContext>(config.BOT_TOKEN);
+
 bot.use(
   session({
-    initial: (): SessionData => ({}),
+    initial: (): SessionData => ({
+      state: "IDLE",
+      currentPage: 1,
+    }),
   }),
 );
-bot.command("start", async (ctx) => {
-  ctx.session = {} as SessionData;
-  await ctx.reply(
-    "\uD83D\uDC4B *Welcome to My Fellow Bot!*\n\n" +
-      "Your gateway to events, devotions, teams, and more.\n\n" +
-      "Use the menu below to get started, or type /menu at any time.",
-    { parse_mode: "Markdown" },
-  );
-  await sendMainMenu(ctx);
-});
-bot.command("menu", async (ctx) => {
-  await sendMainMenu(ctx);
-});
-bot.command("help", async (ctx) => {
-  await ctx.reply(
-    "\u2139\uFE0F *My Fellow Bot Help*\n\n" +
-      "Available commands:\n" +
-      "/start \u2014 Start the bot\n" +
-      "/menu \u2014 Show main menu\n" +
-      "/login \u2014 Log in to your account\n" +
-      "/help \u2014 Show this help message\n\n" +
-      "You can also use the inline buttons to navigate.",
-    { parse_mode: "Markdown" },
-  );
-});
-bot.command("login", async (ctx) => {
-  await ctx.reply(
-    "\uD83D\uDD12 *Login*\n\nPlease send your phone number and password separated by a space.\n\n" +
-      "Example: `0912345678 MyPass1`\n\n" +
-      "\u26A0\uFE0F Password must be at least 6 characters.",
-    { parse_mode: "Markdown" },
-  );
-  (ctx.session as any).__pendingLogin = true;
-});
+
+// Commands
+bot.command("start", handleStart);
+bot.command("menu", handleHome);
+bot.command("logout", handleLogout);
+
+// Contact sharing
+bot.on("message:contact", handleContact);
+
+// Reply keyboard text matching (Bottom UI)
+bot.hears("Home", handleHome);
+bot.hears("Fellow Info", handleFellowInfo);
+bot.hears("My Profile", handleMyProfile);
+bot.hears("Payments", handlePayments);
+bot.hears("Logout", handleLogout);
+bot.hears("Help", handleHelp);
+
+// Callback queries
 bot.on("callback_query:data", async (ctx) => {
   const data = ctx.callbackQuery.data;
+  const s = ctx.session;
+
   try {
-    if (data === "back_to_menu") {
-      await ctx.answerCallbackQuery();
-      await sendMainMenu(ctx);
-      return;
+    // Top-level submenus
+    if (data === "fi_menu") {
+      s.currentPage = 1;
+      return handleFellowInfo(ctx);
     }
-    if (data === "view_events") {
-      await ctx.answerCallbackQuery();
-      await handleViewEvents(ctx);
-      return;
+    if (data === "profile_menu") return handleMyProfile(ctx);
+    if (data === "back_to_menu") return handleHome(ctx);
+
+    // Fellow Info sections
+    if (data === "fi_events") {
+      s.currentPage = 1;
+      return handleEventsList(ctx);
     }
-    if (data.startsWith("event_")) {
-      await ctx.answerCallbackQuery();
-      const eventId = data.replace("event_", "");
-      await handleEventDetail(ctx, eventId);
-      return;
+    if (data === "fi_devotions") {
+      s.currentPage = 1;
+      return handleDevotionsList(ctx);
     }
-    if (data.startsWith("register_event_")) {
-      await ctx.answerCallbackQuery();
-      const parts = data.replace("register_event_", "").split("_");
-      const title = parts.slice(1).join("_");
-      await handleEventRegistration(ctx, title);
-      return;
+    if (data === "fi_teams") {
+      s.currentPage = 1;
+      return handleTeamsList(ctx);
     }
-    if (data === "view_devotions") {
-      await ctx.answerCallbackQuery();
-      await handleViewDevotions(ctx);
-      return;
+    if (data === "fi_locations") {
+      s.currentPage = 1;
+      return handleLocationsList(ctx);
     }
-    if (data.startsWith("devfilter_")) {
-      await ctx.answerCallbackQuery();
-      const type = data.replace("devfilter_", "") as any;
-      await handleViewDevotions(ctx, type);
-      return;
+    if (data === "fi_programs") {
+      s.currentPage = 1;
+      return handleProgramsList(ctx);
     }
-    if (data.startsWith("devotion_")) {
-      await ctx.answerCallbackQuery();
-      const devotionId = data.replace("devotion_", "");
-      await handleDevotionDetail(ctx, devotionId);
-      return;
+    if (data === "fi_leaders") {
+      s.currentPage = 1;
+      return handleLeadersList(ctx);
     }
-    if (data.startsWith("like_dev_")) {
-      const devotionId = data.replace("like_dev_", "");
-      await handleLikeDevotion(ctx, devotionId);
-      return;
+    if (data === "fi_marketplace") {
+      s.currentPage = 1;
+      return handleProductsList(ctx);
     }
-    if (data.startsWith("listen_dev_")) {
-      await ctx.answerCallbackQuery();
-      const parts = data.replace("listen_dev_", "").split("_");
-      const mediaUrl = parts.slice(1).join("_");
-      await ctx.replyWithAudio(mediaUrl);
-      return;
+
+    // Pagination
+    if (data.includes("_page_")) {
+      const parts = data.split("_");
+      const section = parts[0];
+      const page = parseInt(parts[2]);
+      s.currentPage = page;
+      if (section === "events") return handleEventsList(ctx);
+      if (section === "devotions") return handleDevotionsList(ctx);
+      if (section === "teams") return handleTeamsList(ctx);
+      if (section === "locations") return handleLocationsList(ctx);
+      if (section === "programs") return handleProgramsList(ctx);
+      if (section === "leaders") return handleLeadersList(ctx);
+      if (section === "marketplace") return handleProductsList(ctx);
     }
-    if (data.startsWith("download_dev_")) {
-      await ctx.answerCallbackQuery();
-      const parts = data.replace("download_dev_", "").split("_");
-      const mediaUrl = parts.slice(1).join("_");
-      await ctx.replyWithDocument(mediaUrl);
-      return;
-    }
-    if (data === "view_teams") {
-      await ctx.answerCallbackQuery();
-      await handleViewTeams(ctx);
-      return;
-    }
-    if (data.startsWith("team_")) {
-      await ctx.answerCallbackQuery();
-      const teamId = data.replace("team_", "");
-      await handleTeamDetail(ctx, teamId);
-      return;
-    }
-    if (data.startsWith("join_team_")) {
-      await ctx.answerCallbackQuery();
-      const teamId = data.replace("join_team_", "");
-      await handleJoinTeam(ctx, teamId);
-      return;
-    }
-    if (data === "start_payment") {
-      await ctx.answerCallbackQuery();
-      await handleStartPayment(ctx);
-      return;
-    }
-    if (data === "view_locations") {
-      await ctx.answerCallbackQuery();
-      await handleViewLocations(ctx);
-      return;
-    }
-    if (data.startsWith("location_")) {
-      await ctx.answerCallbackQuery();
-      const locationId = data.replace("location_", "");
-      await handleLocationDetail(ctx, locationId);
-      return;
-    }
-    if (data === "view_programs") {
-      await ctx.answerCallbackQuery();
-      await handleViewPrograms(ctx);
-      return;
-    }
-    if (data.startsWith("program_")) {
-      await ctx.answerCallbackQuery();
-      const programId = data.replace("program_", "");
-      await handleProgramDetail(ctx, programId);
-      return;
-    }
-    if (data === "view_leaders") {
-      await ctx.answerCallbackQuery();
-      await handleViewLeaders(ctx);
-      return;
-    }
-    if (data.startsWith("leader_")) {
-      await ctx.answerCallbackQuery();
-      const leaderId = data.replace("leader_", "");
-      await handleLeaderDetail(ctx, leaderId);
-      return;
-    }
-    if (data === "about") {
-      await ctx.answerCallbackQuery();
-      await ctx.reply(
-        "\u2139\uFE0F *About My Fellow*\n\n" +
-          "My Fellow is your community companion \u2014 connecting you to events, devotions, " +
-          "teams, programs, and more.\n\n" +
-          "Built with \u2764\uFE0F for the fellowship.",
-        { parse_mode: "Markdown" },
-      );
-      return;
-    }
-    if (data === "settings") {
-      await ctx.answerCallbackQuery();
-      const logStatus = ctx.session.token
-        ? "\u2705 Logged in"
-        : "\u274C Not logged in";
-      await ctx.reply(
-        `⚙️ *Settings*\n\nLogin status: ${logStatus}\n\nUse /login to log in or /start to restart.`,
-        { parse_mode: "Markdown" },
-      );
-      return;
-    }
-    await ctx.answerCallbackQuery("Unknown action");
+
+    // Detail views
+    if (data.startsWith("event_view_"))
+      return handleEventDetail(ctx, data.replace("event_view_", ""));
+    if (data.startsWith("devotion_view_"))
+      return handleDevotionDetail(ctx, data.replace("devotion_view_", ""));
+    if (data.startsWith("team_view_"))
+      return handleTeamDetail(ctx, data.replace("team_view_", ""));
+    if (data.startsWith("location_view_"))
+      return handleLocationDetail(ctx, data.replace("location_view_", ""));
+    if (data.startsWith("program_view_"))
+      return handleProgramDetail(ctx, data.replace("program_view_", ""));
+    if (data.startsWith("leader_view_"))
+      return handleLeaderDetail(ctx, data.replace("leader_view_", ""));
+    if (data.startsWith("product_view_"))
+      return handleProductDetail(ctx, data.replace("product_view_", ""));
+
+    // Profile actions
+    if (data === "profile_join_requests") return handleJoinRequests(ctx);
+    if (data === "profile_orders") return handleMyOrders(ctx);
+    if (data === "profile_givings") return handleMyGivings(ctx);
+
+    // Payment actions
+    if (data === "pay_donate") return handleDonateStart(ctx);
+    if (data === "pay_history") return handleMyGivings(ctx);
+
+    await ctx.answerCallbackQuery();
   } catch (err: any) {
-    console.error("Callback error:", err.message);
-    await ctx.answerCallbackQuery("An error occurred").catch(() => {});
+    console.error("Callback handler error:", err.message);
+    await ctx.answerCallbackQuery("Error processing request.").catch(() => {});
   }
 });
+
+// Text messages (State machine & Inputs)
 bot.on("message:text", async (ctx) => {
   const text = ctx.message.text;
-  const s = ctx.session as any;
-  if (s.__pendingLogin) {
-    const parts = text.split(" ");
-    if (parts.length < 2) {
-      await ctx.reply(
-        "\u26A0\uFE0F Please send: `phone password` (separated by a space)",
-        {
-          parse_mode: "Markdown",
-        },
-      );
-      return;
-    }
-    const [phone, password] = parts;
-    if (password.length < 6) {
-      await ctx.reply("\u26A0\uFE0F Password must be at least 6 characters.");
-      return;
-    }
-    try {
-      const { publicApi } = await import("./api/client");
-      const { data } = await publicApi.post("/api/auth/login", {
-        phoneNumber: phone,
-        password,
-      });
-      ctx.session.token = data.token || data.accessToken;
-      ctx.session.user = {
-        _id: data.user?._id || data._id || "",
-        fullName: data.user?.fullName || data.fullName || "",
-        phoneNumber: phone,
-        role: data.user?.role || data.role || "user",
-      };
-      delete s.__pendingLogin;
-      await ctx.reply("\u2705 *Logged in successfully!*", {
-        parse_mode: "Markdown",
-      });
-      await sendMainMenu(ctx);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message;
-      await ctx.reply(`❌ Login failed: ${msg}`);
-    }
-    return;
+  const s = ctx.session;
+
+  if (s.state === "COLLECT_NAME") {
+    return handleNameCollected(ctx, text);
   }
-  if (s.__pendingEventReg) {
-    const consumed = await completeEventRegistration(ctx, text);
-    if (consumed) return;
+
+  const p = s as any;
+  if (p.__pendingPayment) {
+    return completePayment(ctx, text);
   }
-  if (s.__pendingJoinReq) {
-    const consumed = await completeJoinRequest(ctx, text);
-    if (consumed) return;
+
+  // Fallback if not matching any menu button
+  const validButtons = [
+    "Home",
+    "Fellow Info",
+    "My Profile",
+    "Payments",
+    "Help",
+    "Logout",
+  ];
+  if (!validButtons.includes(text)) {
+    await ctx.reply("Please use the menu buttons at the bottom to continue.");
   }
-  if (s.__pendingPayment) {
-    const consumed = await completePayment(ctx, text);
-    if (consumed) return;
-  }
-  await ctx.reply("I didn't understand that. Use /menu to see your options.");
 });
+
 bot.catch((err) => {
   console.error(`Bot error for update ${err.ctx.update.update_id}:`, err.error);
 });
-console.log("\uD83D\uDE80 My Fellow Bot is starting...");
+
+console.log("My Fellow Bot is updated. Starting in hybrid mode...");
 bot.start();

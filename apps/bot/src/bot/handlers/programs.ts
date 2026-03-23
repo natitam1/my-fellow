@@ -1,53 +1,44 @@
 import { BotContext } from "../context";
 import { getAllPrograms, getProgramById } from "../../api/programs";
+import { editOrSend } from "../message-manager";
+import { buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard } from "grammy";
-export async function handleViewPrograms(ctx: BotContext) {
-  try {
-    const result = await getAllPrograms();
-    const programs = Array.isArray(result)
-      ? result
-      : result.programs || result.data || [];
-    if (!programs.length) {
-      await ctx.reply("\uD83D\uDCC6 No programs available.");
-      return;
-    }
-    const kb = new InlineKeyboard();
-    for (const p of programs.slice(0, 10)) {
-      kb.text(`📆 ${p.title}`, `program_${p._id}`).row();
-    }
-    kb.text("\uD83D\uDD19 Back to Menu", "back_to_menu");
-    await ctx.reply("\uD83D\uDCC6 *Programs*\n\nSelect a program:", {
-      parse_mode: "Markdown",
-      reply_markup: kb,
-    });
-  } catch (err: any) {
-    await ctx.reply("\u274C Failed to load programs.");
+
+const PAGE_SIZE = 5;
+
+export async function handleProgramsList(ctx: BotContext) {
+  ctx.session.currentSection = "programs";
+  const page = ctx.session.currentPage || 1;
+  const result = await getAllPrograms();
+  const allPrograms = Array.isArray(result) ? result : result.programs || result.data || [];
+  
+  if (!allPrograms.length) return editOrSend(ctx, "No programs found.");
+  
+  const start = (page - 1) * PAGE_SIZE;
+  const pagedPrograms = allPrograms.slice(start, start + PAGE_SIZE);
+  const hasMore = allPrograms.length > start + PAGE_SIZE;
+
+  let text = `Programs\n\nPage ${page} of ${Math.ceil(allPrograms.length / PAGE_SIZE)}\n\nExplore our scheduled programs:\n\n`;
+  const kb = buildPaginationKeyboard("programs", page, hasMore, "fi_menu");
+  
+  for (const prog of pagedPrograms) {
+    kb.text(prog.title, `program_view_${prog._id}`).row();
   }
+  
+  await editOrSend(ctx, text, { reply_markup: kb });
 }
-export async function handleProgramDetail(ctx: BotContext, programId: string) {
+
+export async function handleProgramDetail(ctx: BotContext, id: string) {
   try {
-    const result = await getProgramById(programId);
+    const result = await getProgramById(id);
     const p = result.program || result;
-    let text = `📆 *${p.title}*\n\n`;
-    if (p.description) text += `📝 ${p.description}\n\n`;
-    if (p.day) text += `📅 Day: ${p.day}\n`;
-    if (p.time) text += `⏰ Time: ${p.time}\n`;
-    if (p.category) text += `📂 Category: ${p.category}\n`;
-    if (p.location) text += `📍 Location: ${p.location}\n`;
-    const kb = new InlineKeyboard().text(
-      "\uD83D\uDD19 Back to Programs",
-      "view_programs",
-    );
-    if (p.image) {
-      await ctx.replyWithPhoto(p.image, {
-        caption: text,
-        parse_mode: "Markdown",
-        reply_markup: kb,
-      });
-    } else {
-      await ctx.reply(text, { parse_mode: "Markdown", reply_markup: kb });
-    }
+    const text = `Program Detail\n\nTitle: ${p.title}\nDescription: ${p.description || "N/A"}\n\nDay: ${p.day || "N/A"}\nTime: ${p.time || "N/A"}\nLocation: ${p.location || "N/A"}`;
+    
+    const kb = new InlineKeyboard()
+      .text("Back", "fi_programs");
+      
+    await editOrSend(ctx, text, { reply_markup: kb });
   } catch {
-    await ctx.reply("\u274C Could not load program details.");
+    await editOrSend(ctx, "Could not load program detail.");
   }
 }

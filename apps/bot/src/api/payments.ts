@@ -18,3 +18,8 @@ export async function verifyPayment(token: string, txRef: string) {
   const { data } = await api.get(`/api/payments/chapa/verify/${txRef}`);
   return data;
 }
+export async function getMyGivings(token: string) {
+  const api = createApiClient(token);
+  const { data } = await api.get("/api/payments/my-givings");
+  return data;
+}
