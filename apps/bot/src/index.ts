@@ -70,6 +70,10 @@ bot.hears("Events", (ctx) => {
   ctx.session.currentPage = 1;
   return handleEventsList(ctx);
 });
+bot.hears("Leaders", (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleLeadersList(ctx);
+});
 bot.hears("Fellow Info", handleFellowInfo);
 bot.hears("My Profile", handleMyProfile);
 bot.hears("Payments", handlePayments);
@@ -183,6 +187,7 @@ bot.on("message:text", async (ctx) => {
 
   const validButtons = [
     "Events",
+    "Leaders",
     "Fellow Info",
     "My Profile",
     "Payments",

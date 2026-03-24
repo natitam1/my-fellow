@@ -21,11 +21,10 @@ export async function handleFellowInfo(ctx: BotContext) {
     `<b>Developer:</b> 0911000002\n` +
     `<b>Telegram:</b> @natitam1`;
 
-  const kb = new InlineKeyboard()
-    .text("Leaders", "fi_leaders")
-    .url("Official Channel", "https://t.me/AAU_4Killo_Fellowship")
-    .row()
-    .text("Back to Menu", "back_to_menu");
+  const kb = new InlineKeyboard().url(
+    "Official Channel",
+    "https://t.me/AAU_4Killo_Fellowship",
+  );
 
   const isCallback = ctx.callbackQuery !== undefined;
 

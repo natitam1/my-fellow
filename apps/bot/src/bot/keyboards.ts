@@ -3,8 +3,9 @@ import { InlineKeyboard, Keyboard } from "grammy";
 export function mainReplyKeyboard() {
   return new Keyboard()
     .text("Events")
-    .text("Fellow Info")
+    .text("Leaders")
     .row()
+    .text("Fellow Info")
     .text("My Profile")
     .text("Payments")
     .row()
