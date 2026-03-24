@@ -50,30 +50,70 @@ export async function handleEventsList(ctx: BotContext) {
     kb.row();
     kb.text("Home", "fi_menu");
 
-    await deleteLastBotMessage(ctx);
+    const isCallback = ctx.callbackQuery !== undefined;
 
     let msg;
     if (event.imageUrl) {
-      try {
-        msg = await ctx.replyWithPhoto(event.imageUrl, {
-          caption: text,
-          parse_mode: "Markdown",
-          reply_markup: kb,
-        });
-      } catch (e) {
+      if (isCallback) {
+        try {
+          await ctx.editMessageMedia(
+            {
+              type: "photo",
+              media: event.imageUrl,
+              caption: text,
+              parse_mode: "Markdown",
+            },
+            { reply_markup: kb },
+          );
+          return;
+        } catch (e) {
+          await deleteLastBotMessage(ctx);
+          msg = await ctx.replyWithPhoto(event.imageUrl, {
+            caption: text,
+            parse_mode: "Markdown",
+            reply_markup: kb,
+          });
+        }
+      } else {
+        await deleteLastBotMessage(ctx);
+        try {
+          msg = await ctx.replyWithPhoto(event.imageUrl, {
+            caption: text,
+            parse_mode: "Markdown",
+            reply_markup: kb,
+          });
+        } catch (e) {
+          msg = await ctx.reply(text, {
+            parse_mode: "Markdown",
+            reply_markup: kb,
+          });
+        }
+      }
+    } else {
+      if (isCallback) {
+        try {
+          await ctx.editMessageText(text, {
+            parse_mode: "Markdown",
+            reply_markup: kb,
+          });
+          return;
+        } catch (e) {
+          await deleteLastBotMessage(ctx);
+          msg = await ctx.reply(text, {
+            parse_mode: "Markdown",
+            reply_markup: kb,
+          });
+        }
+      } else {
+        await deleteLastBotMessage(ctx);
         msg = await ctx.reply(text, {
           parse_mode: "Markdown",
           reply_markup: kb,
         });
       }
-    } else {
-      msg = await ctx.reply(text, {
-        parse_mode: "Markdown",
-        reply_markup: kb,
-      });
     }
 
-    ctx.session.lastBotMessageId = msg?.message_id;
+    if (msg) ctx.session.lastBotMessageId = msg.message_id;
   } catch (err: any) {
     console.error(err);
     await editOrSend(ctx, "Failed to load events. Try again later.");
