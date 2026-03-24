@@ -28,7 +28,7 @@ export async function handleEventsList(ctx: BotContext) {
 
     const hasMore = validPage < allEvents.length;
 
-    let text = `*${event.title}*\n\n`;
+    let text = `<b>${event.title}</b>\n\n`;
     if (event.shortDescription) {
       text += `${event.shortDescription}\n\n`;
     }
@@ -61,30 +61,34 @@ export async function handleEventsList(ctx: BotContext) {
               type: "photo",
               media: event.imageUrl,
               caption: text,
-              parse_mode: "Markdown",
+              parse_mode: "HTML",
             },
             { reply_markup: kb },
           );
+          await ctx.answerCallbackQuery().catch(() => {});
           return;
-        } catch (e) {
+        } catch (e: any) {
+          console.error("Inline edit failed:", e.message);
           await deleteLastBotMessage(ctx);
           msg = await ctx.replyWithPhoto(event.imageUrl, {
             caption: text,
-            parse_mode: "Markdown",
+            parse_mode: "HTML",
             reply_markup: kb,
           });
+          await ctx.answerCallbackQuery().catch(() => {});
         }
       } else {
         await deleteLastBotMessage(ctx);
         try {
           msg = await ctx.replyWithPhoto(event.imageUrl, {
             caption: text,
-            parse_mode: "Markdown",
+            parse_mode: "HTML",
             reply_markup: kb,
           });
-        } catch (e) {
+        } catch (e: any) {
+          console.error("Reply with photo failed:", e.message);
           msg = await ctx.reply(text, {
-            parse_mode: "Markdown",
+            parse_mode: "HTML",
             reply_markup: kb,
           });
         }
@@ -93,21 +97,24 @@ export async function handleEventsList(ctx: BotContext) {
       if (isCallback) {
         try {
           await ctx.editMessageText(text, {
-            parse_mode: "Markdown",
+            parse_mode: "HTML",
             reply_markup: kb,
           });
+          await ctx.answerCallbackQuery().catch(() => {});
           return;
-        } catch (e) {
+        } catch (e: any) {
+          console.error("Text edit failed:", e.message);
           await deleteLastBotMessage(ctx);
           msg = await ctx.reply(text, {
-            parse_mode: "Markdown",
+            parse_mode: "HTML",
             reply_markup: kb,
           });
+          await ctx.answerCallbackQuery().catch(() => {});
         }
       } else {
         await deleteLastBotMessage(ctx);
         msg = await ctx.reply(text, {
-          parse_mode: "Markdown",
+          parse_mode: "HTML",
           reply_markup: kb,
         });
       }
