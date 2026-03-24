@@ -1,14 +1,15 @@
 import { BotContext } from "../context";
 import { deleteLastBotMessage } from "../message-manager";
 import { fellowInfoInlineMenu } from "../keyboards";
-import { InlineKeyboard } from "grammy";
-
-const HOME_IMAGE =
-  "https://images.unsplash.com/photo-1523580494863-6f3031224c94?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80";
+import { InlineKeyboard, InputFile } from "grammy";
+import path from "path";
 
 export async function handleFellowInfo(ctx: BotContext) {
   ctx.session.state = "BROWSING";
   ctx.session.currentSection = "fellow_info";
+
+  const imagePath = path.join(__dirname, "../../../src/assets/felow.jpg");
+  const photo = new InputFile(imagePath);
 
   const text =
     `<b>My Fellow</b>\n\n` +
@@ -35,7 +36,7 @@ export async function handleFellowInfo(ctx: BotContext) {
         await ctx.editMessageMedia(
           {
             type: "photo",
-            media: HOME_IMAGE,
+            media: photo,
             caption: text,
             parse_mode: "HTML",
           },
@@ -44,7 +45,7 @@ export async function handleFellowInfo(ctx: BotContext) {
         await ctx.answerCallbackQuery().catch(() => {});
       } catch (e) {
         await deleteLastBotMessage(ctx);
-        const msg = await ctx.replyWithPhoto(HOME_IMAGE, {
+        const msg = await ctx.replyWithPhoto(photo, {
           caption: text,
           parse_mode: "HTML",
           reply_markup: kb,
@@ -54,7 +55,7 @@ export async function handleFellowInfo(ctx: BotContext) {
       }
     } else {
       await deleteLastBotMessage(ctx);
-      const msg = await ctx.replyWithPhoto(HOME_IMAGE, {
+      const msg = await ctx.replyWithPhoto(photo, {
         caption: text,
         parse_mode: "HTML",
         reply_markup: kb,
