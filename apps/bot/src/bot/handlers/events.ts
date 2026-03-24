@@ -19,6 +19,29 @@ function escapeHTML(str: string) {
   );
 }
 
+/**
+ * Telegram doesn't support .avif via sendPhoto.
+ * If it's a Cloudinary URL, we can force it to JPG.
+ */
+function sanitizeImageUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+
+  if (url.toLowerCase().endsWith(".avif")) {
+    if (url.includes("cloudinary.com")) {
+      // Convert /upload/v123/path.avif to /upload/f_jpg/v123/path.avif
+      // or just replace .avif with .jpg if Cloudinary supports it
+      return url
+        .replace(/\/upload\/(v\d+)/, "/upload/f_jpg/$1")
+        .replace(/\.avif$/i, ".jpg");
+    }
+    // If not Cloudinary, we return undefined to fall back to text-only mode
+    // as Telegram will fail to render the photo anyway
+    return undefined;
+  }
+
+  return url;
+}
+
 export async function handleEventsList(ctx: BotContext) {
   ctx.session.currentSection = "events";
   const page = ctx.session.currentPage || 1;
@@ -51,8 +74,11 @@ export async function handleEventsList(ctx: BotContext) {
       bodyText += `${escapeHTML(event.fullDescription)}`;
     }
 
+    // Sanitize image URL (handle .avif etc)
+    const imageUrl = sanitizeImageUrl(event.imageUrl || event.image);
+
     // Handle Telegram caption limit (1024 characters for photos, 4096 for text)
-    const isPhoto = !!event.imageUrl;
+    const isPhoto = !!imageUrl;
     const limit = isPhoto ? MAX_CAPTION_LENGTH : 4096;
 
     let text = titleText + bodyText;
@@ -79,14 +105,14 @@ export async function handleEventsList(ctx: BotContext) {
     const isCallback = ctx.callbackQuery !== undefined;
 
     let msg;
-    if (event.imageUrl) {
+    if (imageUrl) {
       if (isCallback) {
         try {
           // If previous message was also media, we can edit
           msg = await ctx.editMessageMedia(
             {
               type: "photo",
-              media: event.imageUrl,
+              media: imageUrl,
               caption: text,
               parse_mode: "HTML",
             },
@@ -96,7 +122,7 @@ export async function handleEventsList(ctx: BotContext) {
         } catch (e: any) {
           // If conversion text -> media failed, delete and re-send
           await deleteLastBotMessage(ctx);
-          msg = await ctx.replyWithPhoto(event.imageUrl, {
+          msg = await ctx.replyWithPhoto(imageUrl, {
             caption: text,
             parse_mode: "HTML",
             reply_markup: kb,
@@ -105,7 +131,7 @@ export async function handleEventsList(ctx: BotContext) {
         }
       } else {
         await deleteLastBotMessage(ctx);
-        msg = await ctx.replyWithPhoto(event.imageUrl, {
+        msg = await ctx.replyWithPhoto(imageUrl, {
           caption: text,
           parse_mode: "HTML",
           reply_markup: kb,
