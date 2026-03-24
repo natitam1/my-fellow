@@ -19,23 +19,15 @@ function escapeHTML(str: string) {
   );
 }
 
-/**
- * Telegram doesn't support .avif via sendPhoto.
- * If it's a Cloudinary URL, we can force it to JPG.
- */
 function sanitizeImageUrl(url: string | undefined): string | undefined {
   if (!url) return undefined;
 
   if (url.toLowerCase().endsWith(".avif")) {
     if (url.includes("cloudinary.com")) {
-      // Convert /upload/v123/path.avif to /upload/f_jpg/v123/path.avif
-      // or just replace .avif with .jpg if Cloudinary supports it
       return url
         .replace(/\/upload\/(v\d+)/, "/upload/f_jpg/$1")
         .replace(/\.avif$/i, ".jpg");
     }
-    // If not Cloudinary, we return undefined to fall back to text-only mode
-    // as Telegram will fail to render the photo anyway
     return undefined;
   }
 
@@ -74,10 +66,8 @@ export async function handleEventsList(ctx: BotContext) {
       bodyText += `${escapeHTML(event.fullDescription)}`;
     }
 
-    // Sanitize image URL (handle .avif etc)
     const imageUrl = sanitizeImageUrl(event.imageUrl || event.image);
 
-    // Handle Telegram caption limit (1024 characters for photos, 4096 for text)
     const isPhoto = !!imageUrl;
     const limit = isPhoto ? MAX_CAPTION_LENGTH : 4096;
 
@@ -108,7 +98,6 @@ export async function handleEventsList(ctx: BotContext) {
     if (imageUrl) {
       if (isCallback) {
         try {
-          // If previous message was also media, we can edit
           msg = await ctx.editMessageMedia(
             {
               type: "photo",
@@ -120,7 +109,6 @@ export async function handleEventsList(ctx: BotContext) {
           );
           await ctx.answerCallbackQuery().catch(() => {});
         } catch (e: any) {
-          // If conversion text -> media failed, delete and re-send
           await deleteLastBotMessage(ctx);
           msg = await ctx.replyWithPhoto(imageUrl, {
             caption: text,
@@ -140,7 +128,6 @@ export async function handleEventsList(ctx: BotContext) {
     } else {
       if (isCallback) {
         try {
-          // If previous message was media, editMessageText will FAIL
           msg = await ctx.editMessageText(text, {
             parse_mode: "HTML",
             reply_markup: kb,
@@ -182,7 +169,6 @@ export async function handleEventRegister(ctx: BotContext, eventId: string) {
       });
     }
 
-    // Send only eventId as the backend controller expects
     await registerForEvent(s.token, {
       eventId,
     });

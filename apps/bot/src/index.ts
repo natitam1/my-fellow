@@ -9,7 +9,10 @@ import {
   handleLogout,
 } from "./bot/handlers/auth";
 import { handleHome } from "./bot/handlers/home";
-import { handleFellowInfo } from "./bot/handlers/fellow-info";
+import {
+  handleFellowInfo,
+  handleFellowFeatures,
+} from "./bot/handlers/fellow-info";
 import { handleEventsList, handleEventRegister } from "./bot/handlers/events";
 import {
   handleDevotionsList,
@@ -87,6 +90,15 @@ bot.on("callback_query:data", async (ctx) => {
       s.currentPage = 1;
       return handleFellowInfo(ctx);
     }
+    if (data === "fi_features") {
+      return handleFellowFeatures(ctx);
+    }
+    if (data === "fi_channel") {
+      await ctx.answerCallbackQuery({
+        url: "https://t.me/AAU_4Killo_Fellowship",
+      });
+      return;
+    }
     if (data === "profile_menu") return handleMyProfile(ctx);
     if (data === "back_to_menu") {
       s.currentPage = 1;
@@ -97,10 +109,6 @@ bot.on("callback_query:data", async (ctx) => {
     if (data === "fi_events") {
       s.currentPage = 1;
       return handleEventsList(ctx);
-    }
-    if (data === "fi_devotions") {
-      s.currentPage = 1;
-      return handleDevotionsList(ctx);
     }
     if (data === "fi_teams") {
       s.currentPage = 1;
