@@ -27,7 +27,7 @@ import {
   handleProgramsList,
   handleProgramDetail,
 } from "./bot/handlers/programs";
-import { handleLeadersList, handleLeaderDetail } from "./bot/handlers/leaders";
+import { handleLeadersList } from "./bot/handlers/leaders";
 import {
   handleProductsList,
   handleProductDetail,
@@ -149,8 +149,6 @@ bot.on("callback_query:data", async (ctx) => {
       return handleLocationDetail(ctx, data.replace("location_view_", ""));
     if (data.startsWith("program_view_"))
       return handleProgramDetail(ctx, data.replace("program_view_", ""));
-    if (data.startsWith("leader_view_"))
-      return handleLeaderDetail(ctx, data.replace("leader_view_", ""));
     if (data.startsWith("product_view_"))
       return handleProductDetail(ctx, data.replace("product_view_", ""));
 
