@@ -7,16 +7,14 @@ export async function getEventById(id: string) {
   const { data } = await publicApi.get(`/api/events/${id}`);
   return data;
 }
-export async function registerForEvent(body: {
-  fullName: string;
-  phoneNumber: string;
-  team: string;
-  department: string;
-  yearOfStudy: string;
-  telegramUserName: string;
-  eventTitle: string;
-}) {
-  const { data } = await publicApi.post("/api/events/register", body);
+export async function registerForEvent(
+  token: string,
+  body: {
+    eventId: string;
+  },
+) {
+  const api = createApiClient(token);
+  const { data } = await api.post("/api/events/register", body);
   return data;
 }
 export async function getAllRegistrations(token: string) {

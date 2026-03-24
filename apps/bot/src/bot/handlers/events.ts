@@ -157,9 +157,9 @@ export async function handleEventRegister(ctx: BotContext, eventId: string) {
     }
 
     // Send only eventId as the backend controller expects
-    await registerForEvent({
+    await registerForEvent(s.token, {
       eventId,
-    } as any);
+    });
 
     await ctx.answerCallbackQuery({
       text: "Successfully registered!",
