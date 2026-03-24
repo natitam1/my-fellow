@@ -57,7 +57,6 @@ bot.use(
   }),
 );
 
-// Commands
 bot.command("start", handleStart);
 bot.command("menu", (ctx) => {
   ctx.session.currentPage = 1;
@@ -65,10 +64,8 @@ bot.command("menu", (ctx) => {
 });
 bot.command("logout", handleLogout);
 
-// Contact sharing
 bot.on("message:contact", handleContact);
 
-// Reply keyboard text matching (Bottom UI)
 bot.hears("Events", (ctx) => {
   ctx.session.currentPage = 1;
   return handleEventsList(ctx);
@@ -79,13 +76,11 @@ bot.hears("Payments", handlePayments);
 bot.hears("Logout", handleLogout);
 bot.hears("Help", handleHelp);
 
-// Callback queries
 bot.on("callback_query:data", async (ctx) => {
   const data = ctx.callbackQuery.data;
   const s = ctx.session;
 
   try {
-    // Top-level submenus
     if (data === "fi_menu") {
       s.currentPage = 1;
       return handleFellowInfo(ctx);
@@ -105,7 +100,6 @@ bot.on("callback_query:data", async (ctx) => {
       return handleEventsList(ctx);
     }
 
-    // Fellow Info sections
     if (data === "fi_events") {
       s.currentPage = 1;
       return handleEventsList(ctx);
@@ -131,7 +125,6 @@ bot.on("callback_query:data", async (ctx) => {
       return handleProductsList(ctx);
     }
 
-    // Pagination
     if (data.includes("_page_")) {
       const parts = data.split("_");
       const section = parts[0];
@@ -146,7 +139,6 @@ bot.on("callback_query:data", async (ctx) => {
       if (section === "marketplace") return handleProductsList(ctx);
     }
 
-    // Detail views
     if (data.startsWith("ev_reg_"))
       return handleEventRegister(ctx, data.replace("ev_reg_", ""));
     if (data.startsWith("devotion_view_"))
@@ -162,12 +154,9 @@ bot.on("callback_query:data", async (ctx) => {
     if (data.startsWith("product_view_"))
       return handleProductDetail(ctx, data.replace("product_view_", ""));
 
-    // Profile actions
     if (data === "profile_join_requests") return handleJoinRequests(ctx);
     if (data === "profile_orders") return handleMyOrders(ctx);
     if (data === "profile_givings") return handleMyGivings(ctx);
-
-    // Payment actions
     if (data === "pay_donate") return handleDonateStart(ctx);
     if (data === "pay_history") return handleMyGivings(ctx);
 
@@ -178,7 +167,6 @@ bot.on("callback_query:data", async (ctx) => {
   }
 });
 
-// Text messages (State machine & Inputs)
 bot.on("message:text", async (ctx) => {
   const text = ctx.message.text;
   const s = ctx.session;
@@ -195,7 +183,6 @@ bot.on("message:text", async (ctx) => {
     return completePayment(ctx, text);
   }
 
-  // Fallback if not matching any menu button
   const validButtons = [
     "Events",
     "Fellow Info",

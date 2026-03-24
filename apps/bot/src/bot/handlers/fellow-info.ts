@@ -12,9 +12,8 @@ export async function handleFellowInfo(ctx: BotContext) {
   const photo = new InputFile(imagePath);
 
   const text =
-    `<b>My Fellow</b>\n\n` +
-    `<b>About:</b> AAU 4-Killo fellowship bot\n` +
-    `<b>Description:</b> AAU 4-Killo Evangelical Christian Students’ Fellowship (ECSF) official telegram bot.\n\n` +
+    `AAU 4-Killo fellowship bot\n` +
+    `AAU 4-Killo Evangelical Christian Students’ Fellowship (ECSF) official telegram bot.\n\n` +
     `It is a centralized platform designed to connect members with fellowship activities, announcements, devotionals, and community updates—all in one place.\n\n` +
     `<b>Contact:</b>\n` +
     `• @Jesus_died_for_me\n` +
@@ -22,11 +21,10 @@ export async function handleFellowInfo(ctx: BotContext) {
     `<b>Developer:</b> 0911000002\n` +
     `<b>Telegram:</b> @natitam1`;
 
-  const kb = new InlineKeyboard()
-    .text("Explore Features", "fi_features")
-    .url("Official Channel", "https://t.me/AAU_4Killo_Fellowship")
-    .row()
-    .text("Back to Menu", "back_to_menu");
+  const kb = new InlineKeyboard().url(
+    "Official Channel",
+    "https://t.me/AAU_4Killo_Fellowship",
+  );
 
   const isCallback = ctx.callbackQuery !== undefined;
 

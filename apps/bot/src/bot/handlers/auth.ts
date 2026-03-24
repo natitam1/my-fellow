@@ -2,6 +2,7 @@ import { BotContext } from "../context";
 import { sharePhoneKeyboard, mainReplyKeyboard } from "../keyboards";
 import { lookupByPhone, signIn, registerUser } from "../../api/auth";
 import { deleteLastBotMessage } from "../message-manager";
+import { handleFellowInfo } from "./fellow-info";
 
 function normalizePhoneNumber(phone: string): string {
   let normalized = phone.replace(/\D/g, "");
@@ -87,6 +88,9 @@ export async function handlePasswordSubmitted(
     await ctx.reply(`Logged in successfully. Welcome back ${user.fullName}.`, {
       reply_markup: mainReplyKeyboard(),
     });
+
+    // Automatically redirect to Home/Fellow Info
+    return handleFellowInfo(ctx);
   } catch (err: any) {
     await ctx.reply("Invalid password. Please try again.");
   }
@@ -120,6 +124,9 @@ export async function handleNameCollected(ctx: BotContext, name: string) {
     await ctx.reply(`Registration complete. Welcome ${user.fullName}.`, {
       reply_markup: mainReplyKeyboard(),
     });
+
+    // Automatically redirect to Home/Fellow Info
+    return handleFellowInfo(ctx);
   } catch (err: any) {
     await ctx.reply(
       `Failed to register: ${err.message || "Unknown error"}. Try /start again.`,
