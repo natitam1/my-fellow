@@ -3,7 +3,21 @@ import { getAllEvents, registerForEvent } from "../../api/events";
 import { deleteLastBotMessage, editOrSend } from "../message-manager";
 import { InlineKeyboard } from "grammy";
 
-const PAGE_SIZE = 1;
+const MAX_CAPTION_LENGTH = 1024;
+
+function escapeHTML(str: string) {
+  return str.replace(
+    /[&<>"']/g,
+    (m) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[m] || m,
+  );
+}
 
 export async function handleEventsList(ctx: BotContext) {
   ctx.session.currentSection = "events";
@@ -28,18 +42,30 @@ export async function handleEventsList(ctx: BotContext) {
 
     const hasMore = validPage < allEvents.length;
 
-    let text = `<b>${event.title}</b>\n\n`;
+    let titleText = `<b>${escapeHTML(event.title)}</b>\n\n`;
+    let bodyText = "";
     if (event.shortDescription) {
-      text += `${event.shortDescription}\n\n`;
+      bodyText += `${escapeHTML(event.shortDescription)}\n\n`;
     }
     if (event.fullDescription) {
-      text += `${event.fullDescription}`;
+      bodyText += `${escapeHTML(event.fullDescription)}`;
+    }
+
+    // Handle Telegram caption limit (1024 characters for photos, 4096 for text)
+    const isPhoto = !!event.imageUrl;
+    const limit = isPhoto ? MAX_CAPTION_LENGTH : 4096;
+
+    let text = titleText + bodyText;
+    if (text.length > limit) {
+      text =
+        titleText + bodyText.substring(0, limit - titleText.length - 3) + "...";
     }
 
     const kb = new InlineKeyboard();
 
     const btnText = event.buttonText || "Register";
-    kb.text(btnText, `ev_reg_${event._id}`).row();
+    const eventId = event._id || event.id;
+    kb.text(btnText, `ev_reg_${eventId}`).row();
 
     if (validPage > 1) {
       kb.text("« Prev", `events_page_${validPage - 1}`);
@@ -56,7 +82,8 @@ export async function handleEventsList(ctx: BotContext) {
     if (event.imageUrl) {
       if (isCallback) {
         try {
-          await ctx.editMessageMedia(
+          // If previous message was also media, we can edit
+          msg = await ctx.editMessageMedia(
             {
               type: "photo",
               media: event.imageUrl,
@@ -66,9 +93,8 @@ export async function handleEventsList(ctx: BotContext) {
             { reply_markup: kb },
           );
           await ctx.answerCallbackQuery().catch(() => {});
-          return;
         } catch (e: any) {
-          console.error("Inline edit failed:", e.message);
+          // If conversion text -> media failed, delete and re-send
           await deleteLastBotMessage(ctx);
           msg = await ctx.replyWithPhoto(event.imageUrl, {
             caption: text,
@@ -79,31 +105,22 @@ export async function handleEventsList(ctx: BotContext) {
         }
       } else {
         await deleteLastBotMessage(ctx);
-        try {
-          msg = await ctx.replyWithPhoto(event.imageUrl, {
-            caption: text,
-            parse_mode: "HTML",
-            reply_markup: kb,
-          });
-        } catch (e: any) {
-          console.error("Reply with photo failed:", e.message);
-          msg = await ctx.reply(text, {
-            parse_mode: "HTML",
-            reply_markup: kb,
-          });
-        }
+        msg = await ctx.replyWithPhoto(event.imageUrl, {
+          caption: text,
+          parse_mode: "HTML",
+          reply_markup: kb,
+        });
       }
     } else {
       if (isCallback) {
         try {
-          await ctx.editMessageText(text, {
+          // If previous message was media, editMessageText will FAIL
+          msg = await ctx.editMessageText(text, {
             parse_mode: "HTML",
             reply_markup: kb,
           });
           await ctx.answerCallbackQuery().catch(() => {});
-          return;
         } catch (e: any) {
-          console.error("Text edit failed:", e.message);
           await deleteLastBotMessage(ctx);
           msg = await ctx.reply(text, {
             parse_mode: "HTML",
@@ -120,9 +137,11 @@ export async function handleEventsList(ctx: BotContext) {
       }
     }
 
-    if (msg) ctx.session.lastBotMessageId = msg.message_id;
+    if (msg && typeof msg !== "boolean") {
+      ctx.session.lastBotMessageId = msg.message_id;
+    }
   } catch (err: any) {
-    console.error(err);
+    console.error("Events List Error:", err);
     await editOrSend(ctx, "Failed to load events. Try again later.");
   }
 }
@@ -130,40 +149,29 @@ export async function handleEventsList(ctx: BotContext) {
 export async function handleEventRegister(ctx: BotContext, eventId: string) {
   try {
     const s = ctx.session;
-    if (!s.user) {
-      return ctx.answerCallbackQuery("Please login first.");
+    if (!s.user || !s.token) {
+      return ctx.answerCallbackQuery({
+        text: "Please login first.",
+        show_alert: true,
+      });
     }
 
-    const result = await getAllEvents();
-    const allEvents = Array.isArray(result)
-      ? result
-      : result.events || result.data || [];
-    const event = allEvents.find(
-      (e: any) => e._id === eventId || e.id === eventId,
-    );
-
-    if (!event) {
-      return ctx.answerCallbackQuery("Event not found.");
-    }
-
+    // Send only eventId as the backend controller expects
     await registerForEvent({
-      fullName: s.user.fullName || "Unknown",
-      phoneNumber: s.user.phoneNumber || "Unknown",
-      team: "N/A",
-      department: "N/A",
-      yearOfStudy: "N/A",
-      telegramUserName: ctx.from?.username || "N/A",
-      eventTitle: event.title,
-    });
+      eventId,
+    } as any);
 
     await ctx.answerCallbackQuery({
       text: "Successfully registered!",
       show_alert: true,
     });
   } catch (err: any) {
-    console.error(err);
+    console.error("Registration Error:", err);
+    const msg = err.response?.data?.message || err.message;
     await ctx.answerCallbackQuery({
-      text: "Failed to register. You might be already registered.",
+      text: msg.includes("already registered")
+        ? "You are already registered."
+        : "Failed to register. Try again.",
       show_alert: true,
     });
   }
