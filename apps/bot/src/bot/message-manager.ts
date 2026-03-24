@@ -1,22 +1,29 @@
 import { BotContext } from "./context";
 
-export async function editOrSend(ctx: BotContext, text: string, options: any = {}) {
+export async function editOrSend(
+  ctx: BotContext,
+  text: string,
+  options: any = {},
+) {
   const lastId = ctx.session.lastBotMessageId;
-  
+
   try {
     if (lastId) {
       const msg = await ctx.api.editMessageText(ctx.chat!.id, lastId, text, {
-        parse_mode: "Markdown",
+        parse_mode: "HTML",
         ...options,
       });
       return msg;
     }
   } catch (error: any) {
-    // If edit fails (e.g. message deleted or same content), send new
+    if (lastId) {
+      await ctx.api.deleteMessage(ctx.chat!.id, lastId).catch(() => {});
+      ctx.session.lastBotMessageId = undefined;
+    }
   }
 
   const msg = await ctx.reply(text, {
-    parse_mode: "Markdown",
+    parse_mode: "HTML",
     ...options,
   });
   ctx.session.lastBotMessageId = msg.message_id;
