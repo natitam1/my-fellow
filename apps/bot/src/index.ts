@@ -10,7 +10,7 @@ import {
 } from "./bot/handlers/auth";
 import { handleHome } from "./bot/handlers/home";
 import { handleFellowInfo } from "./bot/handlers/fellow-info";
-import { handleEventsList, handleEventDetail } from "./bot/handlers/events";
+import { handleEventsList, handleEventRegister } from "./bot/handlers/events";
 import {
   handleDevotionsList,
   handleDevotionDetail,
@@ -56,14 +56,20 @@ bot.use(
 
 // Commands
 bot.command("start", handleStart);
-bot.command("menu", handleHome);
+bot.command("menu", (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleEventsList(ctx);
+});
 bot.command("logout", handleLogout);
 
 // Contact sharing
 bot.on("message:contact", handleContact);
 
 // Reply keyboard text matching (Bottom UI)
-bot.hears("Home", handleHome);
+bot.hears("Events", (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleEventsList(ctx);
+});
 bot.hears("Fellow Info", handleFellowInfo);
 bot.hears("My Profile", handleMyProfile);
 bot.hears("Payments", handlePayments);
@@ -82,7 +88,10 @@ bot.on("callback_query:data", async (ctx) => {
       return handleFellowInfo(ctx);
     }
     if (data === "profile_menu") return handleMyProfile(ctx);
-    if (data === "back_to_menu") return handleHome(ctx);
+    if (data === "back_to_menu") {
+      s.currentPage = 1;
+      return handleEventsList(ctx);
+    }
 
     // Fellow Info sections
     if (data === "fi_events") {
@@ -130,8 +139,8 @@ bot.on("callback_query:data", async (ctx) => {
     }
 
     // Detail views
-    if (data.startsWith("event_view_"))
-      return handleEventDetail(ctx, data.replace("event_view_", ""));
+    if (data.startsWith("ev_reg_"))
+      return handleEventRegister(ctx, data.replace("ev_reg_", ""));
     if (data.startsWith("devotion_view_"))
       return handleDevotionDetail(ctx, data.replace("devotion_view_", ""));
     if (data.startsWith("team_view_"))
@@ -180,7 +189,7 @@ bot.on("message:text", async (ctx) => {
 
   // Fallback if not matching any menu button
   const validButtons = [
-    "Home",
+    "Events",
     "Fellow Info",
     "My Profile",
     "Payments",

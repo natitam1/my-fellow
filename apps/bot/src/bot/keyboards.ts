@@ -2,7 +2,7 @@ import { InlineKeyboard, Keyboard } from "grammy";
 
 export function mainReplyKeyboard() {
   return new Keyboard()
-    .text("Home")
+    .text("Events")
     .text("Fellow Info")
     .row()
     .text("My Profile")
