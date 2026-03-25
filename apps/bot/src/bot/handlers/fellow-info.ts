@@ -4,7 +4,7 @@ import { fellowInfoReplyKeyboard } from "../keyboards";
 import { InlineKeyboard, InputFile } from "grammy";
 import path from "path";
 
-export async function handleFellowInfo(ctx: BotContext) {
+export async function handleFellowInfo(ctx: BotContext, replyMarkup?: any) {
   ctx.session.state = "BROWSING";
   ctx.session.currentSection = "fellow_info";
 
@@ -37,7 +37,12 @@ export async function handleFellowInfo(ctx: BotContext) {
             caption: text,
             parse_mode: "HTML",
           },
-          { reply_markup: kb },
+          {
+            reply_markup: {
+              inline_keyboard: kb.inline_keyboard,
+              ...(replyMarkup?.reply_markup || {}),
+            },
+          },
         );
         await ctx.answerCallbackQuery().catch(() => {});
       } catch (e) {
@@ -45,7 +50,10 @@ export async function handleFellowInfo(ctx: BotContext) {
         const msg = await ctx.replyWithPhoto(photo, {
           caption: text,
           parse_mode: "HTML",
-          reply_markup: kb,
+          reply_markup: {
+            inline_keyboard: kb.inline_keyboard,
+            ...(replyMarkup?.reply_markup || {}),
+          },
         });
         ctx.session.lastBotMessageId = msg.message_id;
         await ctx.answerCallbackQuery().catch(() => {});
@@ -55,7 +63,10 @@ export async function handleFellowInfo(ctx: BotContext) {
       const msg = await ctx.replyWithPhoto(photo, {
         caption: text,
         parse_mode: "HTML",
-        reply_markup: kb,
+        reply_markup: {
+          inline_keyboard: kb.inline_keyboard,
+          ...(replyMarkup?.reply_markup || {}),
+        },
       });
       ctx.session.lastBotMessageId = msg.message_id;
     }

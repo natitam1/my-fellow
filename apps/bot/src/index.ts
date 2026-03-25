@@ -114,8 +114,7 @@ bot.on("callback_query:data", async (ctx) => {
     }
     if (data === "back_to_main") {
       s.currentPage = 1;
-      await ctx.reply("Main Menu:", { reply_markup: mainReplyKeyboard() });
-      return handleFellowInfo(ctx);
+      return handleFellowInfo(ctx, mainReplyKeyboard());
     }
     if (data === "fi_features") {
       return handleFellowFeatures(ctx);
