@@ -90,7 +90,7 @@ export async function handleEventsList(ctx: BotContext) {
       kb.text("Next »", `events_page_${validPage + 1}`);
     }
     kb.row();
-    kb.text("Home", "fi_menu");
+    kb.text("Home", "back_to_main");
 
     const isCallback = ctx.callbackQuery !== undefined;
 

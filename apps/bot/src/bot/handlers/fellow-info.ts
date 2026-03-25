@@ -59,7 +59,6 @@ export async function handleFellowInfo(ctx: BotContext) {
       });
       ctx.session.lastBotMessageId = msg.message_id;
     }
-    await ctx.reply("\u200B", { reply_markup: fellowInfoReplyKeyboard() });
   } catch (err: any) {
     console.error("Home View Error:", err);
     await ctx.reply(text, { parse_mode: "HTML", reply_markup: kb });

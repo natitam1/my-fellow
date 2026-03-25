@@ -112,6 +112,11 @@ bot.on("callback_query:data", async (ctx) => {
       s.currentPage = 1;
       return handleFellowInfo(ctx);
     }
+    if (data === "back_to_main") {
+      s.currentPage = 1;
+      await ctx.reply("Main Menu:", { reply_markup: mainReplyKeyboard() });
+      return handleFellowInfo(ctx);
+    }
     if (data === "fi_features") {
       return handleFellowFeatures(ctx);
     }
