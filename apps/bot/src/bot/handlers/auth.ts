@@ -89,8 +89,8 @@ export async function handlePasswordSubmitted(
       reply_markup: mainReplyKeyboard(),
     });
 
-    // Automatically redirect to Home/Fellow Info
-    return handleFellowInfo(ctx);
+    // Automatically redirect to Home/Fellow Info without swapping the keyboard
+    return handleFellowInfo(ctx, true);
   } catch (err: any) {
     await ctx.reply("Invalid password. Please try again.");
   }
@@ -125,8 +125,8 @@ export async function handleNameCollected(ctx: BotContext, name: string) {
       reply_markup: mainReplyKeyboard(),
     });
 
-    // Automatically redirect to Home/Fellow Info
-    return handleFellowInfo(ctx);
+    // Automatically redirect to Home/Fellow Info without swapping the keyboard
+    return handleFellowInfo(ctx, true);
   } catch (err: any) {
     await ctx.reply(
       `Failed to register: ${err.message || "Unknown error"}. Try /start again.`,

@@ -1,10 +1,10 @@
 import { BotContext } from "../context";
 import { deleteLastBotMessage } from "../message-manager";
-import { fellowInfoInlineMenu } from "../keyboards";
+import { fellowInfoInlineMenu, fellowInfoReplyKeyboard } from "../keyboards";
 import { InlineKeyboard, InputFile } from "grammy";
 import path from "path";
 
-export async function handleFellowInfo(ctx: BotContext) {
+export async function handleFellowInfo(ctx: BotContext, skipKeyboard = false) {
   ctx.session.state = "BROWSING";
   ctx.session.currentSection = "fellow_info";
 
@@ -12,7 +12,6 @@ export async function handleFellowInfo(ctx: BotContext) {
   const photo = new InputFile(imagePath);
 
   const text =
-    `AAU 4-Killo fellowship bot\n` +
     `AAU 4-Killo Evangelical Christian Students’ Fellowship (ECSF) official telegram bot.\n\n` +
     `It is a centralized platform designed to connect members with fellowship activities, announcements, devotionals, and community updates—all in one place.\n\n` +
     `<b>Contact:</b>\n` +
@@ -40,6 +39,11 @@ export async function handleFellowInfo(ctx: BotContext) {
           },
           { reply_markup: kb },
         );
+        if (!skipKeyboard) {
+          await ctx.reply("Explore fellowship features using the menu below:", {
+            reply_markup: fellowInfoReplyKeyboard(),
+          });
+        }
         await ctx.answerCallbackQuery().catch(() => {});
       } catch (e) {
         await deleteLastBotMessage(ctx);
@@ -48,6 +52,11 @@ export async function handleFellowInfo(ctx: BotContext) {
           parse_mode: "HTML",
           reply_markup: kb,
         });
+        if (!skipKeyboard) {
+          await ctx.reply("Explore fellowship features using the menu below:", {
+            reply_markup: fellowInfoReplyKeyboard(),
+          });
+        }
         ctx.session.lastBotMessageId = msg.message_id;
         await ctx.answerCallbackQuery().catch(() => {});
       }
@@ -58,6 +67,11 @@ export async function handleFellowInfo(ctx: BotContext) {
         parse_mode: "HTML",
         reply_markup: kb,
       });
+      if (!skipKeyboard) {
+        await ctx.reply("Explore fellowship features using the menu below:", {
+          reply_markup: fellowInfoReplyKeyboard(),
+        });
+      }
       ctx.session.lastBotMessageId = msg.message_id;
     }
   } catch (err: any) {
@@ -81,6 +95,31 @@ export async function handleFellowFeatures(ctx: BotContext) {
       await ctx.editMessageText(text, {
         parse_mode: "HTML",
         reply_markup: fellowInfoInlineMenu(),
+      });
+    });
+  await ctx.answerCallbackQuery().catch(() => {});
+}
+
+export async function handleSocialLinks(ctx: BotContext) {
+  const text =
+    `<b>Official Social Media</b>\n\n` +
+    `Stay connected with us on our other platforms:\n\n` +
+    `• <b>Telegram:</b> <a href="https://t.me/AAU_4Killo_Fellowship">@AAU_4Killo_Fellowship</a>\n` +
+    `• <b>Instagram:</b> <a href="https://www.instagram.com/aau_4killo_fellowship">@aau_4killo_fellowship</a>\n` +
+    `• <b>TikTok:</b> <a href="https://www.tiktok.com/@aau_4killo_fellowship">@aau_4killo_fellowship</a>`;
+
+  const kb = new InlineKeyboard().text("Back", "fi_menu");
+
+  await ctx
+    .editMessageCaption({
+      caption: text,
+      parse_mode: "HTML",
+      reply_markup: kb,
+    })
+    .catch(async () => {
+      await ctx.editMessageText(text, {
+        parse_mode: "HTML",
+        reply_markup: kb,
       });
     });
   await ctx.answerCallbackQuery().catch(() => {});

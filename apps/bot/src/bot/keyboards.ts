@@ -6,11 +6,21 @@ export function mainReplyKeyboard() {
     .text("Leaders")
     .row()
     .text("Fellow Info")
-    .text("My Profile")
     .text("Payments")
     .row()
     .text("Help")
-    .text("Logout")
+    .resized();
+}
+
+export function fellowInfoReplyKeyboard() {
+  return new Keyboard()
+    .text("Programs")
+    .text("Teams")
+    .row()
+    .text("Locations")
+    .text("Social Links")
+    .row()
+    .text("Back to Main Menu")
     .resized();
 }
 

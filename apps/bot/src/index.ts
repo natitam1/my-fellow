@@ -12,6 +12,7 @@ import { handleHome } from "./bot/handlers/home";
 import {
   handleFellowInfo,
   handleFellowFeatures,
+  handleSocialLinks,
 } from "./bot/handlers/fellow-info";
 import { handleEventsList, handleEventRegister } from "./bot/handlers/events";
 import {
@@ -45,6 +46,7 @@ import {
 } from "./bot/handlers/payments";
 import { handleHelp } from "./bot/handlers/help";
 import { deleteLastBotMessage } from "./bot/message-manager";
+import { mainReplyKeyboard } from "./bot/keyboards";
 
 const bot = new Bot<BotContext>(config.BOT_TOKEN);
 
@@ -66,15 +68,38 @@ bot.command("logout", handleLogout);
 
 bot.on("message:contact", handleContact);
 
+bot.hears("Back to Main Menu", async (ctx) => {
+  return ctx.reply("Main Menu:", { reply_markup: mainReplyKeyboard() });
+});
+
+bot.hears("Programs", (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleProgramsList(ctx);
+});
+
+bot.hears("Teams", (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleTeamsList(ctx);
+});
+
+bot.hears("Locations", (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleLocationsList(ctx);
+});
+
+bot.hears("Social Links", handleSocialLinks);
+
 bot.hears("Events", (ctx) => {
   ctx.session.currentPage = 1;
   return handleEventsList(ctx);
 });
+
 bot.hears("Leaders", (ctx) => {
   ctx.session.currentPage = 1;
   return handleLeadersList(ctx);
 });
-bot.hears("Fellow Info", handleFellowInfo);
+
+bot.hears("Fellow Info", (ctx) => handleFellowInfo(ctx, true));
 bot.hears("My Profile", handleMyProfile);
 bot.hears("Payments", handlePayments);
 bot.hears("Logout", handleLogout);
@@ -87,7 +112,7 @@ bot.on("callback_query:data", async (ctx) => {
   try {
     if (data === "fi_menu") {
       s.currentPage = 1;
-      return handleFellowInfo(ctx);
+      return handleFellowInfo(ctx, true);
     }
     if (data === "fi_features") {
       return handleFellowFeatures(ctx);
@@ -101,7 +126,7 @@ bot.on("callback_query:data", async (ctx) => {
     if (data === "profile_menu") return handleMyProfile(ctx);
     if (data === "back_to_menu") {
       s.currentPage = 1;
-      return handleEventsList(ctx);
+      return handleFellowInfo(ctx, true);
     }
 
     if (data === "fi_events") {
@@ -123,6 +148,9 @@ bot.on("callback_query:data", async (ctx) => {
     if (data === "fi_leaders") {
       s.currentPage = 1;
       return handleLeadersList(ctx);
+    }
+    if (data === "fi_social") {
+      return handleSocialLinks(ctx);
     }
     if (data === "fi_marketplace") {
       s.currentPage = 1;
@@ -189,10 +217,13 @@ bot.on("message:text", async (ctx) => {
     "Events",
     "Leaders",
     "Fellow Info",
-    "My Profile",
     "Payments",
     "Help",
-    "Logout",
+    "Programs",
+    "Teams",
+    "Locations",
+    "Social Links",
+    "Back to Main Menu",
   ];
   if (!validButtons.includes(text)) {
     await ctx.reply("Please use the menu buttons at the bottom to continue.");
