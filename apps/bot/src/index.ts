@@ -44,7 +44,6 @@ import {
   handleDonateStart,
   completePayment,
 } from "./bot/handlers/payments";
-import { handleHelp } from "./bot/handlers/help";
 import { deleteLastBotMessage } from "./bot/message-manager";
 import { mainReplyKeyboard } from "./bot/keyboards";
 
@@ -99,11 +98,10 @@ bot.hears("Leaders", (ctx) => {
   return handleLeadersList(ctx);
 });
 
-bot.hears("Fellow Info", (ctx) => handleFellowInfo(ctx, true));
+bot.hears("Fellow Info", (ctx) => handleFellowInfo(ctx));
 bot.hears("My Profile", handleMyProfile);
-bot.hears("Payments", handlePayments);
+bot.hears("Give", handlePayments);
 bot.hears("Logout", handleLogout);
-bot.hears("Help", handleHelp);
 
 bot.on("callback_query:data", async (ctx) => {
   const data = ctx.callbackQuery.data;
@@ -112,7 +110,7 @@ bot.on("callback_query:data", async (ctx) => {
   try {
     if (data === "fi_menu") {
       s.currentPage = 1;
-      return handleFellowInfo(ctx, true);
+      return handleFellowInfo(ctx);
     }
     if (data === "fi_features") {
       return handleFellowFeatures(ctx);
@@ -126,7 +124,7 @@ bot.on("callback_query:data", async (ctx) => {
     if (data === "profile_menu") return handleMyProfile(ctx);
     if (data === "back_to_menu") {
       s.currentPage = 1;
-      return handleFellowInfo(ctx, true);
+      return handleFellowInfo(ctx);
     }
 
     if (data === "fi_events") {
@@ -217,8 +215,7 @@ bot.on("message:text", async (ctx) => {
     "Events",
     "Leaders",
     "Fellow Info",
-    "Payments",
-    "Help",
+    "Give",
     "Programs",
     "Teams",
     "Locations",

@@ -1,10 +1,10 @@
 import { BotContext } from "../context";
 import { deleteLastBotMessage } from "../message-manager";
-import { fellowInfoInlineMenu, fellowInfoReplyKeyboard } from "../keyboards";
+import { fellowInfoReplyKeyboard } from "../keyboards";
 import { InlineKeyboard, InputFile } from "grammy";
 import path from "path";
 
-export async function handleFellowInfo(ctx: BotContext, skipKeyboard = false) {
+export async function handleFellowInfo(ctx: BotContext) {
   ctx.session.state = "BROWSING";
   ctx.session.currentSection = "fellow_info";
 
@@ -12,7 +12,7 @@ export async function handleFellowInfo(ctx: BotContext, skipKeyboard = false) {
   const photo = new InputFile(imagePath);
 
   const text =
-    `AAU 4-Killo Evangelical Christian Students’ Fellowship (ECSF) official telegram bot.\n\n` +
+    `AAU 4-Killo Evangelical Christian Students' Fellowship (ECSF) official telegram bot.\n\n` +
     `It is a centralized platform designed to connect members with fellowship activities, announcements, devotionals, and community updates—all in one place.\n\n` +
     `<b>Contact:</b>\n` +
     `• @Jesus_died_for_me\n` +
@@ -39,11 +39,6 @@ export async function handleFellowInfo(ctx: BotContext, skipKeyboard = false) {
           },
           { reply_markup: kb },
         );
-        if (!skipKeyboard) {
-          await ctx.reply("Explore fellowship features using the menu below:", {
-            reply_markup: fellowInfoReplyKeyboard(),
-          });
-        }
         await ctx.answerCallbackQuery().catch(() => {});
       } catch (e) {
         await deleteLastBotMessage(ctx);
@@ -52,11 +47,6 @@ export async function handleFellowInfo(ctx: BotContext, skipKeyboard = false) {
           parse_mode: "HTML",
           reply_markup: kb,
         });
-        if (!skipKeyboard) {
-          await ctx.reply("Explore fellowship features using the menu below:", {
-            reply_markup: fellowInfoReplyKeyboard(),
-          });
-        }
         ctx.session.lastBotMessageId = msg.message_id;
         await ctx.answerCallbackQuery().catch(() => {});
       }
@@ -67,13 +57,9 @@ export async function handleFellowInfo(ctx: BotContext, skipKeyboard = false) {
         parse_mode: "HTML",
         reply_markup: kb,
       });
-      if (!skipKeyboard) {
-        await ctx.reply("Explore fellowship features using the menu below:", {
-          reply_markup: fellowInfoReplyKeyboard(),
-        });
-      }
       ctx.session.lastBotMessageId = msg.message_id;
     }
+    await ctx.reply("\u200B", { reply_markup: fellowInfoReplyKeyboard() });
   } catch (err: any) {
     console.error("Home View Error:", err);
     await ctx.reply(text, { parse_mode: "HTML", reply_markup: kb });
@@ -81,6 +67,7 @@ export async function handleFellowInfo(ctx: BotContext, skipKeyboard = false) {
 }
 
 export async function handleFellowFeatures(ctx: BotContext) {
+  const { fellowInfoInlineMenu } = await import("../keyboards");
   const text =
     `<b>🛠️ Explore Features</b>\n\n` +
     `Select a category below to browse our community resources:`;

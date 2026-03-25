@@ -6,9 +6,8 @@ export function mainReplyKeyboard() {
     .text("Leaders")
     .row()
     .text("Fellow Info")
-    .text("Payments")
+    .text("Give")
     .row()
-    .text("Help")
     .resized();
 }
 

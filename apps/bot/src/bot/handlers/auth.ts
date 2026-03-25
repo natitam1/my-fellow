@@ -2,7 +2,31 @@ import { BotContext } from "../context";
 import { sharePhoneKeyboard, mainReplyKeyboard } from "../keyboards";
 import { lookupByPhone, signIn, registerUser } from "../../api/auth";
 import { deleteLastBotMessage } from "../message-manager";
-import { handleFellowInfo } from "./fellow-info";
+import { InlineKeyboard, InputFile } from "grammy";
+import path from "path";
+
+async function sendFellowInfoPhoto(ctx: BotContext) {
+  const imagePath = path.join(__dirname, "../../../src/assets/felow.jpg");
+  const photo = new InputFile(imagePath);
+  const caption =
+    `AAU 4-Killo Evangelical Christian Students' Fellowship (ECSF) official telegram bot.\n\n` +
+    `It is a centralized platform designed to connect members with fellowship activities, announcements, devotionals, and community updates—all in one place.\n\n` +
+    `<b>Contact:</b>\n` +
+    `• @Jesus_died_for_me\n` +
+    `• @fellowship_leader\n\n` +
+    `<b>Developer:</b> 0911000002\n` +
+    `<b>Telegram:</b> @natitam1`;
+  const kb = new InlineKeyboard().url(
+    "Official Channel",
+    "https://t.me/AAU_4Killo_Fellowship",
+  );
+  const msg = await ctx.replyWithPhoto(photo, {
+    caption,
+    parse_mode: "HTML",
+    reply_markup: kb,
+  });
+  ctx.session.lastBotMessageId = msg.message_id;
+}
 
 function normalizePhoneNumber(phone: string): string {
   let normalized = phone.replace(/\D/g, "");
@@ -88,9 +112,7 @@ export async function handlePasswordSubmitted(
     await ctx.reply(`Logged in successfully. Welcome back ${user.fullName}.`, {
       reply_markup: mainReplyKeyboard(),
     });
-
-    // Automatically redirect to Home/Fellow Info without swapping the keyboard
-    return handleFellowInfo(ctx, true);
+    await sendFellowInfoPhoto(ctx);
   } catch (err: any) {
     await ctx.reply("Invalid password. Please try again.");
   }
@@ -124,9 +146,7 @@ export async function handleNameCollected(ctx: BotContext, name: string) {
     await ctx.reply(`Registration complete. Welcome ${user.fullName}.`, {
       reply_markup: mainReplyKeyboard(),
     });
-
-    // Automatically redirect to Home/Fellow Info without swapping the keyboard
-    return handleFellowInfo(ctx, true);
+    await sendFellowInfoPhoto(ctx);
   } catch (err: any) {
     await ctx.reply(
       `Failed to register: ${err.message || "Unknown error"}. Try /start again.`,
