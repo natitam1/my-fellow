@@ -20,11 +20,9 @@ export interface SessionData {
   };
   lastBotMessageId?: number;
 
-  // Pagination
   currentSection?: string;
   currentPage: number;
 
-  // Registration / Multi-step data
   onboardingData?: {
     fullName?: string;
     phoneNumber?: string;

@@ -1,5 +1,9 @@
 import { BotContext } from "../context";
-import { getAllDevotions, recordDevotionView, likeUnlikeDevotion } from "../../api/devotions";
+import {
+  getAllDevotions,
+  recordDevotionView,
+  likeUnlikeDevotion,
+} from "../../api/devotions";
 import { editOrSend } from "../message-manager";
 import { buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard } from "grammy";
@@ -13,7 +17,9 @@ export async function handleDevotionsList(ctx: BotContext) {
 
   try {
     const result = await getAllDevotions({ page, limit: PAGE_SIZE, type });
-    const allDevotions = Array.isArray(result) ? result : result.devotions || result.data || [];
+    const allDevotions = Array.isArray(result)
+      ? result
+      : result.devotions || result.data || [];
     const total = result.total || allDevotions.length;
 
     if (!allDevotions.length) {
@@ -23,9 +29,9 @@ export async function handleDevotionsList(ctx: BotContext) {
     const hasMore = total > page * PAGE_SIZE;
 
     let text = `Devotions\n\nPage ${page} of ${Math.ceil(total / PAGE_SIZE)}\n\nSelect a devotion for more detail:\n\n`;
-    
-    const kb = buildPaginationKeyboard("devotions", page, hasMore, "fi_menu");
-    
+
+    const kb = buildPaginationKeyboard("devotions", page, hasMore);
+
     for (const dev of allDevotions) {
       kb.text(dev.title, `devotion_view_${dev._id}`).row();
     }
@@ -36,13 +42,18 @@ export async function handleDevotionsList(ctx: BotContext) {
   }
 }
 
-export async function handleDevotionDetail(ctx: BotContext, devotionId: string) {
+export async function handleDevotionDetail(
+  ctx: BotContext,
+  devotionId: string,
+) {
   try {
     await recordDevotionView(devotionId).catch(() => {});
     const result = await getAllDevotions();
-    const devotions = Array.isArray(result) ? result : result.devotions || result.data || [];
+    const devotions = Array.isArray(result)
+      ? result
+      : result.devotions || result.data || [];
     const d = devotions.find((dev: any) => dev._id === devotionId);
-    
+
     if (!d) {
       return editOrSend(ctx, "Devotion not found.");
     }

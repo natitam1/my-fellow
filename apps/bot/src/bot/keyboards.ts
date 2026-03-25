@@ -53,7 +53,7 @@ export function buildPaginationKeyboard(
   section: string,
   currentPage: number,
   hasMore: boolean,
-  backAction: string = "fi_menu",
+  backAction: string = "back_to_main",
 ) {
   const kb = new InlineKeyboard();
 
@@ -67,6 +67,6 @@ export function buildPaginationKeyboard(
     kb.row();
   }
 
-  kb.text("Return", backAction);
+  kb.text(backAction === "back_to_main" ? "Home" : "Back", backAction);
   return kb;
 }

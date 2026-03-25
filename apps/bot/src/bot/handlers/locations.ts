@@ -20,12 +20,18 @@ export async function handleLocationsList(ctx: BotContext) {
   const pagedLocations = allLocations.slice(start, start + PAGE_SIZE);
   const hasMore = allLocations.length > start + PAGE_SIZE;
 
-  let text = `📍 Locations\n\nPage ${page} of ${Math.ceil(allLocations.length / PAGE_SIZE)}\n\nTap a location to view it on the map:\n\n`;
-  const kb = buildPaginationKeyboard("locations", page, hasMore, "fi_menu");
+  let text = `Locations\n\nPage ${page} of ${Math.ceil(allLocations.length / PAGE_SIZE)}\n\nTap a location to view it on the map:\n\n`;
+  const kb = buildPaginationKeyboard("locations", page, hasMore);
 
-  for (const loc of pagedLocations) {
-    kb.text(loc.name, `location_view_${loc._id}`).row();
-  }
+  pagedLocations.forEach((loc: any, index: number) => {
+    const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"];
+    kb.text(`${emojis[index]} ${loc.name}`, `location_view_${loc._id}`).row();
+  });
+
+  kb.row().url(
+    "🗺 Interactive Map",
+    "https://www.google.com/maps/search/AAU+4-Killo+Evangelical+Christian+Students+Fellowship",
+  );
 
   await editOrSend(ctx, text, { reply_markup: kb });
 }

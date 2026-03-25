@@ -21,7 +21,7 @@ export async function handleTeamsList(ctx: BotContext) {
   const hasMore = allTeams.length > start + PAGE_SIZE;
 
   let text = `Teams\n\nPage ${page} of ${Math.ceil(allTeams.length / PAGE_SIZE)}\n\nExplore our teams and ministries:\n\n`;
-  const kb = buildPaginationKeyboard("teams", page, hasMore, "fi_menu");
+  const kb = buildPaginationKeyboard("teams", page, hasMore);
 
   for (const team of pagedTeams) {
     kb.text(team.name, `team_view_${team._id}`).row();
