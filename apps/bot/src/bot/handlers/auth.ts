@@ -46,7 +46,7 @@ export async function handleStart(ctx: BotContext) {
   ctx.session.lastBotMessageId = undefined;
 
   await ctx.reply(
-    "Welcome to My Fellow Bot. Share your phone number to sign in or get started.",
+    "Welcome to 4killo ECSF Bot. Share your phone number to sign in or get started.",
     {
       reply_markup: sharePhoneKeyboard(),
     },

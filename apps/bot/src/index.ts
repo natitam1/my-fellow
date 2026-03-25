@@ -45,7 +45,7 @@ import {
   completePayment,
 } from "./bot/handlers/payments";
 import { deleteLastBotMessage } from "./bot/message-manager";
-import { mainReplyKeyboard } from "./bot/keyboards";
+import { mainReplyKeyboard, fellowInfoReplyKeyboard } from "./bot/keyboards";
 
 const bot = new Bot<BotContext>(config.BOT_TOKEN);
 
@@ -98,7 +98,11 @@ bot.hears("Leaders", (ctx) => {
   return handleLeadersList(ctx);
 });
 
-bot.hears("Fellow Info", (ctx) => handleFellowInfo(ctx));
+bot.hears("Fellow Info", async (ctx) => {
+  await ctx.reply("Explore Fellow Info & Resources:", {
+    reply_markup: fellowInfoReplyKeyboard(),
+  });
+});
 bot.hears("My Profile", handleMyProfile);
 bot.hears("Give", handlePayments);
 bot.hears("Logout", handleLogout);
@@ -110,7 +114,7 @@ bot.on("callback_query:data", async (ctx) => {
   try {
     if (data === "fi_menu") {
       s.currentPage = 1;
-      return handleFellowInfo(ctx);
+      return handleFellowFeatures(ctx);
     }
     if (data === "back_to_main") {
       s.currentPage = 1;
@@ -128,7 +132,7 @@ bot.on("callback_query:data", async (ctx) => {
     if (data === "profile_menu") return handleMyProfile(ctx);
     if (data === "back_to_menu") {
       s.currentPage = 1;
-      return handleFellowInfo(ctx);
+      return handleFellowFeatures(ctx);
     }
 
     if (data === "fi_events") {

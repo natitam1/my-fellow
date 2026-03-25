@@ -20,14 +20,19 @@ export async function handleProgramsList(ctx: BotContext) {
   const pagedPrograms = allPrograms.slice(start, start + PAGE_SIZE);
   const hasMore = allPrograms.length > start + PAGE_SIZE;
 
-  let text = `Programs\n\nPage ${page} of ${Math.ceil(allPrograms.length / PAGE_SIZE)}\n\nExplore our scheduled programs:\n\n`;
+  let text = `<b>📅 Programs</b>\n\nPage ${page} of ${Math.ceil(allPrograms.length / PAGE_SIZE)}\n\nExplore our scheduled programs:\n\n`;
   const kb = buildPaginationKeyboard("programs", page, hasMore, "fi_menu");
 
-  for (const prog of pagedPrograms) {
-    kb.text(prog.title, `program_view_${prog._id}`).row();
+  for (const p of pagedPrograms) {
+    text += `🔹 <b>${p.title}</b>\n`;
+    if (p.description) text += `📝 ${p.description}\n`;
+    if (p.day) text += `📅 <b>Day:</b> ${p.day}\n`;
+    if (p.time) text += `⏰ <b>Time:</b> ${p.time}\n`;
+    if (p.location) text += `📍 <b>Location:</b> ${p.location}\n`;
+    text += `\n`;
   }
 
-  await editOrSend(ctx, text, { reply_markup: kb });
+  await editOrSend(ctx, text.trimEnd(), { reply_markup: kb });
 }
 
 export async function handleProgramDetail(ctx: BotContext, id: string) {
