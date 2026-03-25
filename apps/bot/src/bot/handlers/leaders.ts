@@ -47,7 +47,7 @@ export async function handleLeadersList(ctx: BotContext) {
       kb.text("Next »", `leaders_page_${validPage + 1}`);
     }
 
-    kb.row().text("Back", "fi_menu");
+    kb.row().text("Home", "back_to_main");
     await editOrSend(ctx, text, { reply_markup: kb, parse_mode: "HTML" });
   } catch (error: any) {
     console.error("Leaders List Error:", error);
