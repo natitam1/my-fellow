@@ -19,7 +19,11 @@ import {
   handleDevotionsList,
   handleDevotionDetail,
 } from "./bot/handlers/devotions";
-import { handleTeamsList, handleTeamDetail } from "./bot/handlers/teams";
+import {
+  handleTeamsList,
+  handleTeamDetail,
+  handleTeamJoin,
+} from "./bot/handlers/teams";
 import {
   handleLocationsList,
   handleLocationDetail,
@@ -181,8 +185,9 @@ bot.on("callback_query:data", async (ctx) => {
       return handleEventRegister(ctx, data.replace("ev_reg_", ""));
     if (data.startsWith("devotion_view_"))
       return handleDevotionDetail(ctx, data.replace("devotion_view_", ""));
-    if (data.startsWith("team_view_"))
-      return handleTeamDetail(ctx, data.replace("team_view_", ""));
+    if (data.startsWith("team_view_")) return handleTeamDetail(ctx);
+    if (data.startsWith("team_join_"))
+      return handleTeamJoin(ctx, data.replace("team_join_", ""));
     if (data.startsWith("location_view_"))
       return handleLocationDetail(ctx, data.replace("location_view_", ""));
     if (data.startsWith("program_view_"))
