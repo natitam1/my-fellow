@@ -55,31 +55,30 @@ export async function handleTeamsList(ctx: BotContext) {
 
     const hasMore = validPage < allTeams.length;
 
-    // Build caption text
     let titleText = `<b>${escapeHTML(team.name)}</b>\n`;
     if (team.members) {
       titleText += `${team.members} Members\n`;
     }
     titleText += `\n`;
 
-    let bodyText = "";
-    if (team.description) {
-      bodyText += `${escapeHTML(team.description)}\n\n`;
-    }
-    if (team.about) {
-      bodyText += `${escapeHTML(team.about)}\n\n`;
-    }
+    const imageUrl = sanitizeImageUrl(team.imageUrl);
+    const isPhoto = !!imageUrl;
+    const limit = isPhoto ? MAX_CAPTION_LENGTH : 4096;
+
+    let remaining = limit - titleText.length;
+    let metadataText = "";
+
     if (team.meetingDay) {
-      bodyText += `Day: ${escapeHTML(team.meetingDay)}\n`;
+      metadataText += `Day: ${escapeHTML(team.meetingDay)}\n`;
     }
     if (team.time) {
-      bodyText += `Time: ${escapeHTML(team.time)}\n`;
+      metadataText += `Time: ${escapeHTML(team.time)}\n`;
     }
     if (team.location) {
       if (team.coordinates?.lat && team.coordinates?.lng) {
-        bodyText += `Location: <a href="https://www.google.com/maps/search/?api=1&query=${team.coordinates.lat},${team.coordinates.lng}">${escapeHTML(team.location)}</a>\n`;
+        metadataText += `Location: <a href="https://www.google.com/maps/search/?api=1&query=${team.coordinates.lat},${team.coordinates.lng}">${escapeHTML(team.location)}</a>\n`;
       } else {
-        bodyText += `Location: ${escapeHTML(team.location)}\n`;
+        metadataText += `Location: ${escapeHTML(team.location)}\n`;
       }
     }
     if (team.leader?.name) {
@@ -89,23 +88,31 @@ export async function handleTeamsList(ctx: BotContext) {
         const handle = team.leader.telegram.replace("@", "");
         leaderLine += ` — <a href="https://t.me/${handle}">@${handle}</a>`;
       }
-      bodyText += `\n${leaderLine}\n`;
+      if (team.leader.phoneNumber || team.leader.phone) {
+        const phone = team.leader.phoneNumber || team.leader.phone;
+        leaderLine += `\nPhone: <code>${escapeHTML(phone)}</code>`;
+      }
+      metadataText += `\n${leaderLine}\n`;
     }
 
-    const imageUrl = sanitizeImageUrl(team.imageUrl);
-    const isPhoto = !!imageUrl;
-    const limit = isPhoto ? MAX_CAPTION_LENGTH : 4096;
+    remaining -= metadataText.length;
 
-    let text = titleText + bodyText;
-    if (text.length > limit) {
-      text =
-        titleText + bodyText.substring(0, limit - titleText.length - 3) + "...";
+    let bodyText = "";
+    let desc = "";
+    if (team.description) desc += team.description + "\n\n";
+    if (team.about) desc += team.about + "\n\n";
+
+    if (desc.length > remaining) {
+      desc = desc.substring(0, remaining - 3) + "...";
     }
 
-    // Build keyboard
+    if (desc) {
+      bodyText += escapeHTML(desc) + "\n";
+    }
+
+    const text = titleText + bodyText + metadataText;
+
     const kb = new InlineKeyboard();
-    const teamId = team._id || team.id;
-    kb.text("Join Team", `team_join_${teamId}`).row();
 
     if (team.leader?.telegram) {
       const handle = team.leader.telegram.replace("@", "");
@@ -121,7 +128,6 @@ export async function handleTeamsList(ctx: BotContext) {
     kb.row();
     kb.text("Home", "back_to_main");
 
-    // Send message (same pattern as Events)
     const isCallback = ctx.callbackQuery !== undefined;
 
     let msg;
@@ -192,21 +198,21 @@ export async function handleTeamsList(ctx: BotContext) {
 export async function handleTeamJoin(ctx: BotContext, teamId: string) {
   try {
     const s = ctx.session;
-    if (!s.user || !s.token) {
+    if (!s.token) {
       return ctx.answerCallbackQuery({
         text: "Please login first.",
         show_alert: true,
       });
     }
 
-    const u = s.user as Record<string, string | undefined>;
+    const u = (s.user || {}) as Record<string, string | undefined>;
     await createJoinRequest(s.token, {
       teamId,
-      fullName: u.fullName || u.name || "N/A",
-      phoneNumber: u.phoneNumber || u.phone || "N/A",
-      department: u.department || "N/A",
-      year: u.year || "N/A",
-      telegramHandle: ctx.from?.username ? `@${ctx.from.username}` : "N/A",
+      fullName: u.fullName || u.name || "Unknown",
+      phoneNumber: u.phoneNumber || u.phone || "0000000000",
+      department: u.department || "Unknown",
+      year: u.year || "Unknown",
+      telegramHandle: ctx.from?.username ? `@${ctx.from.username}` : "Unknown",
       message: "Join request from Telegram bot",
     });
 
@@ -233,7 +239,6 @@ export async function handleTeamJoin(ctx: BotContext, teamId: string) {
   }
 }
 
-// Keep for backward compatibility with old detail view callbacks
 export async function handleTeamDetail(ctx: BotContext) {
   ctx.session.currentPage = 1;
   return handleTeamsList(ctx);
