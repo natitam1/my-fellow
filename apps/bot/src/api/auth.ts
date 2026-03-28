@@ -20,12 +20,13 @@ export async function registerUser(body: {
   yearOfStudy?: string;
   telegramUserName?: string | null;
   profileImage?: any;
+  password?: string;
 }) {
   const formData = new FormData();
   formData.append("fullName", body.fullName);
   formData.append("phoneNumber", body.phoneNumber);
-  formData.append("password", "telegram-bot-user");
-  formData.append("confirmPassword", "telegram-bot-user");
+  formData.append("password", body.password || "telegram-bot-user");
+  formData.append("confirmPassword", body.password || "telegram-bot-user");
 
   if (body.team) formData.append("team", body.team);
   if (body.department) formData.append("department", body.department);
@@ -41,7 +42,8 @@ export async function registerUser(body: {
         ? body.profileImage
         : new Blob([body.profileImage], { type: "image/jpeg" });
 
-    formData.append("file", fileBlob, "profile.jpg");
+    // API expects field name to be "image" as per uploadSingle middleware
+    formData.append("image", fileBlob, "profile.jpg");
   }
 
   const { data } = await publicApi.post("/api/auth/signup", formData, {

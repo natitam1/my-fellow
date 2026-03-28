@@ -172,7 +172,30 @@ export async function handleYearCollected(ctx: BotContext, year: string) {
     ...ctx.session.onboardingData,
     yearOfStudy: year,
   };
-  ctx.session.state = "BROWSING"; // We'll use a specific state or just handle photo in index.ts
+  ctx.session.state = "COLLECT_PASSWORD";
+
+  await ctx.reply(
+    "Please enter a password for your account (at least 6 characters). You'll need this to sign in later.",
+    {
+      reply_markup: { remove_keyboard: true },
+    },
+  );
+}
+
+export async function handlePasswordCollected(
+  ctx: BotContext,
+  password: string,
+) {
+  if (password.length < 6) {
+    return ctx.reply("Password must be at least 6 characters long.");
+  }
+
+  ctx.session.onboardingData = {
+    ...ctx.session.onboardingData,
+    password: password,
+  };
+
+  ctx.session.state = "BROWSING";
   (ctx.session as any).__awaitingPhoto = true;
 
   const kb = new InlineKeyboard().text("Skip for now", "skip_photo");
@@ -203,6 +226,7 @@ export async function finalizeRegistration(ctx: BotContext, photoFile?: any) {
       yearOfStudy: data.yearOfStudy,
       telegramUserName: telegramUserName,
       profileImage: photoFile,
+      password: data.password,
     });
 
     ctx.session.user = {

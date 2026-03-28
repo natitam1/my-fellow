@@ -7,6 +7,7 @@ export type BotState =
   | "COLLECT_TEAM"
   | "COLLECT_DEPARTMENT"
   | "COLLECT_YEAR"
+  | "COLLECT_PASSWORD"
   | "BROWSING";
 
 export interface SessionData {
@@ -29,6 +30,7 @@ export interface SessionData {
     team?: string;
     department?: string;
     yearOfStudy?: string;
+    password?: string;
   };
 
   // Pending actions

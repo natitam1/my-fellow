@@ -9,6 +9,7 @@ import {
   handleTeamCollected,
   handleDepartmentCollected,
   handleYearCollected,
+  handlePasswordCollected,
   finalizeRegistration,
   handlePasswordSubmitted,
   handleLogout,
@@ -242,6 +243,9 @@ bot.on("message:text", async (ctx) => {
   }
   if (s.state === "COLLECT_YEAR") {
     return handleYearCollected(ctx, text);
+  }
+  if (s.state === "COLLECT_PASSWORD") {
+    return handlePasswordCollected(ctx, text);
   }
 
   const p = s as any;
