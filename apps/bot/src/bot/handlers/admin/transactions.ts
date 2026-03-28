@@ -10,7 +10,7 @@ export async function handleAdminTransactionsList(ctx: BotContext) {
     const transactions = result.data;
     const { total, totalPages } = result.pagination;
 
-    let text = `💰 <b>Transactions</b> (${total} total, page ${page}/${totalPages})\n\n`;
+    let text = `<b>Transactions</b> (${total} total, page ${page}/${totalPages})\n\n`;
     transactions.forEach((tx: any, i: number) => {
       const name = tx.userId?.fullName || "Unknown";
       text += `${(page - 1) * 10 + i + 1}. <b>${name}</b>: ${tx.amount} ETB (${tx.status})\n`;
@@ -20,16 +20,16 @@ export async function handleAdminTransactionsList(ctx: BotContext) {
     const nav: any[] = [];
     if (page > 1)
       nav.push({
-        text: "⬅️ Prev",
+        text: "Prev",
         callback_data: `adm_transactions_page_${page - 1}`,
       });
     if (page < totalPages)
       nav.push({
-        text: "➡️ Next",
+        text: "Next",
         callback_data: `adm_transactions_page_${page + 1}`,
       });
     if (nav.length) kb.push(nav);
-    kb.push([{ text: "🔙 Back", callback_data: "adm_menu" }]);
+    kb.push([{ text: "Back", callback_data: "adm_menu" }]);
 
     await editOrSend(ctx, text, { reply_markup: { inline_keyboard: kb } });
   } catch (err: any) {

@@ -5,7 +5,7 @@ import { getTeams, createTeam, deleteTeam } from "../../../api/admin";
 
 export async function handleAdminTeamsMenu(ctx: BotContext) {
   ctx.session.adminForm = undefined;
-  await editOrSend(ctx, "🏠 <b>Teams Management</b>\n\nChoose an action:", {
+  await editOrSend(ctx, "<b>Teams Management</b>\n\nChoose an action:", {
     reply_markup: adminEntityMenu("teams"),
   });
 }
@@ -16,15 +16,15 @@ export async function handleAdminTeamsList(ctx: BotContext) {
     const result = await getTeams(ctx.session.token);
     const teams = result.data;
 
-    let text = `🏠 <b>Teams</b> (${teams.length})\n\n`;
+    let text = `<b>Teams</b> (${teams.length})\n\n`;
     teams.forEach((t: any, i: number) => {
       text += `${i + 1}. <b>${t.name}</b> — ${t.members} members\n`;
-      text += `   🗑 /adm_teams_del_${t._id}\n`;
+      text += `   /adm_teams_del_${t._id}\n`;
     });
 
     const kb: any[][] = [
-      [{ text: "➕ Add New", callback_data: "adm_teams_add" }],
-      [{ text: "🔙 Back", callback_data: "adm_teams" }],
+      [{ text: "Add New", callback_data: "adm_teams_add" }],
+      [{ text: "Back", callback_data: "adm_teams" }],
     ];
     await editOrSend(ctx, text, { reply_markup: { inline_keyboard: kb } });
   } catch (err: any) {
@@ -44,7 +44,7 @@ const TEAM_STEPS = [
 export async function handleAdminTeamCreate(ctx: BotContext) {
   ctx.session.adminForm = { entity: "teams", step: "name", data: {} };
   await ctx.reply(
-    "🏠 <b>Create Team</b>\n\nStep 1/6: Enter the team <b>name</b>:",
+    "<b>Create Team</b>\n\nStep 1/6: Enter the team <b>name</b>:",
     { parse_mode: "HTML" },
   );
 }
@@ -77,7 +77,7 @@ export async function handleAdminTeamFormStep(
   try {
     const body = {
       ...form.data,
-      icon: "👥",
+      icon: "",
       color: "#4A90D9",
       members: 0,
       about: form.data.description,
@@ -93,12 +93,12 @@ export async function handleAdminTeamFormStep(
     };
     await createTeam(ctx.session.token, body);
     ctx.session.adminForm = undefined;
-    await ctx.reply("✅ Team created successfully!");
+    await ctx.reply("Team created successfully!");
     return true;
   } catch (err: any) {
     ctx.session.adminForm = undefined;
     await ctx.reply(
-      `❌ Failed to create team: ${err.response?.data?.message || err.message}`,
+      `Failed to create team: ${err.response?.data?.message || err.message}`,
     );
     return true;
   }
@@ -108,10 +108,10 @@ export async function handleAdminTeamDelete(ctx: BotContext, id: string) {
   if (!ctx.session.token) return;
   try {
     await deleteTeam(ctx.session.token, id);
-    await ctx.reply("✅ Team deleted.");
+    await ctx.reply("Team deleted.");
   } catch (err: any) {
     await ctx.reply(
-      `❌ Failed to delete: ${err.response?.data?.message || err.message}`,
+      `Failed to delete: ${err.response?.data?.message || err.message}`,
     );
   }
 }

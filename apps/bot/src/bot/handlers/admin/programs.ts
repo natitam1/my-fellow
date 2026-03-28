@@ -5,7 +5,7 @@ import { getPrograms, createProgram, deleteProgram } from "../../../api/admin";
 
 export async function handleAdminProgramsMenu(ctx: BotContext) {
   ctx.session.adminForm = undefined;
-  await editOrSend(ctx, "📋 <b>Programs Management</b>\n\nChoose an action:", {
+  await editOrSend(ctx, "<b>Programs Management</b>\n\nChoose an action:", {
     reply_markup: adminEntityMenu("programs"),
   });
 }
@@ -16,15 +16,15 @@ export async function handleAdminProgramsList(ctx: BotContext) {
     const result = await getPrograms(ctx.session.token);
     const programs = result.data;
 
-    let text = `📋 <b>Programs</b> (${programs.length})\n\n`;
+    let text = `<b>Programs</b> (${programs.length})\n\n`;
     programs.forEach((p: any, i: number) => {
       text += `${i + 1}. <b>${p.title}</b> — ${p.day} ${p.time}\n`;
-      text += `   🗑 /adm_programs_del_${p._id}\n`;
+      text += `   /adm_programs_del_${p._id}\n`;
     });
 
     const kb: any[][] = [
-      [{ text: "➕ Add New", callback_data: "adm_programs_add" }],
-      [{ text: "🔙 Back", callback_data: "adm_programs" }],
+      [{ text: "Add New", callback_data: "adm_programs_add" }],
+      [{ text: "Back", callback_data: "adm_programs" }],
     ];
     await editOrSend(ctx, text, { reply_markup: { inline_keyboard: kb } });
   } catch (err: any) {
@@ -44,7 +44,7 @@ const PROGRAM_STEPS = [
 export async function handleAdminProgramCreate(ctx: BotContext) {
   ctx.session.adminForm = { entity: "programs", step: "title", data: {} };
   await ctx.reply(
-    "📋 <b>Create Program</b>\n\nStep 1/6: Enter the program <b>title</b>:",
+    "<b>Create Program</b>\n\nStep 1/6: Enter the program <b>title</b>:",
     { parse_mode: "HTML" },
   );
 }
@@ -82,12 +82,12 @@ export async function handleAdminProgramFormStep(
     };
     await createProgram(ctx.session.token, body);
     ctx.session.adminForm = undefined;
-    await ctx.reply("✅ Program created successfully!");
+    await ctx.reply("Program created successfully!");
     return true;
   } catch (err: any) {
     ctx.session.adminForm = undefined;
     await ctx.reply(
-      `❌ Failed to create program: ${err.response?.data?.message || err.message}`,
+      `Failed to create program: ${err.response?.data?.message || err.message}`,
     );
     return true;
   }
@@ -97,10 +97,10 @@ export async function handleAdminProgramDelete(ctx: BotContext, id: string) {
   if (!ctx.session.token) return;
   try {
     await deleteProgram(ctx.session.token, id);
-    await ctx.reply("✅ Program deleted.");
+    await ctx.reply("Program deleted.");
   } catch (err: any) {
     await ctx.reply(
-      `❌ Failed to delete: ${err.response?.data?.message || err.message}`,
+      `Failed to delete: ${err.response?.data?.message || err.message}`,
     );
   }
 }

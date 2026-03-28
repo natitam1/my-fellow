@@ -67,7 +67,7 @@ export async function handleAdminMenu(ctx: BotContext) {
   ctx.session.adminPendingDelete = undefined;
   await editOrSend(
     ctx,
-    "🔒 <b>Admin Dashboard</b>\n\nSelect a section to manage:",
+    "<b>Admin Dashboard</b>\n\nSelect a section to manage:",
     { reply_markup: adminInlineMenu() },
   );
 }
@@ -78,15 +78,15 @@ export async function handleAdminStats(ctx: BotContext) {
     const result = await getAdminStats(ctx.session.token);
     const s = result.data;
     const text =
-      `📊 <b>Fellowship Statistics</b>\n\n` +
-      `👥 Users: <b>${s.users}</b>\n` +
-      `📅 Events: <b>${s.events}</b>\n` +
-      `📝 Registrations: <b>${s.registrations}</b>\n` +
-      `💳 Transactions: <b>${s.transactions}</b>\n` +
-      `💰 Revenue: <b>${s.totalRevenue} ETB</b>`;
+      `<b>Fellowship Statistics</b>\n\n` +
+      `Users: <b>${s.users}</b>\n` +
+      `Events: <b>${s.events}</b>\n` +
+      `Registrations: <b>${s.registrations}</b>\n` +
+      `Transactions: <b>${s.transactions}</b>\n` +
+      `Revenue: <b>${s.totalRevenue} ETB</b>`;
     await editOrSend(ctx, text, {
       reply_markup: {
-        inline_keyboard: [[{ text: "🔙 Back", callback_data: "adm_menu" }]],
+        inline_keyboard: [[{ text: "Back", callback_data: "adm_menu" }]],
       },
     });
   } catch (err: any) {
@@ -102,25 +102,25 @@ export async function handleAdminUsersList(ctx: BotContext) {
     const users = result.data;
     const { total, totalPages } = result.pagination;
 
-    let text = `👥 <b>Users</b> (${total} total, page ${page}/${totalPages})\n\n`;
+    let text = `<b>Users</b> (${total} total, page ${page}/${totalPages})\n\n`;
     users.forEach((u: any, i: number) => {
-      text += `${(page - 1) * 10 + i + 1}. <b>${u.fullName}</b>\n   📱 ${u.phoneNumber} | 🏷 ${u.role}\n`;
+      text += `${(page - 1) * 10 + i + 1}. <b>${u.fullName}</b>\n   ${u.phoneNumber} | ${u.role}\n`;
     });
 
     const kb: any[][] = [];
     const nav: any[] = [];
     if (page > 1)
       nav.push({
-        text: "⬅️ Prev",
+        text: "Prev",
         callback_data: `adm_users_page_${page - 1}`,
       });
     if (page < totalPages)
       nav.push({
-        text: "➡️ Next",
+        text: "Next",
         callback_data: `adm_users_page_${page + 1}`,
       });
     if (nav.length) kb.push(nav);
-    kb.push([{ text: "🔙 Back", callback_data: "adm_menu" }]);
+    kb.push([{ text: "Back", callback_data: "adm_menu" }]);
 
     await editOrSend(ctx, text, { reply_markup: { inline_keyboard: kb } });
   } catch (err: any) {

@@ -5,7 +5,7 @@ import { getAdminEvents, createEvent, deleteEvent } from "../../../api/admin";
 
 export async function handleAdminEventsMenu(ctx: BotContext) {
   ctx.session.adminForm = undefined;
-  await editOrSend(ctx, "📅 <b>Events Management</b>\n\nChoose an action:", {
+  await editOrSend(ctx, "<b>Events Management</b>\n\nChoose an action:", {
     reply_markup: adminEntityMenu("events"),
   });
 }
@@ -16,16 +16,16 @@ export async function handleAdminEventsList(ctx: BotContext) {
     const result = await getAdminEvents(ctx.session.token);
     const events = result.data;
 
-    let text = `📅 <b>All Events</b> (${events.length})\n\n`;
+    let text = `<b>All Events</b> (${events.length})\n\n`;
     events.forEach((ev: any, i: number) => {
       const date = new Date(ev.startDate).toLocaleDateString();
       text += `${i + 1}. <b>${ev.title}</b> — ${date}\n`;
-      text += `   🗑 /adm_events_del_${ev._id}\n`;
+      text += `   /adm_events_del_${ev._id}\n`;
     });
 
     const kb: any[][] = [
-      [{ text: "➕ Add New", callback_data: "adm_events_add" }],
-      [{ text: "🔙 Back", callback_data: "adm_events" }],
+      [{ text: "Add New", callback_data: "adm_events_add" }],
+      [{ text: "Back", callback_data: "adm_events" }],
     ];
     await editOrSend(ctx, text, { reply_markup: { inline_keyboard: kb } });
   } catch (err: any) {
@@ -44,7 +44,7 @@ const EVENT_STEPS = [
 export async function handleAdminEventCreate(ctx: BotContext) {
   ctx.session.adminForm = { entity: "events", step: "title", data: {} };
   await ctx.reply(
-    "📅 <b>Create Event</b>\n\nStep 1/5: Enter the event <b>title</b>:",
+    "<b>Create Event</b>\n\nStep 1/5: Enter the event <b>title</b>:",
     { parse_mode: "HTML" },
   );
 }
@@ -86,12 +86,12 @@ export async function handleAdminEventFormStep(
     }
     await createEvent(ctx.session.token, body);
     ctx.session.adminForm = undefined;
-    await ctx.reply("✅ Event created successfully!", { parse_mode: "HTML" });
+    await ctx.reply("Event created successfully!", { parse_mode: "HTML" });
     return true;
   } catch (err: any) {
     ctx.session.adminForm = undefined;
     await ctx.reply(
-      `❌ Failed to create event: ${err.response?.data?.message || err.message}`,
+      `Failed to create event: ${err.response?.data?.message || err.message}`,
     );
     return true;
   }
@@ -101,10 +101,10 @@ export async function handleAdminEventDelete(ctx: BotContext, id: string) {
   if (!ctx.session.token) return;
   try {
     await deleteEvent(ctx.session.token, id);
-    await ctx.reply("✅ Event deleted.");
+    await ctx.reply("Event deleted.");
   } catch (err: any) {
     await ctx.reply(
-      `❌ Failed to delete: ${err.response?.data?.message || err.message}`,
+      `Failed to delete: ${err.response?.data?.message || err.message}`,
     );
   }
 }

@@ -5,7 +5,7 @@ import { getLeaders, createLeader, deleteLeader } from "../../../api/admin";
 
 export async function handleAdminLeadersMenu(ctx: BotContext) {
   ctx.session.adminForm = undefined;
-  await editOrSend(ctx, "👔 <b>Leaders Management</b>\n\nChoose an action:", {
+  await editOrSend(ctx, "<b>Leaders Management</b>\n\nChoose an action:", {
     reply_markup: adminEntityMenu("leaders"),
   });
 }
@@ -16,15 +16,15 @@ export async function handleAdminLeadersList(ctx: BotContext) {
     const result = await getLeaders(ctx.session.token);
     const leaders = result.data;
 
-    let text = `👔 <b>Leaders</b> (${leaders.length})\n\n`;
+    let text = `<b>Leaders</b> (${leaders.length})\n\n`;
     leaders.forEach((l: any, i: number) => {
       text += `${i + 1}. <b>${l.name}</b> — ${l.role} (${l.type})\n`;
-      text += `   🗑 /adm_leaders_del_${l._id}\n`;
+      text += `   /adm_leaders_del_${l._id}\n`;
     });
 
     const kb: any[][] = [
-      [{ text: "➕ Add New", callback_data: "adm_leaders_add" }],
-      [{ text: "🔙 Back", callback_data: "adm_leaders" }],
+      [{ text: "Add New", callback_data: "adm_leaders_add" }],
+      [{ text: "Back", callback_data: "adm_leaders" }],
     ];
     await editOrSend(ctx, text, { reply_markup: { inline_keyboard: kb } });
   } catch (err: any) {
@@ -37,7 +37,7 @@ const LEADER_STEPS = ["name", "role", "bio", "phoneNumber", "telegram", "type"];
 export async function handleAdminLeaderCreate(ctx: BotContext) {
   ctx.session.adminForm = { entity: "leaders", step: "name", data: {} };
   await ctx.reply(
-    "👔 <b>Create Leader</b>\n\nStep 1/6: Enter the leader's <b>name</b>:",
+    "<b>Create Leader</b>\n\nStep 1/6: Enter the leader's <b>name</b>:",
     { parse_mode: "HTML" },
   );
 }
@@ -70,12 +70,12 @@ export async function handleAdminLeaderFormStep(
   try {
     await createLeader(ctx.session.token, form.data);
     ctx.session.adminForm = undefined;
-    await ctx.reply("✅ Leader created successfully!");
+    await ctx.reply("Leader created successfully!");
     return true;
   } catch (err: any) {
     ctx.session.adminForm = undefined;
     await ctx.reply(
-      `❌ Failed to create leader: ${err.response?.data?.message || err.message}`,
+      `Failed to create leader: ${err.response?.data?.message || err.message}`,
     );
     return true;
   }
@@ -85,10 +85,10 @@ export async function handleAdminLeaderDelete(ctx: BotContext, id: string) {
   if (!ctx.session.token) return;
   try {
     await deleteLeader(ctx.session.token, id);
-    await ctx.reply("✅ Leader deleted.");
+    await ctx.reply("Leader deleted.");
   } catch (err: any) {
     await ctx.reply(
-      `❌ Failed to delete: ${err.response?.data?.message || err.message}`,
+      `Failed to delete: ${err.response?.data?.message || err.message}`,
     );
   }
 }

@@ -10,7 +10,7 @@ export async function handleAdminRegistrationsList(ctx: BotContext) {
     const registrations = result.data;
     const { total, totalPages } = result.pagination;
 
-    let text = `📝 <b>Registrations</b> (${total} total, page ${page}/${totalPages})\n\n`;
+    let text = `<b>Registrations</b> (${total} total, page ${page}/${totalPages})\n\n`;
     registrations.forEach((r: any, i: number) => {
       text += `${(page - 1) * 10 + i + 1}. <b>${r.user?.fullName || "Unknown"}</b> → ${r.event?.title || "Unknown"}\n`;
     });
@@ -19,16 +19,16 @@ export async function handleAdminRegistrationsList(ctx: BotContext) {
     const nav: any[] = [];
     if (page > 1)
       nav.push({
-        text: "⬅️ Prev",
+        text: "Prev",
         callback_data: `adm_registrations_page_${page - 1}`,
       });
     if (page < totalPages)
       nav.push({
-        text: "➡️ Next",
+        text: "Next",
         callback_data: `adm_registrations_page_${page + 1}`,
       });
     if (nav.length) kb.push(nav);
-    kb.push([{ text: "🔙 Back", callback_data: "adm_menu" }]);
+    kb.push([{ text: "Back", callback_data: "adm_menu" }]);
 
     await editOrSend(ctx, text, { reply_markup: { inline_keyboard: kb } });
   } catch (err: any) {

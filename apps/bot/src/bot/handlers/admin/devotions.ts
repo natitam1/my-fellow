@@ -9,7 +9,7 @@ import {
 
 export async function handleAdminDevotionsMenu(ctx: BotContext) {
   ctx.session.adminForm = undefined;
-  await editOrSend(ctx, "📖 <b>Devotions Management</b>\n\nChoose an action:", {
+  await editOrSend(ctx, "<b>Devotions Management</b>\n\nChoose an action:", {
     reply_markup: adminEntityMenu("devotions"),
   });
 }
@@ -21,17 +21,17 @@ export async function handleAdminDevotionsList(ctx: BotContext) {
     const result = await getDevotions(ctx.session.token, page);
     const devotions = result.data;
 
-    let text = `📖 <b>Devotions</b>\n\n`;
+    let text = `<b>Devotions</b>\n\n`;
     if (Array.isArray(devotions)) {
       devotions.forEach((d: any, i: number) => {
         text += `${i + 1}. <b>${d.title}</b> by ${d.author} (${d.type})\n`;
-        text += `   🗑 /adm_devotions_del_${d._id}\n`;
+        text += `   /adm_devotions_del_${d._id}\n`;
       });
     }
 
     const kb: any[][] = [
-      [{ text: "➕ Add New", callback_data: "adm_devotions_add" }],
-      [{ text: "🔙 Back", callback_data: "adm_devotions" }],
+      [{ text: "Add New", callback_data: "adm_devotions_add" }],
+      [{ text: "Back", callback_data: "adm_devotions" }],
     ];
     await editOrSend(ctx, text, { reply_markup: { inline_keyboard: kb } });
   } catch (err: any) {
@@ -44,7 +44,7 @@ const DEVOTION_STEPS = ["title", "author", "date", "type", "content"];
 export async function handleAdminDevotionCreate(ctx: BotContext) {
   ctx.session.adminForm = { entity: "devotions", step: "title", data: {} };
   await ctx.reply(
-    "📖 <b>Create Devotion</b>\n\nStep 1/5: Enter the <b>title</b>:",
+    "<b>Create Devotion</b>\n\nStep 1/5: Enter the <b>title</b>:",
     { parse_mode: "HTML" },
   );
 }
@@ -77,12 +77,12 @@ export async function handleAdminDevotionFormStep(
   try {
     await createDevotion(ctx.session.token, form.data);
     ctx.session.adminForm = undefined;
-    await ctx.reply("✅ Devotion created successfully!");
+    await ctx.reply("Devotion created successfully!");
     return true;
   } catch (err: any) {
     ctx.session.adminForm = undefined;
     await ctx.reply(
-      `❌ Failed to create devotion: ${err.response?.data?.message || err.message}`,
+      `Failed to create devotion: ${err.response?.data?.message || err.message}`,
     );
     return true;
   }
@@ -92,10 +92,10 @@ export async function handleAdminDevotionDelete(ctx: BotContext, id: string) {
   if (!ctx.session.token) return;
   try {
     await deleteDevotion(ctx.session.token, id);
-    await ctx.reply("✅ Devotion deleted.");
+    await ctx.reply("Devotion deleted.");
   } catch (err: any) {
     await ctx.reply(
-      `❌ Failed to delete: ${err.response?.data?.message || err.message}`,
+      `Failed to delete: ${err.response?.data?.message || err.message}`,
     );
   }
 }
