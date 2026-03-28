@@ -207,6 +207,19 @@ bot.on("callback_query:data", async (ctx) => {
     if (data === "pay_donate") return handleDonateStart(ctx);
     if (data === "pay_history") return handleMyGivings(ctx);
 
+    if (data.startsWith("reg_team_")) {
+      await ctx.answerCallbackQuery();
+      return handleTeamCollected(ctx, data.replace("reg_team_", ""));
+    }
+    if (data.startsWith("reg_dept_")) {
+      await ctx.answerCallbackQuery();
+      return handleDepartmentCollected(ctx, data.replace("reg_dept_", ""));
+    }
+    if (data.startsWith("reg_year_")) {
+      await ctx.answerCallbackQuery();
+      return handleYearCollected(ctx, data.replace("reg_year_", ""));
+    }
+
     await ctx.answerCallbackQuery();
   } catch (err: any) {
     console.error("Callback handler error:", err.message);

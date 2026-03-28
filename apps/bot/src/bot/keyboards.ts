@@ -1,5 +1,39 @@
 import { InlineKeyboard, Keyboard } from "grammy";
 
+export const DEPARTMENTS: string[] = [
+  "Freshman",
+  "Applied Chemistry",
+  "Applied Mathematics",
+  "Applied Biology",
+  "Applied Physics",
+  "Information System",
+  "Computer Science",
+  "Statistics",
+  "Engineering(5 Kilo)",
+  "Social Science(6 Kilo)",
+  "Other",
+];
+
+export const TEAM_NAMES = [
+  "Bible Study",
+  "Evangelism",
+  "Freshman",
+  "I4U",
+  "Media",
+  "Prayer",
+  "Worship",
+  "Other",
+];
+
+export const YEARS = [
+  "1st Year",
+  "2nd Year",
+  "3rd Year",
+  "4th Year",
+  "5th Year",
+  "Other",
+];
+
 export function mainReplyKeyboard() {
   return new Keyboard()
     .text("Events")
@@ -68,5 +102,14 @@ export function buildPaginationKeyboard(
   }
 
   kb.text(backAction === "back_to_main" ? "Home" : "Back", backAction);
+  return kb;
+}
+
+export function selectionKeyboard(options: string[], prefix: string) {
+  const kb = new InlineKeyboard();
+  options.forEach((opt, index) => {
+    kb.text(opt, `${prefix}${opt}`);
+    if ((index + 1) % 2 === 0) kb.row();
+  });
   return kb;
 }

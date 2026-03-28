@@ -1,5 +1,12 @@
 import { BotContext } from "../context";
-import { sharePhoneKeyboard, mainReplyKeyboard } from "../keyboards";
+import {
+  sharePhoneKeyboard,
+  mainReplyKeyboard,
+  selectionKeyboard,
+  TEAM_NAMES,
+  DEPARTMENTS,
+  YEARS,
+} from "../keyboards";
 import { lookupByPhone, signIn, registerUser } from "../../api/auth";
 import { deleteLastBotMessage } from "../message-manager";
 import { InlineKeyboard, InputFile } from "grammy";
@@ -131,46 +138,36 @@ export async function handleNameCollected(ctx: BotContext, name: string) {
   };
   ctx.session.state = "COLLECT_TEAM";
 
-  await ctx.reply(
-    "Great! Which team are you in? (e.g., Media, Usher, Protocol, etc.)",
-  );
+  await ctx.reply("Great! Which team are you in?", {
+    reply_markup: selectionKeyboard(TEAM_NAMES, "reg_team_"),
+  });
 }
 
 export async function handleTeamCollected(ctx: BotContext, team: string) {
-  if (team.length < 2) {
-    return ctx.reply("Please provide a valid team name.");
-  }
-
   ctx.session.onboardingData = {
     ...ctx.session.onboardingData,
     team: team,
   };
   ctx.session.state = "COLLECT_DEPARTMENT";
 
-  await ctx.reply(
-    "Which department are you in? (e.g., Software Engineering, Mechanical, etc.)",
-  );
+  await ctx.reply("Which department are you in?", {
+    reply_markup: selectionKeyboard(DEPARTMENTS, "reg_dept_"),
+  });
 }
 
 export async function handleDepartmentCollected(ctx: BotContext, dept: string) {
-  if (dept.length < 2) {
-    return ctx.reply("Please provide a valid department name.");
-  }
-
   ctx.session.onboardingData = {
     ...ctx.session.onboardingData,
     department: dept,
   };
   ctx.session.state = "COLLECT_YEAR";
 
-  await ctx.reply("What is your current year of study? (e.g., 1st, 2nd, etc.)");
+  await ctx.reply("What is your current year of study?", {
+    reply_markup: selectionKeyboard(YEARS, "reg_year_"),
+  });
 }
 
 export async function handleYearCollected(ctx: BotContext, year: string) {
-  if (year.length < 1) {
-    return ctx.reply("Please provide your year of study.");
-  }
-
   ctx.session.onboardingData = {
     ...ctx.session.onboardingData,
     yearOfStudy: year,
