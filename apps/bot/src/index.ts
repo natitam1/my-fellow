@@ -292,4 +292,6 @@ bot.catch((err) => {
 });
 
 console.log("My Fellow Bot is updated. Starting in hybrid mode...");
-bot.start();
+bot.api.deleteWebhook({ drop_pending_updates: true }).then(() => {
+  bot.start();
+});

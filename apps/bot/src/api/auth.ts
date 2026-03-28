@@ -34,8 +34,14 @@ export async function registerUser(body: {
     formData.append("telegramUserName", body.telegramUserName);
 
   if (body.profileImage) {
-    // profileImage is expected to be a Blob or Buffer with filename
-    formData.append("file", body.profileImage, "profile.jpg");
+    // profileImage is expected to be a Blob or Buffer
+    // In newer Node.js global FormData (Web API), we should use Blob
+    const fileBlob =
+      body.profileImage instanceof Blob
+        ? body.profileImage
+        : new Blob([body.profileImage], { type: "image/jpeg" });
+
+    formData.append("file", fileBlob, "profile.jpg");
   }
 
   const { data } = await publicApi.post("/api/auth/signup", formData, {
