@@ -125,12 +125,87 @@ export async function handleNameCollected(ctx: BotContext, name: string) {
     );
   }
 
-  const phone = ctx.session.onboardingData?.phoneNumber!;
+  ctx.session.onboardingData = {
+    ...ctx.session.onboardingData,
+    fullName: name,
+  };
+  ctx.session.state = "COLLECT_TEAM";
+
+  await ctx.reply(
+    "Great! Which team are you in? (e.g., Media, Usher, Protocol, etc.)",
+  );
+}
+
+export async function handleTeamCollected(ctx: BotContext, team: string) {
+  if (team.length < 2) {
+    return ctx.reply("Please provide a valid team name.");
+  }
+
+  ctx.session.onboardingData = {
+    ...ctx.session.onboardingData,
+    team: team,
+  };
+  ctx.session.state = "COLLECT_DEPARTMENT";
+
+  await ctx.reply(
+    "Which department are you in? (e.g., Software Engineering, Mechanical, etc.)",
+  );
+}
+
+export async function handleDepartmentCollected(ctx: BotContext, dept: string) {
+  if (dept.length < 2) {
+    return ctx.reply("Please provide a valid department name.");
+  }
+
+  ctx.session.onboardingData = {
+    ...ctx.session.onboardingData,
+    department: dept,
+  };
+  ctx.session.state = "COLLECT_YEAR";
+
+  await ctx.reply("What is your current year of study? (e.g., 1st, 2nd, etc.)");
+}
+
+export async function handleYearCollected(ctx: BotContext, year: string) {
+  if (year.length < 1) {
+    return ctx.reply("Please provide your year of study.");
+  }
+
+  ctx.session.onboardingData = {
+    ...ctx.session.onboardingData,
+    yearOfStudy: year,
+  };
+  ctx.session.state = "BROWSING"; // We'll use a specific state or just handle photo in index.ts
+  (ctx.session as any).__awaitingPhoto = true;
+
+  const kb = new InlineKeyboard().text("Skip for now", "skip_photo");
+
+  await ctx.reply(
+    "Almost done! Would you like to upload a profile picture? Send it as a photo or click skip.",
+    {
+      reply_markup: kb,
+    },
+  );
+}
+
+export async function finalizeRegistration(ctx: BotContext, photoFile?: any) {
+  const data = ctx.session.onboardingData;
+  if (!data || !data.phoneNumber || !data.fullName) {
+    ctx.session.state = "WAIT_PHONE";
+    return ctx.reply("Session expired. Please start again with /start.");
+  }
 
   try {
+    const telegramUserName = ctx.from?.username || null;
+
     const { user, token } = await registerUser({
-      fullName: name,
-      phoneNumber: phone,
+      fullName: data.fullName,
+      phoneNumber: data.phoneNumber,
+      team: data.team,
+      department: data.department,
+      yearOfStudy: data.yearOfStudy,
+      telegramUserName: telegramUserName,
+      profileImage: photoFile,
     });
 
     ctx.session.user = {
@@ -142,8 +217,9 @@ export async function handleNameCollected(ctx: BotContext, name: string) {
     ctx.session.token = token;
     ctx.session.state = "BROWSING";
     delete ctx.session.onboardingData;
+    delete (ctx.session as any).__awaitingPhoto;
 
-    await ctx.reply(`Registration complete. Welcome ${user.fullName}.`, {
+    await ctx.reply(`Registration complete. Welcome ${user.fullName}!`, {
       reply_markup: mainReplyKeyboard(),
     });
     await sendFellowInfoPhoto(ctx);

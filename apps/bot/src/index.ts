@@ -1,10 +1,15 @@
 import { Bot, session } from "grammy";
+import axios from "axios";
 import { config } from "./config";
 import { BotContext, SessionData } from "./bot/context";
 import {
   handleStart,
   handleContact,
   handleNameCollected,
+  handleTeamCollected,
+  handleDepartmentCollected,
+  handleYearCollected,
+  finalizeRegistration,
   handlePasswordSubmitted,
   handleLogout,
 } from "./bot/handlers/auth";
@@ -134,6 +139,7 @@ bot.on("callback_query:data", async (ctx) => {
       return;
     }
     if (data === "profile_menu") return handleMyProfile(ctx);
+    if (data === "skip_photo") return finalizeRegistration(ctx);
     if (data === "back_to_menu") {
       s.currentPage = 1;
       return handleFellowFeatures(ctx);
@@ -215,6 +221,15 @@ bot.on("message:text", async (ctx) => {
   if (s.state === "COLLECT_NAME") {
     return handleNameCollected(ctx, text);
   }
+  if (s.state === "COLLECT_TEAM") {
+    return handleTeamCollected(ctx, text);
+  }
+  if (s.state === "COLLECT_DEPARTMENT") {
+    return handleDepartmentCollected(ctx, text);
+  }
+  if (s.state === "COLLECT_YEAR") {
+    return handleYearCollected(ctx, text);
+  }
 
   const p = s as any;
   if (p.__pendingPassword) {
@@ -238,6 +253,25 @@ bot.on("message:text", async (ctx) => {
   if (!validButtons.includes(text)) {
     await ctx.reply("Please use the menu buttons at the bottom to continue.");
   }
+});
+
+bot.on("message:photo", async (ctx) => {
+  const s = ctx.session as any;
+  if (s.__awaitingPhoto) {
+    const photo = ctx.message.photo;
+    const bestPhoto = photo[photo.length - 1];
+    const file = await ctx.api.getFile(bestPhoto.file_id);
+
+    if (file.file_path) {
+      const fileUrl = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`;
+      const response = await axios.get(fileUrl, {
+        responseType: "arraybuffer",
+      });
+      const buffer = Buffer.from(response.data);
+      return finalizeRegistration(ctx, buffer);
+    }
+  }
+  await ctx.reply("Please use the menu buttons at the bottom to continue.");
 });
 
 bot.catch((err) => {
