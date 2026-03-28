@@ -30,15 +30,20 @@ export const YEARS = [
   "5th Year",
   "Other",
 ];
-export function mainReplyKeyboard() {
-  return new Keyboard()
+export function mainReplyKeyboard(isAdmin?: boolean) {
+  const kb = new Keyboard()
     .text("Events")
     .text("Leaders")
     .row()
     .text("Fellow Info")
     .text("Give")
-    .row()
-    .resized();
+    .row();
+
+  if (isAdmin) {
+    kb.text("Admin").row();
+  }
+
+  return kb.resized();
 }
 export function fellowInfoReplyKeyboard() {
   return new Keyboard()
@@ -77,6 +82,55 @@ export function fellowInfoInlineMenu() {
     .row()
     .text("Back", "back_to_menu");
 }
+
+export function adminInlineMenu() {
+  return new InlineKeyboard()
+    .text("📊 Stats", "adm_stats")
+    .text("👥 Users", "adm_users")
+    .row()
+    .text("📅 Events", "adm_events")
+    .text("📖 Devotions", "adm_devotions")
+    .row()
+    .text("👔 Leaders", "adm_leaders")
+    .text("📋 Programs", "adm_programs")
+    .row()
+    .text("🏠 Teams", "adm_teams")
+    .text("📍 Locations", "adm_locations")
+    .row()
+    .text("📝 Registrations", "adm_registrations")
+    .text("💰 Transactions", "adm_transactions")
+    .row()
+    .text("📦 Orders", "adm_orders")
+    .text("🤝 Join Requests", "adm_joinreqs")
+    .row()
+    .text("🔙 Back", "back_to_main");
+}
+
+export function adminEntityMenu(entity: string) {
+  return new InlineKeyboard()
+    .text("📋 List All", `adm_${entity}_list`)
+    .text("➕ Add New", `adm_${entity}_add`)
+    .row()
+    .text("🔙 Back", "adm_menu");
+}
+
+export function adminEntityListMenu(entity: string) {
+  return new InlineKeyboard()
+    .text("➕ Add New", `adm_${entity}_add`)
+    .row()
+    .text("🔙 Back", `adm_${entity}`);
+}
+
+export function confirmDeleteKeyboard(entity: string, id: string) {
+  return new InlineKeyboard()
+    .text("✅ Yes, Delete", `adm_${entity}_confirmdelete_${id}`)
+    .text("❌ Cancel", `adm_${entity}_list`);
+}
+
+export function adminBackButton(target: string) {
+  return new InlineKeyboard().text("🔙 Back", target);
+}
+
 export function buildPaginationKeyboard(
   section: string,
   currentPage: number,
