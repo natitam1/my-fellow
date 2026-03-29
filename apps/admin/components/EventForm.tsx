@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import api from "@/lib/api";
 import { Loader2, Upload, X } from "lucide-react";
+import { AIPosterGenerator } from "./AIPosterGenerator";
 
 interface EventFormProps {
   initialData?: any;
@@ -26,6 +27,8 @@ export function EventForm({ initialData }: EventFormProps) {
     startDate: "",
     endDate: "",
     buttonText: "",
+    registrationLimit: "",
+    scheduledAt: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -42,6 +45,10 @@ export function EventForm({ initialData }: EventFormProps) {
           ? new Date(initialData.endDate).toISOString().slice(0, 16)
           : "",
         buttonText: initialData.buttonText || "",
+        registrationLimit: initialData.registrationLimit?.toString() || "",
+        scheduledAt: initialData.scheduledAt
+          ? new Date(initialData.scheduledAt).toISOString().slice(0, 16)
+          : "",
       });
     }
   }, [initialData]);
@@ -69,12 +76,20 @@ export function EventForm({ initialData }: EventFormProps) {
         ...formData,
         startDate: new Date(formData.startDate).toISOString(),
         endDate: new Date(formData.endDate).toISOString(),
+        registrationLimit: formData.registrationLimit
+          ? parseInt(formData.registrationLimit)
+          : null,
+        scheduledAt: formData.scheduledAt
+          ? new Date(formData.scheduledAt).toISOString()
+          : null,
       };
 
       if (imageFile) {
         const form = new FormData();
         Object.entries(payload).forEach(([key, value]) => {
-          form.append(key, value);
+          if (value !== null && value !== undefined) {
+            form.append(key, String(value));
+          }
         });
         form.append("image", imageFile);
 
@@ -125,9 +140,24 @@ export function EventForm({ initialData }: EventFormProps) {
 
         <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
           <div className="sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700">
-              Banner Image
-            </label>
+            <div className="flex justify-between items-center">
+              <label className="block text-sm font-medium text-gray-700">
+                Banner Image
+              </label>
+              <AIPosterGenerator
+                onPosterGenerated={(file, previewUrl) => {
+                  setImageFile(file);
+                  setImagePreview(previewUrl);
+                }}
+                defaultEventDetails={{
+                  title: formData.title,
+                  description:
+                    formData.shortDescription || formData.fullDescription,
+                  startDate: formData.startDate,
+                  endDate: formData.endDate,
+                }}
+              />
+            </div>
             <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative hover:border-[#ff6719] transition-colors bg-gray-50">
               {imagePreview ? (
                 <div className="relative w-full h-64">
@@ -292,6 +322,45 @@ export function EventForm({ initialData }: EventFormProps) {
                 value={formData.buttonText}
                 onChange={handleChange}
                 placeholder="e.g. Register Now"
+                className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-3">
+            <label
+              htmlFor="registrationLimit"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Registration Limit (Optional)
+            </label>
+            <div className="mt-1">
+              <input
+                type="number"
+                name="registrationLimit"
+                id="registrationLimit"
+                value={formData.registrationLimit}
+                onChange={handleChange}
+                placeholder="e.g. 30"
+                className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-3">
+            <label
+              htmlFor="scheduledAt"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Scheduled Posting (Optional)
+            </label>
+            <div className="mt-1">
+              <input
+                type="datetime-local"
+                name="scheduledAt"
+                id="scheduledAt"
+                value={formData.scheduledAt}
+                onChange={handleChange}
                 className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
               />
             </div>
