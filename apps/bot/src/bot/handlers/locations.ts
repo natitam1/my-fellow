@@ -1,10 +1,11 @@
 import { BotContext } from "../context";
 import { getAllLocations } from "../../api/locations";
-import { editOrSend } from "../message-manager";
+import { editOrSend, deleteLastBotMessage } from "../message-manager";
 import { buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard } from "grammy";
 const PAGE_SIZE = 5;
 export async function handleLocationsList(ctx: BotContext) {
+  await deleteLastBotMessage(ctx);
   ctx.session.currentSection = "locations";
   const page = ctx.session.currentPage || 1;
   const result = await getAllLocations();
@@ -20,13 +21,13 @@ export async function handleLocationsList(ctx: BotContext) {
   pagedLocations.forEach((loc: any, index: number) => {
     const num = (page - 1) * PAGE_SIZE + index + 1;
     text += `${num}. <b>${loc.name}</b>\n`;
-    if (loc.address) text += `📍 Address: ${loc.address}\n`;
+    if (loc.address) text += `Address: ${loc.address}\n`;
     if (loc.serviceTimes?.length)
-      text += `🕐 Service Times: ${loc.serviceTimes.join(", ")}\n`;
+      text += `Service Times: ${loc.serviceTimes.join(", ")}\n`;
     if (loc.googleMapsUrl)
-      text += `🗺️ <a href="${loc.googleMapsUrl}">View on Map</a>\n`;
+      text += `<a href="${loc.googleMapsUrl}">View on Map</a>\n`;
     else if (loc.coordinates?.latitude && loc.coordinates?.longitude)
-      text += `🗺️ <a href="https://www.google.com/maps/search/?api=1&query=${loc.coordinates.latitude},${loc.coordinates.longitude}">View on Map</a>\n`;
+      text += `<a href="https://www.google.com/maps/search/?api=1&query=${loc.coordinates.latitude},${loc.coordinates.longitude}">View on Map</a>\n`;
     text += `\n`;
   });
   await editOrSend(ctx, text.trimEnd(), {
