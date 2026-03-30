@@ -104,7 +104,9 @@ export async function handleAdminUsersList(ctx: BotContext) {
 
     let text = `<b>Users</b> (${total} total, page ${page}/${totalPages})\n\n`;
     users.forEach((u: any, i: number) => {
-      text += `${(page - 1) * 10 + i + 1}. <b>${u.fullName}</b>\n   ${u.phoneNumber} | ${u.role}\n`;
+      const tgUsername = u.telegramUserName || u.telegramUsername;
+      const tg = tgUsername ? `@${tgUsername}` : "N/A";
+      text += `${(page - 1) * 10 + i + 1}. <b>${u.fullName}</b>\n   ${u.phoneNumber} | ${tg}\n`;
     });
 
     const kb: any[][] = [];
