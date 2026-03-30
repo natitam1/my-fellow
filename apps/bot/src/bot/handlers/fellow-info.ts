@@ -1,6 +1,6 @@
 import { BotContext } from "../context";
 import { deleteLastBotMessage } from "../message-manager";
-import { fellowInfoReplyKeyboard } from "../keyboards";
+import { fellowInfoReplyKeyboard, buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard, InputFile } from "grammy";
 import path from "path";
 export async function handleFellowInfo(ctx: BotContext, replyMarkup?: any) {
@@ -99,11 +99,12 @@ export async function handleFellowFeatures(ctx: BotContext) {
 }
 export async function handleSocialLinks(ctx: BotContext) {
   const text =
-    ` <b>Follow us on</b>\n` +
+    `<b>Follow us on</b>\n\n` +
+    `• <b>Telegram:</b> <a href="https://t.me/AAU_4Killo_Fellowship">Official Channel</a>\n` +
     `• <b>Instagram:</b> <a href="https://www.instagram.com/4Kilofellowship">4Kilofellowship</a>\n` +
     `• <b>TikTok:</b> <a href="https://www.tiktok.com/@4kilofellowship">4kilofellowship</a>\n` +
     `• <b>YouTube:</b> Coming soon`;
-  const kb = new InlineKeyboard().text("Back", "fi_menu");
+  const kb = buildPaginationKeyboard("social", 1, false);
   if (ctx.callbackQuery) {
     await ctx
       .editMessageCaption({

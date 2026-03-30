@@ -30,10 +30,7 @@ import {
   handleTeamDetail,
   handleTeamJoin,
 } from "./bot/handlers/teams";
-import {
-  handleLocationsList,
-  handleLocationDetail,
-} from "./bot/handlers/locations";
+import { handleLocationsList } from "./bot/handlers/locations";
 import {
   handleProgramsList,
   handleProgramDetail,
@@ -205,8 +202,7 @@ bot.on("callback_query:data", async (ctx) => {
     if (data.startsWith("team_view_")) return handleTeamDetail(ctx);
     if (data.startsWith("team_join_"))
       return handleTeamJoin(ctx, data.replace("team_join_", ""));
-    if (data.startsWith("location_view_"))
-      return handleLocationDetail(ctx, data.replace("location_view_", ""));
+
     if (data.startsWith("program_view_"))
       return handleProgramDetail(ctx, data.replace("program_view_", ""));
     if (data.startsWith("product_view_"))
