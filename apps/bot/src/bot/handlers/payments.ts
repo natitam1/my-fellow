@@ -59,6 +59,7 @@ export async function completePayment(ctx: BotContext, text: string) {
         "Giving initialized. Follow the instructions on your phone.",
       );
     }
+    await (await import("./fellow-info")).handleFellowInfo(ctx);
   } catch (err: any) {
     await ctx.reply(`Giving failed: ${err.message}`);
   }
