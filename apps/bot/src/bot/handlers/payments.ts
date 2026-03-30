@@ -45,9 +45,11 @@ export async function completePayment(ctx: BotContext, text: string) {
       email: lines[1],
       reason: lines[2],
     });
-    const checkoutUrl = result.checkoutUrl || result.data?.checkout_url;
     if (checkoutUrl) {
-      const kb = new InlineKeyboard().url("Give Now", checkoutUrl);
+      const kb = new InlineKeyboard()
+        .url("Give Now", checkoutUrl)
+        .row()
+        .text("Back to Home", "back_to_main");
       await ctx.reply(
         `Giving initialized for ${amount} ETB. Complete it via the link below:`,
         {
@@ -59,7 +61,7 @@ export async function completePayment(ctx: BotContext, text: string) {
         "Giving initialized. Follow the instructions on your phone.",
       );
     }
-    await (await import("./fellow-info")).handleFellowInfo(ctx);
+    // await (await import("./fellow-info")).handleFellowInfo(ctx);
   } catch (err: any) {
     await ctx.reply(`Giving failed: ${err.message}`);
   }
