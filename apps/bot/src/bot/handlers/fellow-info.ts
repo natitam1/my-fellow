@@ -1,5 +1,5 @@
 import { BotContext } from "../context";
-import { deleteLastBotMessage, editOrSend } from "../message-manager";
+import { editOrSend } from "../message-manager";
 import { fellowInfoReplyKeyboard, buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard, InputFile } from "grammy";
 import path from "path";
@@ -40,7 +40,6 @@ export async function handleFellowInfo(ctx: BotContext, replyMarkup?: any) {
         );
         await ctx.answerCallbackQuery().catch(() => {});
       } catch (e) {
-        await deleteLastBotMessage(ctx);
         const msg = await ctx.replyWithPhoto(photo, {
           caption: text,
           parse_mode: "HTML",
@@ -53,7 +52,6 @@ export async function handleFellowInfo(ctx: BotContext, replyMarkup?: any) {
         await ctx.answerCallbackQuery().catch(() => {});
       }
     } else {
-      await deleteLastBotMessage(ctx);
       const msg = await ctx.replyWithPhoto(photo, {
         caption: text,
         parse_mode: "HTML",
@@ -99,7 +97,6 @@ export async function handleSocialLinks(ctx: BotContext) {
       });
     await ctx.answerCallbackQuery().catch(() => {});
   } else {
-    await deleteLastBotMessage(ctx);
     const msg = await ctx.reply(text, {
       parse_mode: "HTML",
       reply_markup: kb,

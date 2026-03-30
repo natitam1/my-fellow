@@ -1,6 +1,6 @@
 import { BotContext } from "../context";
 import { getAllLeaders } from "../../api/leaders";
-import { editOrSend, deleteLastBotMessage } from "../message-manager";
+import { editOrSend } from "../message-manager";
 import { InlineKeyboard } from "grammy";
 const PAGE_SIZE = 5;
 export async function handleLeadersList(ctx: BotContext) {

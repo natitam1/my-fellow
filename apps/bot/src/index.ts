@@ -88,7 +88,6 @@ import {
   handleAdminJoinRequestsList,
   handleAdminJoinRequestStatus,
 } from "./bot/handlers/admin/index";
-import { deleteLastBotMessage } from "./bot/message-manager";
 import { mainReplyKeyboard, fellowInfoReplyKeyboard } from "./bot/keyboards";
 const bot = new Bot<BotContext>(config.BOT_TOKEN);
 bot.use(

@@ -3,43 +3,53 @@ export async function editOrSend(
   ctx: BotContext,
   text: string,
   options: any = {},
+  media?: string,
 ) {
   const lastId = ctx.session.lastBotMessageId;
   const isCallback = ctx.callbackQuery !== undefined;
 
-  // For non-callbacks (reply keyboard buttons), always delete previous and send new
-  if (!isCallback && lastId) {
-    await ctx.api.deleteMessage(ctx.chat!.id, lastId).catch(() => {});
-    ctx.session.lastBotMessageId = undefined;
-  }
-
   // For callbacks, try to edit the existing message
-  if (isCallback && ctx.session.lastBotMessageId) {
+  if (isCallback && lastId) {
     try {
-      const msg = await ctx.api.editMessageText(
-        ctx.chat!.id,
-        ctx.session.lastBotMessageId,
-        text,
-        {
+      if (media) {
+        const msg = await ctx.api.editMessageMedia(
+          ctx.chat!.id,
+          lastId,
+          {
+            type: "photo",
+            media: media,
+            caption: text,
+            parse_mode: "HTML",
+          },
+          { reply_markup: options.reply_markup },
+        );
+        return msg;
+      } else {
+        const msg = await ctx.api.editMessageText(ctx.chat!.id, lastId, text, {
           parse_mode: "HTML",
           ...options,
-        },
-      );
-      return msg;
+        });
+        return msg;
+      }
     } catch (error: any) {
-      // If edit fails (e.g. caption message vs text message), delete and fallback
-      await ctx.api
-        .deleteMessage(ctx.chat!.id, ctx.session.lastBotMessageId)
-        .catch(() => {});
-      ctx.session.lastBotMessageId = undefined;
+      // If edit fails, fall through to sending a new message
     }
   }
 
-  // Default: Send new message
-  const msg = await ctx.reply(text, {
-    parse_mode: "HTML",
-    ...options,
-  });
+  // Send new message
+  let msg;
+  if (media) {
+    msg = await ctx.replyWithPhoto(media, {
+      caption: text,
+      parse_mode: "HTML",
+      ...options,
+    });
+  } else {
+    msg = await ctx.reply(text, {
+      parse_mode: "HTML",
+      ...options,
+    });
+  }
   ctx.session.lastBotMessageId = msg.message_id;
   return msg;
 }

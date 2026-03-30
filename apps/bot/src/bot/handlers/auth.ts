@@ -8,7 +8,6 @@ import {
   YEARS,
 } from "../keyboards";
 import { lookupByPhone, signIn, registerUser } from "../../api/auth";
-import { deleteLastBotMessage } from "../message-manager";
 import { InlineKeyboard, InputFile } from "grammy";
 import path from "path";
 async function sendFellowInfoPhoto(ctx: BotContext) {
@@ -64,7 +63,6 @@ export async function handleContact(ctx: BotContext) {
     ctx.session.onboardingData = { phoneNumber: phone };
     ctx.session.state = "BROWSING";
     (ctx.session as any).__pendingPassword = true;
-    await deleteLastBotMessage(ctx);
     await ctx.reply(
       `Account found for ${user.fullName}. Please enter your password to sign in.`,
       {
@@ -74,7 +72,6 @@ export async function handleContact(ctx: BotContext) {
   } catch (err: any) {
     ctx.session.onboardingData = { phoneNumber: phone };
     ctx.session.state = "COLLECT_NAME";
-    await deleteLastBotMessage(ctx);
     await ctx.reply(
       "Welcome. Lets create your profile. What is your full name?",
       {

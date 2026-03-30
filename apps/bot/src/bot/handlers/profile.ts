@@ -1,5 +1,5 @@
 import { BotContext } from "../context";
-import { editOrSend, deleteLastBotMessage } from "../message-manager";
+import { editOrSend } from "../message-manager";
 import { InlineKeyboard } from "grammy";
 import { getMyJoinRequests } from "../../api/teams";
 import { getMyOrders } from "../../api/marketplace";

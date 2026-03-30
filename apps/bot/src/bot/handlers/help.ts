@@ -1,7 +1,7 @@
 import { BotContext } from "../context";
-import { editOrSend, deleteLastBotMessage } from "../message-manager";
+import { editOrSend } from "../message-manager";
 export async function handleHelp(ctx: BotContext) {
-    const text = `Help Center
+  const text = `Help Center
 
 For support, contact admin: @admin_username
 
@@ -11,5 +11,5 @@ How to use:
 - My Profile: Manage your account, orders and join requests
 - Payments: Make contributions and view giving history
 - Logout: Sign out from the bot sessions`;
-    await editOrSend(ctx, text);
+  await editOrSend(ctx, text);
 }
