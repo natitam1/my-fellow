@@ -137,13 +137,14 @@ export function isAdminFormActive(ctx: BotContext): boolean {
 export async function handleAdminFormInput(
   ctx: BotContext,
   text: string,
+  photoBuffer?: Buffer,
 ): Promise<boolean> {
   const form = ctx.session.adminForm;
   if (!form) return false;
 
   switch (form.entity) {
     case "events":
-      return _eventForm(ctx, text);
+      return _eventForm(ctx, text, photoBuffer);
     case "devotions":
       return _devotionForm(ctx, text);
     case "leaders":

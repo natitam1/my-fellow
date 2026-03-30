@@ -50,11 +50,16 @@ export async function handleAdminEventCreate(ctx: BotContext) {
 export async function handleAdminEventFormStep(
   ctx: BotContext,
   text: string,
+  photoBuffer?: Buffer,
 ): Promise<boolean> {
   const form = ctx.session.adminForm;
   if (!form || form.entity !== "events") return false;
 
-  form.data[form.step] = text;
+  if (form.step === "imageUrl" && photoBuffer) {
+    form.data.imageBuffer = photoBuffer;
+  } else {
+    form.data[form.step] = text;
+  }
 
   const currentIdx = EVENT_STEPS.indexOf(form.step);
   const nextIdx = currentIdx + 1;
@@ -65,7 +70,7 @@ export async function handleAdminEventFormStep(
       shortDescription: `Step 2/5: Enter a <b>short description</b>:`,
       startDate: `Step 3/5: Enter the <b>start date</b> (YYYY-MM-DD):`,
       endDate: `Step 4/5: Enter the <b>end date</b> (YYYY-MM-DD):`,
-      imageUrl: `Step 5/5: Enter the <b>image URL</b> (or type "skip"):`,
+      imageUrl: `Step 5/5: Enter the <b>image URL</b> (or send a photo/skip):`,
     };
     await ctx.reply(prompts[form.step], { parse_mode: "HTML" });
     return true;
@@ -79,7 +84,9 @@ export async function handleAdminEventFormStep(
       startDate: form.data.startDate,
       endDate: form.data.endDate,
     };
-    if (form.data.imageUrl && form.data.imageUrl !== "skip") {
+    if (form.data.imageBuffer) {
+      body.imageBuffer = form.data.imageBuffer;
+    } else if (form.data.imageUrl && form.data.imageUrl !== "skip") {
       body.imageUrl = form.data.imageUrl;
     }
     await createEvent(ctx.session.token, body);

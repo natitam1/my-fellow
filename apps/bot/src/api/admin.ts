@@ -36,6 +36,21 @@ export async function getAdminTransactions(token: string, page: number = 1) {
 
 export async function createEvent(token: string, body: Record<string, any>) {
   const api = createApiClient(token);
+  if (body.imageBuffer) {
+    const formData = new FormData();
+    Object.keys(body).forEach((key) => {
+      if (key === "imageBuffer") {
+        const fileBlob = new Blob([body.imageBuffer], { type: "image/jpeg" });
+        formData.append("image", fileBlob, "event.jpg");
+      } else if (body[key] !== undefined) {
+        formData.append(key, body[key]);
+      }
+    });
+    const { data } = await api.post("/api/events", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  }
   const { data } = await api.post("/api/events", body);
   return data;
 }

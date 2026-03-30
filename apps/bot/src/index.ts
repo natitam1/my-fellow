@@ -375,19 +375,28 @@ bot.on("message:text", async (ctx) => {
 });
 bot.on("message:photo", async (ctx) => {
   const s = ctx.session as any;
-  if (s.__awaitingPhoto) {
-    const photo = ctx.message.photo;
-    const bestPhoto = photo[photo.length - 1];
-    const file = await ctx.api.getFile(bestPhoto.file_id);
-    if (file.file_path) {
-      const fileUrl = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`;
-      const response = await axios.get(fileUrl, {
-        responseType: "arraybuffer",
-      });
-      const buffer = Buffer.from(response.data);
+  const photo = ctx.message.photo;
+  const bestPhoto = photo[photo.length - 1];
+  const file = await ctx.api.getFile(bestPhoto.file_id);
+
+  if (file.file_path) {
+    const fileUrl = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`;
+    const response = await axios.get(fileUrl, {
+      responseType: "arraybuffer",
+    });
+    const buffer = Buffer.from(response.data);
+
+    if (s.__awaitingPhoto) {
       return finalizeRegistration(ctx, buffer);
     }
+
+    if (isAdminFormActive(ctx)) {
+      const text = ctx.message.caption || "";
+      const handled = await handleAdminFormInput(ctx, text, buffer);
+      if (handled) return;
+    }
   }
+
   await ctx.reply("Please use the menu buttons at the bottom to continue.");
 });
 bot.catch((err) => {
