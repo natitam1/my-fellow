@@ -210,7 +210,10 @@ bot.on("callback_query:data", async (ctx) => {
     if (data === "profile_orders") return handleMyOrders(ctx);
     if (data === "profile_givings") return handleMyGivings(ctx);
     if (data === "pay_donate") return handleDonateStart(ctx);
-    if (data === "pay_menu") return handlePayments(ctx);
+    if (data === "pay_menu") {
+      delete (ctx.session as any).__pendingPayment;
+      return handlePayments(ctx);
+    }
     if (data === "pay_history") return handleMyGivings(ctx);
     if (data.startsWith("reg_team_")) {
       await ctx.answerCallbackQuery();

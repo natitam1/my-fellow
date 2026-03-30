@@ -15,10 +15,15 @@ export async function handlePayments(ctx: BotContext) {
   await editOrSend(ctx, text, { reply_markup: kb });
 }
 export async function handleDonateStart(ctx: BotContext) {
+  const kb = new InlineKeyboard().text("Cancel", "pay_menu");
   await ctx.reply(
-    "\uD83C\uDF81 Giving Form\n\nPlease provide details in this format:\n\nAmount (number)\nFull Name\nPhone\nEmail\nReason (tithe/offering/etc)",
+    "🎁 <b>Giving Form</b>\n\nPlease provide details in this format:\n\n" +
+      "1. Amount (number)\n" +
+      "2. Email\n" +
+      "3. Reason (tithe/offering/etc)",
     {
-      reply_markup: { force_reply: true },
+      reply_markup: kb,
+      parse_mode: "HTML",
     },
   );
   ctx.session.state = "BROWSING";
@@ -26,20 +31,19 @@ export async function handleDonateStart(ctx: BotContext) {
 }
 export async function completePayment(ctx: BotContext, text: string) {
   const lines = text.split("\n").map((l) => l.trim());
-  if (lines.length < 5) {
-    return ctx.reply(
-      "Incomplete form. Requires: Amount, Name, Phone, Email, Reason.",
-    );
+  if (lines.length < 3) {
+    return ctx.reply("Incomplete form. Requires: Amount, Email, Reason.");
   }
   const amount = parseFloat(lines[0]);
   if (isNaN(amount) || amount <= 0) return ctx.reply("Invalid amount.");
+  const user = ctx.session.user!;
   try {
     const result = await initializePayment(ctx.session.token!, {
       amount,
-      fullName: lines[1],
-      phoneNumber: lines[2],
-      email: lines[3],
-      reason: lines[4],
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      email: lines[1],
+      reason: lines[2],
     });
     const checkoutUrl = result.checkoutUrl || result.data?.checkout_url;
     if (checkoutUrl) {
