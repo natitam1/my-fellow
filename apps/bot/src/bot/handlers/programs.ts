@@ -1,6 +1,6 @@
 import { BotContext } from "../context";
 import { getAllPrograms, getProgramById } from "../../api/programs";
-import { editOrSend, deleteLastBotMessage } from "../message-manager";
+import { editOrSend } from "../message-manager";
 import { buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard } from "grammy";
 const PAGE_SIZE = 5;

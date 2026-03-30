@@ -1,5 +1,5 @@
 import { BotContext } from "../context";
-import { deleteLastBotMessage } from "../message-manager";
+import { deleteLastBotMessage, editOrSend } from "../message-manager";
 import { fellowInfoReplyKeyboard, buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard, InputFile } from "grammy";
 import path from "path";
@@ -74,28 +74,7 @@ export async function handleFellowFeatures(ctx: BotContext) {
   const text =
     `<b>🛠️ Explore Features</b>\n\n` +
     `Select a category below to browse our community resources:`;
-  if (ctx.callbackQuery) {
-    await ctx
-      .editMessageCaption({
-        caption: text,
-        parse_mode: "HTML",
-        reply_markup: fellowInfoInlineMenu(),
-      })
-      .catch(async () => {
-        await ctx.editMessageText(text, {
-          parse_mode: "HTML",
-          reply_markup: fellowInfoInlineMenu(),
-        });
-      });
-    await ctx.answerCallbackQuery().catch(() => {});
-  } else {
-    await deleteLastBotMessage(ctx);
-    const msg = await ctx.reply(text, {
-      parse_mode: "HTML",
-      reply_markup: fellowInfoInlineMenu(),
-    });
-    ctx.session.lastBotMessageId = msg.message_id;
-  }
+  await editOrSend(ctx, text, { reply_markup: fellowInfoInlineMenu() });
 }
 export async function handleSocialLinks(ctx: BotContext) {
   const text =
