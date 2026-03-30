@@ -113,19 +113,6 @@ export default function PaymentSuccessPage() {
             — 2 Corinthians 9:7
           </p>
         </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.8 }}
-        >
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center px-8 py-3.5 bg-slate-900 text-white text-[13px] font-medium tracking-wide rounded-full shadow-lg shadow-slate-900/20 hover:bg-slate-800 hover:scale-105 transition-all duration-300 active:scale-95"
-          >
-            Return Home
-          </Link>
-        </motion.div>
       </motion.div>
     </div>
   );
