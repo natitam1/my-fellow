@@ -5,7 +5,6 @@ import { buildPaginationKeyboard } from "../keyboards";
 import { InlineKeyboard } from "grammy";
 const PAGE_SIZE = 5;
 export async function handleProgramsList(ctx: BotContext) {
-  await deleteLastBotMessage(ctx);
   ctx.session.currentSection = "programs";
   const page = ctx.session.currentPage || 1;
   const result = await getAllPrograms();
