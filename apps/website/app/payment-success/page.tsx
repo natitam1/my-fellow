@@ -91,7 +91,7 @@ export default function PaymentSuccessPage() {
           transition={{ duration: 1, delay: 1.1 }}
         >
           Thank you for your beautiful heart. Your generosity is a fragrant
-          offering, a sacrifice acceptable and pleasing to God.
+          offering, a sacrifice acceptable and pleasing to God!
         </motion.p>
 
         <motion.div
