@@ -8,10 +8,10 @@ import { Sparkles } from "lucide-react";
 export default function PaymentSuccessPage() {
   return (
     <div className="min-h-[100dvh] w-full bg-[#f8fbff] relative overflow-hidden flex flex-col items-center justify-center px-8">
-      <div className="absolute inset-0 bg-gradient-to-b from-blue-50/80 via-white to-amber-50/30" />
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-50/80 via-white to-orange-50/30" />
 
       <motion.div
-        className="absolute -top-32 inset-x-0 h-[70vh] bg-gradient-to-b from-amber-100/40 to-transparent blur-3xl rounded-full"
+        className="absolute -top-32 inset-x-0 h-[70vh] bg-gradient-to-b from-orange-100/50 to-transparent blur-3xl rounded-full"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 2.5, ease: "easeOut" }}
@@ -22,7 +22,7 @@ export default function PaymentSuccessPage() {
         style={{ animationDuration: "4s" }}
       />
       <div
-        className="absolute bottom-1/4 -right-20 w-64 h-64 bg-amber-100/30 rounded-full blur-3xl mix-blend-overlay animate-pulse"
+        className="absolute bottom-1/4 -right-20 w-64 h-64 bg-orange-100/40 rounded-full blur-3xl mix-blend-overlay animate-pulse"
         style={{ animationDuration: "6s" }}
       />
 
@@ -34,7 +34,7 @@ export default function PaymentSuccessPage() {
       >
         <div className="relative mb-14 w-32 h-32 flex items-center justify-center mt-8">
           <motion.div
-            className="absolute inset-0 bg-amber-200/40 rounded-full blur-2xl"
+            className="absolute inset-0 bg-orange-200/40 rounded-full blur-2xl"
             animate={{
               scale: [1, 1.3, 1],
               opacity: [0.4, 0.7, 0.4],
@@ -54,20 +54,20 @@ export default function PaymentSuccessPage() {
               repeatType: "reverse",
               ease: "easeInOut",
             }}
-            className="relative z-10 text-amber-500"
+            className="relative z-10 text-primary"
           >
             <FaDove className="w-16 h-16 drop-shadow-lg" />
           </motion.div>
 
           <motion.div
-            className="absolute top-0 right-2 text-amber-300"
+            className="absolute top-0 right-2 text-orange-300"
             animate={{ rotate: 360, scale: [0.8, 1.2, 0.8] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           >
             <Sparkles className="w-6 h-6" />
           </motion.div>
           <motion.div
-            className="absolute bottom-4 left-0 text-amber-400"
+            className="absolute bottom-4 left-0 text-orange-400"
             animate={{ rotate: -360, scale: [1, 0.7, 1] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
@@ -105,11 +105,11 @@ export default function PaymentSuccessPage() {
             stiffness: 100,
           }}
         >
-          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-300 to-amber-500" />
+          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-300 to-primary" />
           <p className="text-slate-700 font-serif italic text-lg leading-relaxed mb-3">
             "God loves a cheerful giver."
           </p>
-          <p className="text-amber-600/80 font-medium text-[11px] tracking-[0.2em] uppercase">
+          <p className="text-primary/80 font-medium text-[11px] tracking-[0.2em] uppercase">
             — 2 Corinthians 9:7
           </p>
         </motion.div>
