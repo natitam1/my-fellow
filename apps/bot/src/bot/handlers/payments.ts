@@ -45,6 +45,7 @@ export async function completePayment(ctx: BotContext, text: string) {
       email: lines[1],
       reason: lines[2],
     });
+    const checkoutUrl = result.checkoutUrl || result.data?.checkout_url;
     if (checkoutUrl) {
       const kb = new InlineKeyboard()
         .url("Give Now", checkoutUrl)
