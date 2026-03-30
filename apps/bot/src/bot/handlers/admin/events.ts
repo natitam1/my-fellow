@@ -18,9 +18,7 @@ export async function handleAdminEventsList(ctx: BotContext) {
 
     let text = `<b>All Events</b> (${events.length})\n\n`;
     events.forEach((ev: any, i: number) => {
-      const date = new Date(ev.startDate).toLocaleDateString();
-      text += `${i + 1}. <b>${ev.title}</b> — ${date}\n`;
-      text += `   /adm_events_del_${ev._id}\n`;
+      text += `${i + 1}. <b>${ev.title}</b>\n`;
     });
 
     const kb: any[][] = [
