@@ -4,6 +4,22 @@ import Navbar from "@/components/Navbar";
 export default function ChangelogPage() {
   const changes = [
     {
+      version: "v1.2.3",
+      date: "March 31, 2026",
+      title: "Enhanced Fellowship Experience",
+      description:
+        "Significant updates to giving, event management, and the fellowship marketplace.",
+      features: [
+        "Detailed Giving History & Total Contributions",
+        "Event Registration Limits & Capacity Management",
+        "Event Scheduling & Automated Publishing",
+        "Enhanced Fellowship Marketplace & Resource Discovery",
+        "Integrated Order Management & Tracking",
+        "Audio Player Improvements & Lock Screen Metadata fixes",
+        "Offline Support for Events and Devotions",
+      ],
+    },
+    {
       version: "v1.0.0",
       date: "January 27, 2026",
       title: "Initial Stable Release",
