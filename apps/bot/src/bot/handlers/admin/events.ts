@@ -79,7 +79,7 @@ export async function handleAdminEventFormStep(
       endDate: `Step 6/${totalSteps}: Enter the <b>end date & time</b> (e.g. YYYY-MM-DD HH:MM):`,
       buttonText: `Step 7/${totalSteps}: Enter the <b>button text/CTA</b> (e.g. "Register Now"):`,
       registrationLimit: `Step 8/${totalSteps}: Enter the <b>registration limit</b> (optional, or type 'skip'):`,
-      scheduledAt: `Step 9/${totalSteps}: Enter the <b>scheduled posting time</b> (optional, or type 'skip'):`,
+      scheduledAt: `Step 9/${totalSteps}: Enter the <b>scheduled posting time</b> (e.g. YYYY-MM-DD HH:MM, or type 'skip'):`,
     };
     await ctx.reply(prompts[form.step], { parse_mode: "HTML" });
     return true;
@@ -87,26 +87,27 @@ export async function handleAdminEventFormStep(
 
   if (!ctx.session.token) return false;
   try {
+    const d = form.data;
+    const isSkip = (val: any) =>
+      typeof val === "string" && val.toLowerCase() === "skip";
+
     const body: any = {
-      title: form.data.title,
-      shortDescription: form.data.shortDescription,
-      fullDescription:
-        form.data.fullDescription !== "skip"
-          ? form.data.fullDescription
-          : undefined,
-      startDate: form.data.startDate,
-      endDate: form.data.endDate,
-      buttonText: form.data.buttonText,
-      registrationLimit:
-        form.data.registrationLimit !== "skip"
-          ? Number(form.data.registrationLimit)
-          : undefined,
-      scheduledAt:
-        form.data.scheduledAt !== "skip" ? form.data.scheduledAt : undefined,
+      title: d.title,
+      shortDescription: d.shortDescription,
+      fullDescription: !isSkip(d.fullDescription)
+        ? d.fullDescription
+        : undefined,
+      startDate: d.startDate,
+      endDate: d.endDate,
+      buttonText: d.buttonText,
+      registrationLimit: !isSkip(d.registrationLimit)
+        ? Number(d.registrationLimit)
+        : undefined,
+      scheduledAt: !isSkip(d.scheduledAt) ? d.scheduledAt : undefined,
     };
     if (form.data.imageBuffer) {
       body.imageBuffer = form.data.imageBuffer;
-    } else if (form.data.imageUrl && form.data.imageUrl !== "skip") {
+    } else if (form.data.imageUrl && !isSkip(form.data.imageUrl)) {
       body.imageUrl = form.data.imageUrl;
     }
     await createEvent(ctx.session.token, body);
