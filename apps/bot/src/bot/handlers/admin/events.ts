@@ -32,17 +32,21 @@ export async function handleAdminEventsList(ctx: BotContext) {
 }
 
 const EVENT_STEPS = [
+  "imageUrl",
   "title",
   "shortDescription",
+  "fullDescription",
   "startDate",
   "endDate",
-  "imageUrl",
+  "buttonText",
+  "registrationLimit",
+  "scheduledAt",
 ];
 
 export async function handleAdminEventCreate(ctx: BotContext) {
-  ctx.session.adminForm = { entity: "events", step: "title", data: {} };
+  ctx.session.adminForm = { entity: "events", step: "imageUrl", data: {} };
   await ctx.reply(
-    "<b>Create Event</b>\n\nStep 1/5: Enter the event <b>title</b>:",
+    "<b>Create Event</b>\n\nStep 1/9: Upload a <b>Banner Image</b> (or send an image URL, or type 'skip'):",
     { parse_mode: "HTML" },
   );
 }
@@ -66,11 +70,16 @@ export async function handleAdminEventFormStep(
 
   if (nextIdx < EVENT_STEPS.length) {
     form.step = EVENT_STEPS[nextIdx];
+    const totalSteps = EVENT_STEPS.length;
     const prompts: Record<string, string> = {
-      shortDescription: `Step 2/5: Enter a <b>short description</b>:`,
-      startDate: `Step 3/5: Enter the <b>start date</b> (YYYY-MM-DD):`,
-      endDate: `Step 4/5: Enter the <b>end date</b> (YYYY-MM-DD):`,
-      imageUrl: `Step 5/5: Enter the <b>image URL</b> (or send a photo/skip):`,
+      title: `Step 2/${totalSteps}: Enter the event <b>title</b>:`,
+      shortDescription: `Step 3/${totalSteps}: Enter a <b>short description</b>:`,
+      fullDescription: `Step 4/${totalSteps}: Enter a <b>full description</b> (optional, or type 'skip'):`,
+      startDate: `Step 5/${totalSteps}: Enter the <b>start date & time</b> (e.g. YYYY-MM-DD HH:MM):`,
+      endDate: `Step 6/${totalSteps}: Enter the <b>end date & time</b> (e.g. YYYY-MM-DD HH:MM):`,
+      buttonText: `Step 7/${totalSteps}: Enter the <b>button text/CTA</b> (e.g. "Register Now"):`,
+      registrationLimit: `Step 8/${totalSteps}: Enter the <b>registration limit</b> (optional, or type 'skip'):`,
+      scheduledAt: `Step 9/${totalSteps}: Enter the <b>scheduled posting time</b> (optional, or type 'skip'):`,
     };
     await ctx.reply(prompts[form.step], { parse_mode: "HTML" });
     return true;
@@ -81,8 +90,19 @@ export async function handleAdminEventFormStep(
     const body: any = {
       title: form.data.title,
       shortDescription: form.data.shortDescription,
+      fullDescription:
+        form.data.fullDescription !== "skip"
+          ? form.data.fullDescription
+          : undefined,
       startDate: form.data.startDate,
       endDate: form.data.endDate,
+      buttonText: form.data.buttonText,
+      registrationLimit:
+        form.data.registrationLimit !== "skip"
+          ? Number(form.data.registrationLimit)
+          : undefined,
+      scheduledAt:
+        form.data.scheduledAt !== "skip" ? form.data.scheduledAt : undefined,
     };
     if (form.data.imageBuffer) {
       body.imageBuffer = form.data.imageBuffer;

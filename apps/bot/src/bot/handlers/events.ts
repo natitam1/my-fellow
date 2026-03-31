@@ -50,6 +50,11 @@ export async function handleEventsList(ctx: BotContext) {
     if (event.shortDescription) {
       bodyText += `${escapeHTML(event.shortDescription)}\n\n`;
     }
+    if (event.startDate) {
+      const start = new Date(event.startDate).toLocaleString();
+      const end = event.endDate ? new Date(event.endDate).toLocaleString() : "";
+      bodyText += `<b>Date:</b> ${start}${end ? " - " + end : ""}\n\n`;
+    }
     if (event.fullDescription) {
       bodyText += `${escapeHTML(event.fullDescription)}`;
     }
