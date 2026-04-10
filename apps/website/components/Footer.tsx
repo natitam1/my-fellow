@@ -124,6 +124,12 @@ export function Footer() {
                 Help center
               </Link>
               <Link
+                href="/delete-account"
+                className="text-red-500 hover:text-red-600 transition-colors"
+              >
+                Delete Account
+              </Link>
+              <Link
                 href="/devotions"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
