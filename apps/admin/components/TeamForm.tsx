@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
-import { Loader2, Upload, X, Users } from "lucide-react";
+import { Loader2, Upload, X, Users, MapPin } from "lucide-react";
+
+const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
 interface TeamFormProps {
   initialData?: any;
@@ -36,6 +39,7 @@ export function TeamForm({ initialData }: TeamFormProps) {
     leaderTelegram: "",
     leaderPhone: "",
   });
+  const [showMap, setShowMap] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -330,11 +334,21 @@ export function TeamForm({ initialData }: TeamFormProps) {
 
         {/* Meeting Details */}
         <section>
-          <h3 className="text-lg font-medium text-gray-900 border-b pb-2 mb-4">
-            Meeting Details
-          </h3>
+          <div className="flex justify-between items-center border-b pb-2 mb-4">
+            <h3 className="text-lg font-medium text-gray-900">
+              Meeting Details & Location
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowMap(true)}
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6719]"
+            >
+              <MapPin size={14} className="mr-1.5 text-[#ff6719]" />
+              Pick on Map
+            </button>
+          </div>
           <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-            <div className="sm:col-span-3">
+            <div className="sm:col-span-2">
               <label
                 htmlFor="meetingDay"
                 className="block text-sm font-medium text-gray-700"
@@ -351,7 +365,7 @@ export function TeamForm({ initialData }: TeamFormProps) {
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-[#ff6719] focus:border-[#ff6719] sm:text-sm"
               />
             </div>
-            <div className="sm:col-span-3">
+            <div className="sm:col-span-2">
               <label
                 htmlFor="time"
                 className="block text-sm font-medium text-gray-700"
@@ -368,12 +382,12 @@ export function TeamForm({ initialData }: TeamFormProps) {
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-[#ff6719] focus:border-[#ff6719] sm:text-sm"
               />
             </div>
-            <div className="sm:col-span-6">
+            <div className="sm:col-span-2">
               <label
                 htmlFor="location"
                 className="block text-sm font-medium text-gray-700"
               >
-                Meeting Location
+                Location Label
               </label>
               <input
                 type="text"
@@ -381,11 +395,61 @@ export function TeamForm({ initialData }: TeamFormProps) {
                 id="location"
                 value={formData.location}
                 onChange={handleChange}
+                placeholder="e.g. Room 302"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-[#ff6719] focus:border-[#ff6719] sm:text-sm"
+              />
+            </div>
+            <div className="sm:col-span-3">
+              <label
+                htmlFor="lat"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Latitude
+              </label>
+              <input
+                type="number"
+                step="any"
+                name="lat"
+                id="lat"
+                value={formData.lat}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-[#ff6719] focus:border-[#ff6719] sm:text-sm"
+              />
+            </div>
+            <div className="sm:col-span-3">
+              <label
+                htmlFor="lng"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Longitude
+              </label>
+              <input
+                type="number"
+                step="any"
+                name="lng"
+                id="lng"
+                value={formData.lng}
+                onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-[#ff6719] focus:border-[#ff6719] sm:text-sm"
               />
             </div>
           </div>
         </section>
+
+        {showMap && (
+          <MapPicker
+            initialLat={parseFloat(formData.lat) || undefined}
+            initialLng={parseFloat(formData.lng) || undefined}
+            onSelect={(lat, lng) => {
+              setFormData({
+                ...formData,
+                lat: lat.toString(),
+                lng: lng.toString(),
+              });
+            }}
+            onClose={() => setShowMap(false)}
+          />
+        )}
 
         {/* Leader Info */}
         <section>

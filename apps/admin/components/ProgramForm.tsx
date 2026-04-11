@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2, Upload, X, MapPin } from "lucide-react";
+
+const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
 interface ProgramFormProps {
   initialData?: any;
@@ -27,7 +30,9 @@ export function ProgramForm({ initialData }: ProgramFormProps) {
     location: "",
     lat: "",
     lng: "",
+    image: "",
   });
+  const [showMap, setShowMap] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -41,6 +46,7 @@ export function ProgramForm({ initialData }: ProgramFormProps) {
         location: initialData.location || "",
         lat: initialData.coordinates?.lat?.toString() || "",
         lng: initialData.coordinates?.lng?.toString() || "",
+        image: initialData.image || "",
       });
     }
   }, [initialData]);
@@ -77,6 +83,7 @@ export function ProgramForm({ initialData }: ProgramFormProps) {
           lat: parseFloat(formData.lat),
           lng: parseFloat(formData.lng),
         },
+        image: formData.image,
       };
 
       const form = new FormData();
@@ -327,7 +334,7 @@ export function ProgramForm({ initialData }: ProgramFormProps) {
             >
               Latitude
             </label>
-            <div className="mt-1">
+            <div className="mt-1 flex gap-2">
               <input
                 type="number"
                 step="any"
@@ -348,7 +355,7 @@ export function ProgramForm({ initialData }: ProgramFormProps) {
             >
               Longitude
             </label>
-            <div className="mt-1">
+            <div className="mt-1 flex gap-2">
               <input
                 type="number"
                 step="any"
@@ -359,9 +366,32 @@ export function ProgramForm({ initialData }: ProgramFormProps) {
                 onChange={handleChange}
                 className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
               />
+              <button
+                type="button"
+                onClick={() => setShowMap(true)}
+                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-md border border-gray-300 transition-colors"
+                title="Pick on Map"
+              >
+                <MapPin size={20} className="text-[#ff6719]" />
+              </button>
             </div>
           </div>
         </div>
+
+        {showMap && (
+          <MapPicker
+            initialLat={parseFloat(formData.lat) || undefined}
+            initialLng={parseFloat(formData.lng) || undefined}
+            onSelect={(lat, lng) => {
+              setFormData({
+                ...formData,
+                lat: lat.toString(),
+                lng: lng.toString(),
+              });
+            }}
+            onClose={() => setShowMap(false)}
+          />
+        )}
 
         <div className="pt-5 border-t border-gray-200">
           <div className="flex justify-end">

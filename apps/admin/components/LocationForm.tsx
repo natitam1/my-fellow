@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
-import { Loader2, Upload, X, Plus, Trash2 } from "lucide-react";
+import { Loader2, Upload, X, Plus, Trash2, MapPin } from "lucide-react";
+
+const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
 interface LocationFormProps {
   initialData?: any;
@@ -25,6 +28,7 @@ export function LocationForm({ initialData }: LocationFormProps) {
     longitude: "",
     googleMapsUrl: "",
   });
+  const [showMap, setShowMap] = useState(false);
   const [serviceTimes, setServiceTimes] = useState<string[]>([""]);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -238,13 +242,10 @@ export function LocationForm({ initialData }: LocationFormProps) {
           </div>
 
           <div className="sm:col-span-3">
-            <label
-              htmlFor="latitude"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="latitude" className="block text-sm font-medium text-gray-700">
               Latitude
             </label>
-            <div className="mt-1">
+            <div className="mt-1 flex gap-2">
               <input
                 type="number"
                 step="any"
@@ -259,13 +260,10 @@ export function LocationForm({ initialData }: LocationFormProps) {
           </div>
 
           <div className="sm:col-span-3">
-            <label
-              htmlFor="longitude"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="longitude" className="block text-sm font-medium text-gray-700">
               Longitude
             </label>
-            <div className="mt-1">
+            <div className="mt-1 flex gap-2">
               <input
                 type="number"
                 step="any"
@@ -276,10 +274,30 @@ export function LocationForm({ initialData }: LocationFormProps) {
                 onChange={handleChange}
                 className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
               />
+              <button
+                type="button"
+                onClick={() => setShowMap(true)}
+                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-md border border-gray-300 transition-colors"
+                title="Pick on Map"
+              >
+                <MapPin size={20} className="text-[#ff6719]" />
+              </button>
             </div>
           </div>
+        </div>
 
-          <div className="sm:col-span-6">
+        {showMap && (
+          <MapPicker
+            initialLat={parseFloat(formData.latitude) || undefined}
+            initialLng={parseFloat(formData.longitude) || undefined}
+            onSelect={(lat, lng) => {
+              setFormData({ ...formData, latitude: lat.toString(), longitude: lng.toString() });
+            }}
+            onClose={() => setShowMap(false)}
+          />
+        )}
+
+        <div className="sm:col-span-6">
             <label
               htmlFor="googleMapsUrl"
               className="block text-sm font-medium text-gray-700"
