@@ -41,6 +41,10 @@ export function TeamForm({ initialData }: TeamFormProps) {
   });
   const [showMap, setShowMap] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [leaderImagePreview, setLeaderImagePreview] = useState<string | null>(
+    initialData?.leader?.imageUrl || null,
+  );
+  const [leaderImageFile, setLeaderImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (initialData) {
@@ -78,6 +82,14 @@ export function TeamForm({ initialData }: TeamFormProps) {
       const file = e.target.files[0];
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleLeaderImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setLeaderImageFile(file);
+      setLeaderImagePreview(URL.createObjectURL(file));
     }
   };
 
@@ -122,6 +134,10 @@ export function TeamForm({ initialData }: TeamFormProps) {
         form.append("image", imageFile);
       } else if (isEditing && initialData.imageUrl) {
         form.append("imageUrl", initialData.imageUrl);
+      }
+
+      if (leaderImageFile) {
+        form.append("leaderImage", leaderImageFile);
       }
 
       if (isEditing) {
@@ -457,6 +473,53 @@ export function TeamForm({ initialData }: TeamFormProps) {
             Team Leader
           </h3>
           <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+            <div className="sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700">
+                Leader Image
+              </label>
+              <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative hover:border-[#ff6719] transition-colors bg-gray-50">
+                {leaderImagePreview ? (
+                  <div className="relative w-full h-64">
+                    <Image
+                      src={leaderImagePreview}
+                      alt="Leader Preview"
+                      fill
+                      className="object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLeaderImagePreview(null);
+                        setLeaderImageFile(null);
+                      }}
+                      className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-sm hover:bg-gray-100"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1 text-center">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                    <div className="flex text-sm text-gray-600">
+                      <label
+                        htmlFor="leader-image-upload"
+                        className="relative cursor-pointer bg-white rounded-md font-medium text-[#ff6719] hover:text-[#e55a15]"
+                      >
+                        <span>Upload a file</span>
+                        <input
+                          id="leader-image-upload"
+                          name="leader-image-upload"
+                          type="file"
+                          className="sr-only"
+                          accept="image/*"
+                          onChange={handleLeaderImageChange}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="sm:col-span-3">
               <label
                 htmlFor="leaderName"
