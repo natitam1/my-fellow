@@ -242,7 +242,10 @@ export function LocationForm({ initialData }: LocationFormProps) {
           </div>
 
           <div className="sm:col-span-3">
-            <label htmlFor="latitude" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="latitude"
+              className="block text-sm font-medium text-gray-700"
+            >
               Latitude
             </label>
             <div className="mt-1 flex gap-2">
@@ -260,7 +263,10 @@ export function LocationForm({ initialData }: LocationFormProps) {
           </div>
 
           <div className="sm:col-span-3">
-            <label htmlFor="longitude" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="longitude"
+              className="block text-sm font-medium text-gray-700"
+            >
               Longitude
             </label>
             <div className="mt-1 flex gap-2">
@@ -291,90 +297,91 @@ export function LocationForm({ initialData }: LocationFormProps) {
             initialLat={parseFloat(formData.latitude) || undefined}
             initialLng={parseFloat(formData.longitude) || undefined}
             onSelect={(lat, lng) => {
-              setFormData({ ...formData, latitude: lat.toString(), longitude: lng.toString() });
+              setFormData({
+                ...formData,
+                latitude: lat.toString(),
+                longitude: lng.toString(),
+              });
             }}
             onClose={() => setShowMap(false)}
           />
         )}
 
         <div className="sm:col-span-6">
-            <label
-              htmlFor="googleMapsUrl"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Google Maps URL
-            </label>
-            <div className="mt-1">
-              <input
-                type="url"
-                name="googleMapsUrl"
-                id="googleMapsUrl"
-                required
-                value={formData.googleMapsUrl}
-                onChange={handleChange}
-                className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
-              />
-            </div>
-          </div>
-
-          <div className="sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Service Times
-            </label>
-            {serviceTimes.map((time, index) => (
-              <div key={index} className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={time}
-                  onChange={(e) =>
-                    handleServiceTimeChange(index, e.target.value)
-                  }
-                  placeholder="e.g. Sunday 10:00 AM"
-                  className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeServiceTime(index)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-md border border-red-200 transition-colors"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addServiceTime}
-              className="mt-2 inline-flex items-center px-3 py-1.5 border border-[#ff6719] text-xs font-medium rounded text-[#ff6719] hover:bg-orange-50 transition-colors"
-            >
-              <Plus size={16} className="mr-1" />
-              Add Time
-            </button>
+          <label
+            htmlFor="googleMapsUrl"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Google Maps URL
+          </label>
+          <div className="mt-1">
+            <input
+              type="url"
+              name="googleMapsUrl"
+              id="googleMapsUrl"
+              required
+              value={formData.googleMapsUrl}
+              onChange={handleChange}
+              className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
+            />
           </div>
         </div>
 
-        <div className="pt-5 border-t border-gray-200">
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6719]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#ff6719] hover:bg-[#e55a15] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6719] disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="animate-spin h-5 w-5" />
-              ) : isEditing ? (
-                "Update Location"
-              ) : (
-                "Create Location"
-              )}
-            </button>
-          </div>
+        <div className="sm:col-span-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Service Times
+          </label>
+          {serviceTimes.map((time, index) => (
+            <div key={index} className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={time}
+                onChange={(e) => handleServiceTimeChange(index, e.target.value)}
+                placeholder="e.g. Sunday 10:00 AM"
+                className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
+              />
+              <button
+                type="button"
+                onClick={() => removeServiceTime(index)}
+                className="p-2 text-red-500 hover:bg-red-50 rounded-md border border-red-200 transition-colors"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addServiceTime}
+            className="mt-2 inline-flex items-center px-3 py-1.5 border border-[#ff6719] text-xs font-medium rounded text-[#ff6719] hover:bg-orange-50 transition-colors"
+          >
+            <Plus size={16} className="mr-1" />
+            Add Time
+          </button>
+        </div>
+      </div>
+
+      <div className="pt-5 border-t border-gray-200">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6719]"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#ff6719] hover:bg-[#e55a15] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6719] disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="animate-spin h-5 w-5" />
+            ) : isEditing ? (
+              "Update Location"
+            ) : (
+              "Create Location"
+            )}
+          </button>
         </div>
       </div>
     </form>
