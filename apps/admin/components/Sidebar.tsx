@@ -16,6 +16,10 @@ import {
   BookOpen,
   ShoppingBag,
   Package,
+  Briefcase,
+  MapPin,
+  UserCheck,
+  Users2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -31,6 +35,10 @@ const menuItems = [
   { icon: Users, label: "Users", href: "/users" },
   { icon: ClipboardList, label: "Registrations", href: "/registrations" },
   { icon: Calendar, label: "Events", href: "/events" },
+  { icon: Briefcase, label: "Programs", href: "/programs" },
+  { icon: MapPin, label: "Locations", href: "/locations" },
+  { icon: UserCheck, label: "Leaders", href: "/leaders" },
+  { icon: Users2, label: "Teams", href: "/teams" },
   { icon: HeartHandshake, label: "Givings", href: "/givings" },
   { icon: BookOpen, label: "Devotions", href: "/devotions" },
   { icon: ShoppingBag, label: "Store", href: "/store" },

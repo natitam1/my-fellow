@@ -28,6 +28,7 @@ export function AIPosterGenerator({
   const [colors, setColors] = useState({ primary: "", secondary: "" });
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
+  const [provider, setProvider] = useState<string>("auto");
 
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
@@ -72,6 +73,9 @@ export function AIPosterGenerator({
       }
       if (referenceFile) {
         formData.append("image", referenceFile);
+      }
+      if (provider !== "auto") {
+        formData.append("provider", provider);
       }
 
       const res = await api.post("/events/generate-poster", formData, {
@@ -181,6 +185,24 @@ export function AIPosterGenerator({
                           ))}
                         </select>
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          AI Provider
+                        </label>
+                        <select
+                          value={provider}
+                          onChange={(e) => setProvider(e.target.value)}
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#ff6719] focus:border-[#ff6719] sm:text-sm rounded-md border"
+                        >
+                          <option value="auto">Auto (Best Available)</option>
+                          <option value="free">Free (Pollinations Flux)</option>
+                          <option value="openai">OpenAI DALL-E 3</option>
+                          <option value="replicate">Replicate SDXL</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-sm font-medium text-gray-700">

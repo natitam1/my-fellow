@@ -10,6 +10,9 @@ import {
   Users,
   Calendar,
   Clock,
+  MapPin,
+  UserCheck,
+  Users2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -23,6 +26,11 @@ interface SummaryCardsProps {
     revenueIncrease: number;
     registrations: number;
     registrationIncrease: number;
+    events: number;
+    programs: number;
+    locations: number;
+    leaders: number;
+    teams: number;
   };
 }
 
@@ -127,6 +135,66 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
           : ("neutral" as const),
       description: "Revenue performance",
       prefix: "ETB ",
+    },
+    {
+      label: "Events",
+      value: stats.events || 0,
+      icon: Calendar,
+      color: "bg-orange-500",
+      gradient: "from-orange-500 to-orange-600",
+      lightBg: "bg-orange-50",
+      textColor: "text-orange-600",
+      change: "",
+      changeType: "neutral" as const,
+      description: "Active events",
+    },
+    {
+      label: "Programs",
+      value: stats.programs || 0,
+      icon: Clock,
+      color: "bg-purple-500",
+      gradient: "from-purple-500 to-purple-600",
+      lightBg: "bg-purple-50",
+      textColor: "text-purple-600",
+      change: "",
+      changeType: "neutral" as const,
+      description: "Church programs",
+    },
+    {
+      label: "Locations",
+      value: stats.locations || 0,
+      icon: MapPin,
+      color: "bg-red-500",
+      gradient: "from-red-500 to-red-600",
+      lightBg: "bg-red-50",
+      textColor: "text-red-600",
+      change: "",
+      changeType: "neutral" as const,
+      description: "Church locations",
+    },
+    {
+      label: "Leaders",
+      value: stats.leaders || 0,
+      icon: UserCheck,
+      color: "bg-indigo-500",
+      gradient: "from-indigo-500 to-indigo-600",
+      lightBg: "bg-indigo-50",
+      textColor: "text-indigo-600",
+      change: "",
+      changeType: "neutral" as const,
+      description: "Active leaders",
+    },
+    {
+      label: "Teams",
+      value: stats.teams || 0,
+      icon: Users2,
+      color: "bg-pink-500",
+      gradient: "from-pink-500 to-pink-600",
+      lightBg: "bg-pink-50",
+      textColor: "text-pink-600",
+      change: "",
+      changeType: "neutral" as const,
+      description: "Church teams",
     },
   ];
 

@@ -33,6 +33,10 @@ interface Stats {
   userIncrease: number;
   events: number;
   pendingTransactions: number;
+  programs: number;
+  locations: number;
+  leaders: number;
+  teams: number;
 }
 
 export default function Home() {
@@ -108,6 +112,10 @@ export default function Home() {
         registrations: statsData.registrations ?? 0,
         registrationIncrease: statsData.registrationIncrease ?? 0,
         events: statsData.events ?? 0,
+        programs: statsData.programs ?? 0,
+        locations: statsData.locations ?? 0,
+        leaders: statsData.leaders ?? 0,
+        teams: statsData.teams ?? 0,
         pendingTransactions:
           statsData.pendingTransactions ?? statsData.transactions ?? 0,
       });
@@ -146,6 +154,10 @@ export default function Home() {
     registrationIncrease: 0,
     events: 0,
     pendingTransactions: 0,
+    programs: 0,
+    locations: 0,
+    leaders: 0,
+    teams: 0,
   };
 
   return (
