@@ -1,26 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-
-// Dynamic imports for Leaflet components to avoid SSR issues
-const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false },
-);
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false },
-);
-const Marker = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Marker),
-  { ssr: false },
-);
-const useMapEvents = dynamic(
-  () => import("react-leaflet").then((mod) => mod.useMapEvents),
-  { ssr: false },
-);
 
 interface MapPickerProps {
   initialLat?: number;
@@ -91,7 +73,9 @@ export default function MapPicker({
             className="p-2 hover:bg-gray-200 rounded-full transition-colors"
           >
             <svg
-              size={20}
+              width={20}
+              height={20}
+              viewBox="0 0 24 24"
               className="lucide lucide-x"
               fill="none"
               stroke="currentColor"
