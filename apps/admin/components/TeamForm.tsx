@@ -118,6 +118,9 @@ export function TeamForm({ initialData }: TeamFormProps) {
           role: formData.leaderRole,
           telegram: formData.leaderTelegram,
           phone: formData.leaderPhone,
+          imageUrl:
+            initialData?.leader?.imageUrl ||
+            "https://placeholder.com/leader.jpg",
         },
       };
 
