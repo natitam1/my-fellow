@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import toast from "react-hot-toast";
 import api from "@/lib/api";
 import { Loader2, Upload, X } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 interface LeaderFormProps {
   initialData?: any;
@@ -291,9 +291,8 @@ export function LeaderForm({ initialData }: LeaderFormProps) {
                 className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
               >
                 <option value="">Select type</option>
-                <option value="Executive">Executive</option>
-                <option value="Departmental">Departmental</option>
-                <option value="Volunteer">Volunteer</option>
+                <option value="Main Leader">Main Leader</option>
+                <option value="Team Leader">Team Leader</option>
                 <option value="Other">Other</option>
               </select>
             </div>
