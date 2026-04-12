@@ -1,12 +1,4 @@
-import React from "react";
-import {
-  Phone,
-  MessageSquare,
-  Calendar,
-  Shield,
-  Users as UsersIcon,
-  Loader2,
-} from "lucide-react";
+import { Loader2, MessageSquare, Phone, Shield } from "lucide-react";
 import { User } from "../../app/users/types";
 
 interface UsersTableProps {
@@ -137,7 +129,9 @@ const UsersTable = ({ users, loading, error }: UsersTableProps) => {
                       </span>
                       {user.team && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-bold border border-amber-100">
-                          {user.team}
+                          {typeof user.team === "object" && user.team
+                            ? (user.team as any).name
+                            : user.team || "No Team"}
                         </span>
                       )}
                     </div>
