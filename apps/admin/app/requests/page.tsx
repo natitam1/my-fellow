@@ -50,7 +50,7 @@ export default function RequestsPage() {
     if (!confirm(`Are you sure you want to ${status} this request?`)) return;
     setActionLoading(id);
     try {
-      await api.put(`/join-requests/${id}/status`, { status });
+      await api.patch(`/join-requests/${id}/status`, { status });
       toast.success(`Request ${status}`);
       fetchRequests();
     } catch (error) {
