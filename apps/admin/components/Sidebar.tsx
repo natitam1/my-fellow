@@ -1,34 +1,34 @@
 "use client";
 
-import React from "react";
+import { useSidebar } from "@/context/SidebarContext";
+import { cn } from "@/lib/utils";
 import {
   BarChart3,
-  Users,
-  Calendar,
-  HeartHandshake,
-  Settings,
-  LogOut,
-  LayoutDashboard,
   Bell,
-  Menu,
+  BookOpen,
+  Briefcase,
+  Calendar,
   ChevronLeft,
   ClipboardList,
-  BookOpen,
-  ShoppingBag,
-  Package,
-  Briefcase,
+  HeartHandshake,
+  LayoutDashboard,
+  LogOut,
   MapPin,
+  Menu,
+  Package,
+  Settings,
+  ShoppingBag,
   UserCheck,
+  UserPlus,
+  Users,
   Users2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSidebar } from "@/context/SidebarContext";
-import Image from "next/image";
 
-import { useRouter } from "next/navigation";
 import { removeToken } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/" },
@@ -45,6 +45,7 @@ const menuItems = [
   { icon: Package, label: "Orders", href: "/orders" },
   { icon: Bell, label: "Notifications", href: "/notifications" },
   { icon: BarChart3, label: "Reports", href: "/reports" },
+  { icon: UserPlus, label: "Join Requests", href: "/requests" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
