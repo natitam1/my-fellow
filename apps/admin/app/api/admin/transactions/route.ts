@@ -3,7 +3,7 @@ import { donations } from "@/lib/data";
 import { requireAdmin } from "@/lib/server/adminAuth";
 
 export async function GET(req: NextRequest) {
-  const auth = requireAdmin(req);
+  const auth = await requireAdmin(req);
   if (!auth.ok) {
     return NextResponse.json(
       { success: false, message: auth.message },
@@ -14,4 +14,3 @@ export async function GET(req: NextRequest) {
   // Mock data source uses `donations` for transactions.
   return NextResponse.json({ success: true, data: donations });
 }
-

@@ -3,7 +3,7 @@ import { registrations } from "@/lib/data";
 import { requireAdmin } from "@/lib/server/adminAuth";
 
 export async function GET(req: NextRequest) {
-  const auth = requireAdmin(req);
+  const auth = await requireAdmin(req);
   if (!auth.ok) {
     return NextResponse.json(
       { success: false, message: auth.message },

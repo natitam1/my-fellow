@@ -1,31 +1,5 @@
 import { NextRequest } from "next/server";
 
-type JwtPayload = {
-  sub?: string;
-  phoneNumber?: string;
-  role?: string;
-  exp?: number;
-  [key: string]: unknown;
-};
-
-function base64UrlDecodeToString(input: string) {
-  const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = normalized.length % 4;
-  const padded = pad ? normalized + "=".repeat(4 - pad) : normalized;
-  return Buffer.from(padded, "base64").toString("utf8");
-}
-
-function decodeJwtPayload(token: string): JwtPayload | null {
-  const parts = token.split(".");
-  if (parts.length < 2) return null;
-  try {
-    const json = base64UrlDecodeToString(parts[1]);
-    return JSON.parse(json) as JwtPayload;
-  } catch {
-    return null;
-  }
-}
-
 export function getBearerToken(req: NextRequest) {
   const auth =
     req.headers.get("authorization") ?? req.headers.get("Authorization");
@@ -34,7 +8,7 @@ export function getBearerToken(req: NextRequest) {
   return match?.[1]?.trim() || null;
 }
 
-export function requireAuth(req: NextRequest) {
+export async function requireAuth(req: NextRequest) {
   const token = getBearerToken(req);
   if (!token) {
     return {
@@ -44,34 +18,39 @@ export function requireAuth(req: NextRequest) {
     };
   }
 
-  const payload = decodeJwtPayload(token);
-  if (!payload) {
-    return {
-      ok: false as const,
-      status: 401 as const,
-      message: "Invalid or expired token",
-    };
-  }
-
-  if (typeof payload.exp === "number") {
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    if (payload.exp <= nowSeconds) {
+  const apiUrl =
+    process.env.API_BASE_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "https://my-fellow-api.onrender.com/api";
+  try {
+    const response = await fetch(`${apiUrl}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!response.ok) {
       return {
         ok: false as const,
-        status: 401 as const,
+        status: response.status === 401 ? 401 : 403,
         message: "Invalid or expired token",
       };
     }
+    const body = (await response.json()) as { user?: Record<string, unknown> };
+    if (!body.user) throw new Error("Missing authenticated user");
+    return { ok: true as const, payload: body.user };
+  } catch {
+    return {
+      ok: false as const,
+      status: 503 as const,
+      message: "Authentication service unavailable",
+    };
   }
-
-  return { ok: true as const, payload };
 }
 
-export function requireAdmin(req: NextRequest) {
-  const auth = requireAuth(req);
+export async function requireAdmin(req: NextRequest) {
+  const auth = await requireAuth(req);
   if (!auth.ok) return auth;
 
-  if (auth.payload.role !== "admin") {
+  if (!["admin", "super_admin", "leader"].includes(String(auth.payload.role))) {
     return {
       ok: false as const,
       status: 403 as const,
