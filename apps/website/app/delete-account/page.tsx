@@ -28,7 +28,7 @@ export default function DeleteAccountPage() {
               <strong>@I4U_TEAM_bot</strong>
             </li>
             <li>
-              Use the phrase: <em>"I want to request account deletion"</em>.
+              Use the phrase: <em>&quot;I want to request account deletion&quot;</em>.
             </li>
             <li>
               Provide your registered Phone Number or Email address associated
@@ -81,7 +81,7 @@ export default function DeleteAccountPage() {
           <ul className="list-disc pl-6 text-gray-600 space-y-1">
             <li>
               <strong>Payment History:</strong> Any digital giving, donations,
-              or marketplace purchases processed via Chapa will be retained
+              or marketplace purchases processed via Jami will be retained
               globally for accounting and tax purposes. However, it will no
               longer be linked to an active user profile.
             </li>

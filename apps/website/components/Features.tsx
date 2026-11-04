@@ -42,7 +42,7 @@ const features = [
     icon: <FaHeart className="h-6 w-6 text-primary" />,
     color: "bg-primary/10",
     description:
-      "Integrated Chapa payment system for secure and easy financial support.",
+      "Integrated Jami payment system for secure and easy financial support.",
     points: [
       "Contribute via multiple banks and mobile wallets",
       "Send one-time or recurring gifts",

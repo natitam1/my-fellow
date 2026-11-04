@@ -23,7 +23,7 @@ const faqs = [
   {
     question: "Is my giving secure?",
     answer:
-      "Yes, we use the Chapa payment gateway, which is a secure and trusted payment system in Ethiopia. Your financial information is handled securely by their platform.",
+      "Yes, we use the Jami payment gateway, which is a secure and trusted payment system in Ethiopia supporting Telebirr, CBE Birr, and M-Pesa. Your financial information is handled securely by their platform.",
   },
   {
     question: "How can I join a team?",
@@ -96,7 +96,7 @@ const FAQ = () => {
             Frequently Asked Questions
           </h2>
           <p className="mt-6 text-lg leading-8 text-zinc-600">
-            Have questions about My Fellow? We've got answers to the most common
+            Have questions about My Fellow? We&apos;ve got answers to the most common
             ones.
           </p>
         </div>

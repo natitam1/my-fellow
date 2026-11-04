@@ -41,13 +41,13 @@ export default function PrivacyPage() {
             <li>
               <strong>Financial Information:</strong> If you use our marketplace
               or digital giving features, payments are processed by our secure
-              third-party gateway (Chapa). We do not store full credit card
+              third-party gateway (Jami). We do not store full credit card
               details.
             </li>
             <li>
               <strong>Usage Details:</strong> Information about your
               interactions with the app, including devotionals read, events
-              RSVP'd, and feature usage.
+              RSVP&apos;d, and feature usage.
             </li>
           </ul>
         </section>
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
             We have implemented measures designed to secure your personal
             information from accidental loss and from unauthorized access, use,
             alteration, and disclosure. Any payment transactions will be
-            encrypted using standard protocols provided by Chapa.
+            encrypted using standard protocols provided by Jami.
           </p>
         </section>
 

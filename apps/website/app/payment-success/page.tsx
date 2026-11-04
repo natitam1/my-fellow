@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { FaDove } from "react-icons/fa";
 import { Sparkles } from "lucide-react";
 
@@ -107,7 +106,7 @@ export default function PaymentSuccessPage() {
         >
           <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-300 to-primary" />
           <p className="text-slate-700 font-serif italic text-lg leading-relaxed mb-3">
-            "God loves a cheerful giver."
+            &ldquo;God loves a cheerful giver.&rdquo;
           </p>
           <p className="text-primary/80 font-medium text-[11px] tracking-[0.2em] uppercase">
             — 2 Corinthians 9:7

@@ -16,7 +16,7 @@ export default function TermsPage() {
           </h2>
           <p>
             By creating an account and using the My Fellow application
-            ("Service"), you agree to be bound by these Terms of Service. If you
+            (&quot;Service&quot;), you agree to be bound by these Terms of Service. If you
             do not agree to all the terms and conditions, you must not use our
             Service. My Fellow serves the AAU 4-Killo Evangelical Christian
             Students Fellowship (ECSF).
@@ -56,7 +56,7 @@ export default function TermsPage() {
           <p>
             Our Service allows you to post, link, store, share, and otherwise
             make available certain information, text, graphics, videos, or other
-            material ("Content"). You are responsible for the Content that you
+            material (&quot;Content&quot;). You are responsible for the Content that you
             post on or through the Service, including its legality, reliability,
             and appropriateness. Devotionals, announcements, and official
             fellowship materials remain the intellectual property of AAU 4-Killo
@@ -70,7 +70,7 @@ export default function TermsPage() {
           </h2>
           <p>
             When utilizing digital giving or marketplace features, all
-            transactions are processed via our secured payment gateway (Chapa).
+            transactions are processed via our secured payment gateway (Jami).
             Refunds or disputes must be handled according to specific event or
             item guidelines. The fellowship leadership works to ensure
             transparency and accountability in all received donations and
