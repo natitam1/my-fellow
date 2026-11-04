@@ -117,7 +117,7 @@ export default function RequestsPage() {
                       )}
                       {req.message && (
                         <div className="mt-2 text-sm italic text-gray-500">
-                          <p>"{req.message}"</p>
+                          <p>&quot;{req.message}&quot;</p>
                         </div>
                       )}
                     </div>

@@ -39,7 +39,7 @@ function useCountUp(end: number, duration: number = 2000) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    let target = isNaN(end) ? 0 : end;
+    const target = isNaN(end) ? 0 : end;
     let startTime: number | null = null;
     let animationFrame: number;
 

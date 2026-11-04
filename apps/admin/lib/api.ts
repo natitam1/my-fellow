@@ -1,7 +1,8 @@
 import axios from "axios";
 import { getToken, removeToken } from "./auth";
 
-const API_URL: string = "https://my-fellow-api.onrender.com/api";
+const API_URL: string =
+  process.env.NEXT_PUBLIC_API_URL || "https://my-fellow-api.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_URL,

@@ -18,7 +18,6 @@ function LocationMarker({
   position: [number, number] | null;
   setPosition: (pos: [number, number]) => void;
 }) {
-  // @ts-ignore
   const map = useMapEvents({
     click(e: any) {
       setPosition([e.latlng.lat, e.latlng.lng]);
@@ -26,7 +25,6 @@ function LocationMarker({
   });
 
   return position === null ? null : (
-    // @ts-ignore
     <Marker position={position} />
   );
 }
@@ -91,13 +89,11 @@ export default function MapPicker({
 
         <div className="flex-1 relative">
           <MapContainer
-            // @ts-ignore
             center={position || [9.03, 38.74]}
             zoom={13}
             style={{ height: "100%", width: "100%" }}
           >
             <TileLayer
-              // @ts-ignore
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />

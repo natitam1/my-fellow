@@ -39,7 +39,7 @@ export default function GivingsPage() {
       });
 
       if (debouncedSearch) params.append("search", debouncedSearch);
-      if (typeFilter !== "all") params.append("type", typeFilter);
+      if (typeFilter !== "all") params.append("status", typeFilter);
 
       const response = await api.get(
         `/admin/transactions?${params.toString()}`,

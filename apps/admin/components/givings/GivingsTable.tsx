@@ -109,7 +109,9 @@ export default function GivingsTable({
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                      tx.status === "confirmed" || tx.status === "success"
+                      tx.status === "confirmed" ||
+                      tx.status === "success" ||
+                      tx.status === "completed"
                         ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
                         : tx.status === "pending"
                           ? "bg-amber-50 text-amber-700 border border-amber-100"
@@ -132,7 +134,7 @@ export default function GivingsTable({
               No Transactions Found
             </h3>
             <p className="text-gray-400 text-sm font-medium max-w-xs">
-              We couldn't find any financial records matching your current
+              We couldn&apos;t find any financial records matching your current
               filter.
             </p>
           </div>
