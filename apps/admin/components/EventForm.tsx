@@ -28,6 +28,7 @@ export function EventForm({ initialData }: EventFormProps) {
     endDate: "",
     buttonText: "",
     registrationLimit: "",
+    isPublished: true,
     scheduledAt: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -46,6 +47,7 @@ export function EventForm({ initialData }: EventFormProps) {
           : "",
         buttonText: initialData.buttonText || "",
         registrationLimit: initialData.registrationLimit?.toString() || "",
+        isPublished: initialData.isPublished !== false,
         scheduledAt: initialData.scheduledAt
           ? new Date(initialData.scheduledAt).toISOString().slice(0, 16)
           : "",
@@ -79,6 +81,7 @@ export function EventForm({ initialData }: EventFormProps) {
         registrationLimit: formData.registrationLimit
           ? parseInt(formData.registrationLimit)
           : null,
+        isPublished: formData.isPublished,
         scheduledAt: formData.scheduledAt
           ? new Date(formData.scheduledAt).toISOString()
           : null,
@@ -327,13 +330,41 @@ export function EventForm({ initialData }: EventFormProps) {
             </div>
           </div>
 
+          <div className="sm:col-span-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  id="isPublished"
+                  name="isPublished"
+                  type="checkbox"
+                  checked={formData.isPublished}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isPublished: e.target.checked })
+                  }
+                  className="focus:ring-[#ff6719] h-4 w-4 text-[#ff6719] border-gray-300 rounded"
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label htmlFor="isPublished" className="font-medium text-gray-700">
+                  Publish Event (Publicly Visible)
+                </label>
+                <p className="text-gray-500">
+                  When enabled, this event is visible to all members. When disabled, it is unpublished and only admins can track it.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="sm:col-span-3">
             <label
               htmlFor="registrationLimit"
               className="block text-sm font-medium text-gray-700"
             >
-              Registration Limit (Optional)
+              Max Registrations (Auto-Unpublish)
             </label>
+            <p className="text-xs text-gray-500 mb-1">
+              Event will automatically unpublish when this capacity is reached.
+            </p>
             <div className="mt-1">
               <input
                 type="number"
@@ -341,7 +372,7 @@ export function EventForm({ initialData }: EventFormProps) {
                 id="registrationLimit"
                 value={formData.registrationLimit}
                 onChange={handleChange}
-                placeholder="e.g. 30"
+                placeholder="e.g. 50 (blank for unlimited)"
                 className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
               />
             </div>
