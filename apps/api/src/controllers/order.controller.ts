@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { AuthRequest } from "../middleware/auth.middleware.js";
+import { AuthRequest, ROLE_RANK } from "../middleware/auth.middleware.js";
 import { OrderService } from "../services/order.service.js";
 import type { OrderStatus } from "../models/order.model.js";
 import { routeParam } from "../utils/routeParam.js";
@@ -71,7 +71,9 @@ export class OrderController {
           .json({ success: false, message: "Order not found" });
       }
 
-      if (normalizeRole(req.user!.role) !== "super_admin" && order.userId !== req.user!.sub) {
+      const userRole = normalizeRole(req.user!.role);
+      const isLeaderOrAbove = ROLE_RANK[userRole] >= ROLE_RANK["team_leader"];
+      if (!isLeaderOrAbove && order.userId !== req.user!.sub) {
         return res.status(403).json({ success: false, message: "Forbidden" });
       }
 

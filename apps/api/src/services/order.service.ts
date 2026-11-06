@@ -1,5 +1,6 @@
 import { Order, OrderStatus, IOrderItem } from "../models/order.model.js";
 import { Product } from "../models/product.model.js";
+import { UserModel } from "../models/user.model.js";
 
 interface OrderItemInput {
   productId: string;
@@ -96,10 +97,30 @@ export class OrderService {
       Order.countDocuments(),
     ]);
 
-    const formattedOrders = orders.map((o: any) => ({
-      ...o,
-      id: o._id.toString(),
-    }));
+    const userIds = [...new Set(orders.map((o: any) => o.userId).filter(Boolean))];
+    const users = userIds.length > 0
+      ? await UserModel.find({ _id: { $in: userIds } })
+          .select("fullName phoneNumber department yearOfStudy telegramUserName")
+          .lean()
+      : [];
+    const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+
+    const formattedOrders = orders.map((o: any) => {
+      const buyer = userMap.get(o.userId?.toString());
+      return {
+        ...o,
+        id: o._id.toString(),
+        buyer: buyer
+          ? {
+              fullName: buyer.fullName,
+              phoneNumber: buyer.phoneNumber,
+              department: buyer.department,
+              yearOfStudy: buyer.yearOfStudy,
+              telegramUserName: buyer.telegramUserName,
+            }
+          : undefined,
+      };
+    });
 
     return {
       orders: formattedOrders,
@@ -115,9 +136,27 @@ export class OrderService {
   static async getById(id: string) {
     const order = await Order.findById(id).lean();
     if (!order) return null;
+
+    let buyer: any = undefined;
+    if (order.userId) {
+      const user = await UserModel.findById(order.userId)
+        .select("fullName phoneNumber department yearOfStudy telegramUserName")
+        .lean();
+      if (user) {
+        buyer = {
+          fullName: user.fullName,
+          phoneNumber: user.phoneNumber,
+          department: user.department,
+          yearOfStudy: user.yearOfStudy,
+          telegramUserName: user.telegramUserName,
+        };
+      }
+    }
+
     return {
       ...order,
       id: (order as any)._id.toString(),
+      buyer,
     };
   }
 

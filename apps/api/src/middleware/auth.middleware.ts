@@ -153,7 +153,7 @@ export function requirePermission(permission: Permission) {
   };
 }
 
-const ROLE_RANK: Record<Role, number> = {
+export const ROLE_RANK: Record<Role, number> = {
   member: 1,
   coordinator: 2,
   team_leader: 3,
