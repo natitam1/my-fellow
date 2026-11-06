@@ -147,7 +147,7 @@ const ProductGridScene = React.memo(function ProductGridScene({
           }}
         >
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <View key={i} style={{ width: "50%" }}>
+            <View key={i} style={{ width: "50%", paddingHorizontal: 4 }}>
               <ProductSkeleton isDark={isDark} />
             </View>
           ))}
@@ -222,7 +222,7 @@ const ProductGridScene = React.memo(function ProductGridScene({
       columnWrapperStyle={{ paddingHorizontal: 4 }}
       showsVerticalScrollIndicator={false}
       renderItem={({ item }) => (
-        <View style={{ width: "50%" }}>
+        <View style={{ width: "50%", paddingHorizontal: 4 }}>
           <ProductCard
             product={item}
             isDark={isDark}

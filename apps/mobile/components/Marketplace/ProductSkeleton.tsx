@@ -100,9 +100,9 @@ const ProductSkeleton = ({ isDark }: ProductSkeletonProps) => {
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
+    width: "100%",
+    minHeight: 270,
     marginVertical: 8,
-    marginHorizontal: 4,
     borderRadius: 24,
     borderWidth: 1.5,
     overflow: "hidden",
@@ -117,6 +117,8 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 12,
+    flex: 1,
+    justifyContent: "space-between",
   },
   footer: {
     flexDirection: "row",

@@ -126,14 +126,15 @@ const ProductCard = ({ product, isDark, onPress, onBuy }: ProductCardProps) => {
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
+    width: "100%",
+    minHeight: 270,
     marginVertical: 8,
-    marginHorizontal: 4,
     borderRadius: 24,
     borderWidth: 1.5,
     overflow: "hidden",
   },
   pressableInner: {
+    width: "100%",
     flex: 1,
   },
   cardLight: {
@@ -173,6 +174,8 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 12,
+    flex: 1,
+    justifyContent: "space-between",
   },
   name: {
     fontSize: 15,
