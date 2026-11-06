@@ -1,5 +1,6 @@
 import { MainTabHeader } from "@/components/MainTabHeader";
 import { NativeViewAllButton } from "@/components/NativeViewAllButton";
+import CartSheet from "@/components/Marketplace/CartSheet";
 import ProductCard from "@/components/Marketplace/ProductCard";
 import ProductSkeleton from "@/components/Marketplace/ProductSkeleton";
 import { InfoModal } from "@/components/Modals/InfoModal";
@@ -103,7 +104,12 @@ const Gifts = () => {
     loading: productsLoading,
     fetchProducts,
     addToCart,
+    cartVisible,
+    setCartVisible,
+    getCartCount,
   } = useMarketplaceStore();
+
+  const cartCount = getCartCount();
 
   useEffect(() => {
     fetchProducts(true, 50, "All");
@@ -466,7 +472,90 @@ const Gifts = () => {
     <View className={`flex-1 ${isDark ? "bg-dark" : "bg-background"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <MainTabHeader borderBottom={true} title="Gifts" />
+      <MainTabHeader
+        borderBottom={true}
+        title="Gifts"
+        rightExtra={
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <TouchableOpacity
+              onPress={() => {
+                if (Platform.OS !== "web") {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                }
+                router.push("/marketplace/orders" as any);
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
+              }}
+              accessibilityLabel="View Orders"
+            >
+              <Ionicons
+                name="receipt-outline"
+                size={18}
+                color={isDark ? "#FAFAFA" : "#0F172A"}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                if (Platform.OS !== "web") {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                }
+                setCartVisible(true);
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
+                position: "relative",
+              }}
+              accessibilityLabel="View Shopping Cart"
+            >
+              <Ionicons
+                name="cart-outline"
+                size={19}
+                color={isDark ? "#FAFAFA" : "#0F172A"}
+              />
+              {cartCount > 0 && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -2,
+                    right: -2,
+                    backgroundColor: PRIMARY,
+                    minWidth: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingHorizontal: 3,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 10,
+                      fontWeight: "800",
+                    }}
+                  >
+                    {cartCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        }
+      />
 
       <View style={{ flex: 1 }}>
         <ScrollView
@@ -947,8 +1036,14 @@ const Gifts = () => {
         }}
         onBuyNow={(product, quantity) => {
           addToCart(product, quantity);
-          router.push("/marketplace" as any);
+          setBottomSheetVisible(false);
+          setCartVisible(true);
         }}
+      />
+      <CartSheet
+        visible={cartVisible}
+        onClose={() => setCartVisible(false)}
+        isDark={isDark}
       />
       <ReasonModal
         visible={reasonModalVisible}

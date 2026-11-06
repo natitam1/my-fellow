@@ -59,63 +59,67 @@ const ProductCard = ({ product, isDark, onPress, onBuy }: ProductCardProps) => {
             source={{ uri: imageUri }}
             style={styles.image}
             contentFit="cover"
-            transition={300}
+            transition={200}
+            recyclingKey={imageUri}
           />
         </View>
 
         <View style={styles.content}>
-          <Text
-            numberOfLines={1}
-            style={[styles.name, isDark ? styles.textDark : styles.textLight]}
-          >
-            {product.title || product.name || "Product"}
-          </Text>
-
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={12} color="#ffb800" />
+          <View>
             <Text
-              style={[
-                styles.ratingText,
-                { color: isDark ? "#a1a1aa" : "#71717a" },
-              ]}
+              numberOfLines={1}
+              style={[styles.name, isDark ? styles.textDark : styles.textLight]}
             >
-              4.9
+              {product.title || product.name || "Product"}
             </Text>
+
+            <View style={styles.ratingRow}>
+              <Ionicons name="star" size={12} color="#ffb800" />
+              <Text
+                style={[
+                  styles.ratingText,
+                  { color: isDark ? "#a1a1aa" : "#71717a" },
+                ]}
+              >
+                4.9
+              </Text>
+            </View>
+
+            {product.shortDescription && (
+              <Text
+                numberOfLines={2}
+                style={[
+                  styles.description,
+                  { color: isDark ? "#a1a1aa" : "#71717a" },
+                ]}
+              >
+                {product.shortDescription}
+              </Text>
+            )}
           </View>
-
-          {product.shortDescription && (
-            <Text
-              numberOfLines={2}
-              style={[
-                styles.description,
-                { color: isDark ? "#a1a1aa" : "#71717a" },
-              ]}
-            >
-              {product.shortDescription}
-            </Text>
-          )}
 
           <View style={styles.footer}>
             <Text style={styles.price}>{price.toFixed(2)} ETB</Text>
             <Pressable
               style={({ pressed }) => [
                 styles.buyButton,
-                Platform.OS === "ios" && pressed && { opacity: 0.8 },
+                Platform.OS === "ios" &&
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
               ]}
               onPress={(e) => {
                 e.stopPropagation?.();
                 onBuy();
               }}
               android_ripple={{
-                color: "rgba(255, 255, 255, 0.3)",
-                borderless: true,
-                radius: 20,
+                color: "rgba(255, 255, 255, 0.25)",
+                borderless: false,
               }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               accessibilityRole="button"
-              accessibilityLabel={`Add ${product.title || "product"} to cart`}
+              accessibilityLabel={`Buy ${product.title || "product"}`}
             >
-              <Ionicons name="cart" size={20} color="#fff" />
+              <Ionicons name="cart" size={15} color="#ffffff" />
+              <Text style={styles.buyButtonText}>Buy</Text>
             </Pressable>
           </View>
         </View>
@@ -127,7 +131,7 @@ const ProductCard = ({ product, isDark, onPress, onBuy }: ProductCardProps) => {
 const styles = StyleSheet.create({
   card: {
     width: "100%",
-    minHeight: 270,
+    minHeight: 275,
     marginVertical: 8,
     borderRadius: 24,
     borderWidth: 1.5,
@@ -166,7 +170,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: "100%",
-    height: 150,
+    height: 145,
   },
   image: {
     width: "100%",
@@ -178,10 +182,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   name: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: "700",
     marginBottom: 4,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   textLight: { color: "#18181b" },
   textDark: { color: "#fafafa" },
@@ -204,21 +208,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 4,
+    marginTop: 6,
+    paddingTop: 4,
   },
   price: {
-    fontSize: 15,
+    fontSize: 14.5,
     color: "#ff6719",
     fontWeight: "900",
+    letterSpacing: -0.2,
   },
   buyButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: "#ff6719",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6.5,
+    borderRadius: 16,
+    backgroundColor: "#ff6719",
+  },
+  buyButtonText: {
+    color: "#ffffff",
+    fontSize: 12.5,
+    fontWeight: "800",
+    letterSpacing: 0.2,
   },
 });
 

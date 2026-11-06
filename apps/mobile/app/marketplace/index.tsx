@@ -436,21 +436,19 @@ export default function MarketplaceScreen() {
         title="Fellowship Store"
         borderBottom={false}
         rightAction={
-          isAdmin ? (
-            <TouchableOpacity
-              onPress={() => router.push("/marketplace/orders" as any)}
-              activeOpacity={0.8}
-              className="w-10 h-10 rounded-full items-center justify-center"
-              accessibilityRole="button"
-              accessibilityLabel="View Orders"
-            >
-              <Ionicons
-                name="receipt-outline"
-                size={22}
-                color={isDark ? "white" : "#0f172a"}
-              />
-            </TouchableOpacity>
-          ) : undefined
+          <TouchableOpacity
+            onPress={() => router.push("/marketplace/orders" as any)}
+            activeOpacity={0.8}
+            className="w-10 h-10 rounded-full items-center justify-center"
+            accessibilityRole="button"
+            accessibilityLabel="View Orders"
+          >
+            <Ionicons
+              name="receipt-outline"
+              size={22}
+              color={isDark ? "white" : "#0f172a"}
+            />
+          </TouchableOpacity>
         }
       />
 

@@ -1,3 +1,4 @@
+import CartSheet from "@/components/Marketplace/CartSheet";
 import ImageGallery from "@/components/Marketplace/ImageGallery";
 import { InfoModal } from "@/components/Modals/InfoModal";
 import { useTheme } from "@/context/ThemeContext";
@@ -6,21 +7,97 @@ import { useMarketplaceStore } from "@/stores/marketplace.store";
 import { useUserStore } from "@/stores/user.store";
 import { getProductImages, getProductPrice } from "@/types/marketplace.types";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PLACEHOLDER_IMAGE = "https://via.placeholder.com/500";
+
+// Minimalistic Product Detail Skeleton
+const ProductDetailSkeleton = ({ isDark }: { isDark: boolean }) => {
+  const opacity = useSharedValue(0.3);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.65, { duration: 750 }),
+        withTiming(0.3, { duration: 750 }),
+      ),
+      -1,
+      false,
+    );
+  }, [opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  const bg = isDark ? "#27272a" : "#e2e8f0";
+
+  return (
+    <View style={{ flex: 1, backgroundColor: isDark ? "#121214" : "#FFFFFF" }}>
+      <Animated.View
+        style={[{ width: "100%", height: 340, backgroundColor: bg }, animatedStyle]}
+      />
+      <View style={{ padding: 24, flex: 1 }}>
+        <Animated.View
+          style={[
+            { width: 80, height: 22, borderRadius: 6, backgroundColor: bg, marginBottom: 12 },
+            animatedStyle,
+          ]}
+        />
+        <Animated.View
+          style={[
+            { width: "75%", height: 26, borderRadius: 8, backgroundColor: bg, marginBottom: 16 },
+            animatedStyle,
+          ]}
+        />
+        <Animated.View
+          style={[
+            { width: 130, height: 24, borderRadius: 6, backgroundColor: bg, marginBottom: 24 },
+            animatedStyle,
+          ]}
+        />
+        <Animated.View
+          style={[
+            { width: "100%", height: 14, borderRadius: 4, backgroundColor: bg, marginBottom: 8 },
+            animatedStyle,
+          ]}
+        />
+        <Animated.View
+          style={[
+            { width: "90%", height: 14, borderRadius: 4, backgroundColor: bg, marginBottom: 8 },
+            animatedStyle,
+          ]}
+        />
+        <Animated.View
+          style={[
+            { width: "65%", height: 14, borderRadius: 4, backgroundColor: bg, marginBottom: 32 },
+            animatedStyle,
+          ]}
+        />
+      </View>
+    </View>
+  );
+};
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function ProductDetailScreen() {
@@ -39,9 +116,12 @@ export default function ProductDetailScreen() {
     error,
     fetchProductById,
     addToCart,
-    placeOrder,
-    placingOrder,
+    cartVisible,
+    setCartVisible,
+    getCartCount,
   } = useMarketplaceStore();
+
+  const cartCount = getCartCount();
 
   const [quantity, setQuantity] = useState(1);
   const [infoModal, setInfoModal] = useState<{
@@ -64,6 +144,9 @@ export default function ProductDetailScreen() {
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleAddToCart = () => {
     if (!product) return;
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
     addToCart(product, quantity);
     setInfoModal({
       visible: true,
@@ -73,35 +156,13 @@ export default function ProductDetailScreen() {
     });
   };
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!product) return;
-
-    if (!user) {
-      router.push("/(auth)/sign-in" as any);
-      return;
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     }
-
-    // Add the product to cart, then immediately place the order
     addToCart(product, quantity);
-
-    try {
-      const order = await placeOrder();
-      if (order) {
-        setInfoModal({
-          visible: true,
-          title: "Order Placed! 🎉",
-          message: "Your order has been placed successfully.",
-          type: "success",
-        });
-      }
-    } catch (err: any) {
-      setInfoModal({
-        visible: true,
-        title: "Order Failed",
-        message: err?.response?.data?.message || "Please try again.",
-        type: "error",
-      });
-    }
+    setCartVisible(true);
   };
 
   const incrementQuantity = () => setQuantity((q) => q + 1);
@@ -109,17 +170,7 @@ export default function ProductDetailScreen() {
 
   // ── Loading state ───────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <View
-        style={[
-          styles.centered,
-          { backgroundColor: isDark ? "#1A1A1B" : "#fff" },
-        ]}
-      >
-        <StatusBar style={isDark ? "light" : "dark"} />
-        <ActivityIndicator size="large" color="#ff6719" />
-      </View>
-    );
+    return <ProductDetailSkeleton isDark={isDark} />;
   }
 
   // ── Error state ─────────────────────────────────────────────────────────────
@@ -161,6 +212,8 @@ export default function ProductDetailScreen() {
         onBack={() => router.back()}
         isAdmin={isAdmin}
         onEdit={() => router.push(`/marketplace/manage?id=${id}`)}
+        cartCount={cartCount}
+        onCart={() => setCartVisible(true)}
         onShare={() => {
           setInfoModal({
             visible: true,
@@ -395,28 +448,27 @@ export default function ProductDetailScreen() {
           style={[
             styles.buyNowBtn,
             isOutOfStock && { backgroundColor: "#71717a" },
-            placingOrder && { opacity: 0.7 },
           ]}
           onPress={handleBuyNow}
-          disabled={isOutOfStock || placingOrder}
+          disabled={isOutOfStock}
           activeOpacity={0.9}
         >
-          {placingOrder ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <>
-              <Text style={styles.buyNowText}>
-                {isOutOfStock
-                  ? "Out of Stock"
-                  : `Buy Now · ${(price * quantity).toFixed(2)} ETB`}
-              </Text>
-              {!isOutOfStock && (
-                <Ionicons name="arrow-forward-circle" size={22} color="#fff" />
-              )}
-            </>
+          <Text style={styles.buyNowText}>
+            {isOutOfStock
+              ? "Out of Stock"
+              : `Buy Now · ${(price * quantity).toFixed(2)} ETB`}
+          </Text>
+          {!isOutOfStock && (
+            <Ionicons name="arrow-forward-circle" size={22} color="#fff" />
           )}
         </TouchableOpacity>
       </View>
+
+      <CartSheet
+        visible={cartVisible}
+        onClose={() => setCartVisible(false)}
+        isDark={isDark}
+      />
 
       <InfoModal
         visible={infoModal.visible}
@@ -439,6 +491,8 @@ const HeaderBar = ({
   onShare,
   isAdmin,
   onEdit,
+  cartCount = 0,
+  onCart,
 }: {
   isDark: boolean;
   top: number;
@@ -446,6 +500,8 @@ const HeaderBar = ({
   onShare: () => void;
   isAdmin?: boolean;
   onEdit?: () => void;
+  cartCount?: number;
+  onCart?: () => void;
 }) => (
   <View style={[styles.headerContainer, { top: top + 10 }]}>
     <TouchableOpacity
@@ -463,6 +519,35 @@ const HeaderBar = ({
           style={styles.headerButton}
         >
           <Ionicons name="pencil" size={20} color="#ff6719" />
+        </TouchableOpacity>
+      )}
+      {onCart && (
+        <TouchableOpacity
+          onPress={onCart}
+          activeOpacity={0.8}
+          style={[styles.headerButton, { position: "relative" }]}
+        >
+          <Ionicons name="cart-outline" size={22} color="#fff" />
+          {cartCount > 0 && (
+            <View
+              style={{
+                position: "absolute",
+                top: -2,
+                right: -2,
+                backgroundColor: "#ff6719",
+                minWidth: 16,
+                height: 16,
+                borderRadius: 8,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 3,
+              }}
+            >
+              <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>
+                {cartCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       )}
       <TouchableOpacity

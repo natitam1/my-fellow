@@ -20,6 +20,8 @@ const STATUS_CONFIG: Record<
     text: "#1D4ED8",
     icon: "checkmark-circle-outline",
   },
+  shipped: { bg: "#F5F3FF", text: "#7C3AED", icon: "airplane-outline" },
+  delivered: { bg: "#F0FDF4", text: "#15803D", icon: "bag-check-outline" },
   completed: { bg: "#F0FDF4", text: "#15803D", icon: "bag-check-outline" },
   cancelled: { bg: "#FEF2F2", text: "#B91C1C", icon: "close-circle-outline" },
 };
@@ -110,6 +112,26 @@ const OrderCard = ({ order, isDark, onPress }: OrderCardProps) => {
           >
             Ordered on {date}
           </Text>
+
+          {order.buyer && (
+            <View style={styles.buyerRow}>
+              <Ionicons
+                name="person-circle-outline"
+                size={14}
+                color={isDark ? "#94a3b8" : "#64748b"}
+              />
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.buyerText,
+                  { color: isDark ? "#cbd5e1" : "#475569" },
+                ]}
+              >
+                {order.buyer.fullName || "Member"}{" "}
+                {order.buyer.phoneNumber ? `• ${order.buyer.phoneNumber}` : ""}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.footer}>
             <Text
@@ -205,7 +227,18 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 12,
     fontWeight: "500",
+    marginBottom: 6,
+  },
+  buyerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     marginBottom: 8,
+  },
+  buyerText: {
+    fontSize: 12,
+    fontWeight: "600",
+    flex: 1,
   },
   footer: {
     flexDirection: "row",

@@ -1,21 +1,23 @@
+import { AppBottomSheet } from "@/components/AppBottomSheet";
+import { PRIMARY } from "@/constants/colors";
 import { useMarketplaceStore } from "@/stores/marketplace.store";
 import { useUserStore } from "@/stores/user.store";
-import { getProductImage, getProductPrice } from "@/types/marketplace.types";
+import { getProductImage, getProductPrice, Order } from "@/types/marketplace.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
-  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { InfoModal } from "../Modals/InfoModal";
 
 interface CartSheetProps {
   visible: boolean;
@@ -23,8 +25,7 @@ interface CartSheetProps {
   isDark: boolean;
 }
 
-const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
-  const { bottom } = useSafeAreaInsets();
+export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
   const router = useRouter();
   const { user } = useUserStore();
 
@@ -38,337 +39,517 @@ const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
     placingOrder,
   } = useMarketplaceStore();
 
-  const [infoModal, setInfoModal] = useState<{
-    visible: boolean;
-    title: string;
-    message: string;
-    type: "success" | "error" | "info";
-  }>({ visible: false, title: "", message: "", type: "info" });
+  // "cart" (step 1) -> "confirm" (step 2) -> "success" (step 3)
+  const [step, setStep] = useState<"cart" | "confirm" | "success">("cart");
+  const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const total = getCartTotal();
 
-  const handlePlaceOrder = async () => {
+  const handleDismiss = () => {
+    setStep("cart");
+    setErrorMessage(null);
+    onClose();
+  };
+
+  const handleProceedToConfirm = () => {
     if (!user) {
-      onClose();
+      handleDismiss();
       router.push("/(auth)/sign-in" as any);
       return;
     }
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+    setStep("confirm");
+  };
 
+  const handleFinalPlaceOrder = async () => {
     try {
+      setErrorMessage(null);
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      }
       const order = await placeOrder();
       if (order) {
-        setInfoModal({
-          visible: true,
-          title: "Order Placed! 🎉",
-          message: "Your order has been placed successfully.",
-          type: "success",
-        });
-        // We delay the onClose() slightly so they see the success modal
-        // or we can close the sheet first but then the modal will disappear
-        // because it's inside the sheet modal.
-        // Actually, it's better to show it and let them close it, then we close sheet.
+        setPlacedOrder(order);
+        setStep("success");
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Success,
+          ).catch(() => {});
+        }
       }
     } catch (error: any) {
-      setInfoModal({
-        visible: true,
-        title: "Order Failed",
-        message: error?.response?.data?.message || "Please try again.",
-        type: "error",
-      });
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Error,
+        ).catch(() => {});
+      }
+      setErrorMessage(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Could not place order. Please check your connection and try again.",
+      );
     }
   };
 
+  const textColor = isDark ? "#FAFAFA" : "#0F172A";
+  const subTextColor = isDark ? "#A1A1AA" : "#64748B";
+  const cardBg = isDark ? "#27272A" : "#F8FAFC";
+  const borderColor = isDark ? "#3F3F46" : "#E2E8F0";
+
   return (
-    <Modal
+    <AppBottomSheet
       visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
+      onClose={handleDismiss}
+      isDark={isDark}
+      snapPoints={["full"]}
     >
-      <View style={styles.overlay}>
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        <View
-          style={[
-            styles.sheet,
-            isDark ? styles.sheetDark : styles.sheetLight,
-            { paddingBottom: bottom > 0 ? bottom + 10 : 24 },
-          ]}
-        >
-          {/* Handle bar */}
-          <View style={styles.handleContainer}>
-            <View
-              style={[
-                styles.handle,
-                { backgroundColor: isDark ? "#52525b" : "#d4d4d8" },
-              ]}
-            />
-          </View>
-
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Ionicons
-                name="cart"
-                size={24}
-                color={isDark ? "#fff" : "#18181b"}
-              />
-              <Text
-                style={[
-                  styles.headerTitle,
-                  { color: isDark ? "#fff" : "#18181b" },
-                ]}
-              >
-                Your Cart
-              </Text>
-              <View style={styles.countBadge}>
-                <Text style={styles.countText}>{cartItems.length}</Text>
+      <View style={styles.sheetContainer}>
+        {/* Step 1: Cart Items Summary */}
+        {step === "cart" && (
+          <View style={styles.contentWrap}>
+            {/* Header */}
+            <View style={styles.headerRow}>
+              <View style={styles.headerLeft}>
+                <Ionicons name="cart" size={24} color={PRIMARY} />
+                <Text style={[styles.headerTitle, { color: textColor }]}>
+                  Your Cart
+                </Text>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>{cartItems.length}</Text>
+                </View>
               </View>
-            </View>
-            {cartItems.length > 0 && (
-              <TouchableOpacity onPress={clearCart} hitSlop={8}>
-                <Text style={styles.clearText}>Clear All</Text>
-              </TouchableOpacity>
-            )}
-          </View>
 
-          {/* Cart Items */}
-          {cartItems.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="cart-outline"
-                size={64}
-                color={isDark ? "#3f3f46" : "#d4d4d8"}
-              />
-              <Text
-                style={[
-                  styles.emptyText,
-                  { color: isDark ? "#71717a" : "#a1a1aa" },
-                ]}
-              >
-                Your cart is empty
-              </Text>
+              {cartItems.length > 0 && (
+                <TouchableOpacity
+                  onPress={clearCart}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.clearBtn}
+                >
+                  <Text style={styles.clearBtnText}>Clear All</Text>
+                </TouchableOpacity>
+              )}
             </View>
-          ) : (
-            <>
-              <FlatList
-                data={cartItems}
-                keyExtractor={(item) => item.product.id}
-                style={styles.list}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => {
-                  const imageUri = getProductImage(item.product);
-                  const price = getProductPrice(item.product);
 
-                  return (
-                    <View
+            {cartItems.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <View
+                  style={[
+                    styles.emptyIconWrap,
+                    { backgroundColor: isDark ? "#27272A" : "#FFF7ED" },
+                  ]}
+                >
+                  <Ionicons name="cart-outline" size={48} color={PRIMARY} />
+                </View>
+                <Text style={[styles.emptyTitle, { color: textColor }]}>
+                  Your cart is empty
+                </Text>
+                <Text style={[styles.emptySubtitle, { color: subTextColor }]}>
+                  Explore exclusive fellowship apparel, stickers, and books to
+                  support our campus fellowship.
+                </Text>
+              </View>
+            ) : (
+              <>
+                <FlatList
+                  data={cartItems}
+                  keyExtractor={(item) => item.product.id}
+                  showsVerticalScrollIndicator={false}
+                  style={styles.cartList}
+                  contentContainerStyle={{ paddingBottom: 16 }}
+                  renderItem={({ item }) => {
+                    const imageUri = getProductImage(item.product);
+                    const price = getProductPrice(item.product);
+
+                    return (
+                      <View
+                        style={[
+                          styles.cartItemCard,
+                          {
+                            backgroundColor: cardBg,
+                            borderColor,
+                          },
+                        ]}
+                      >
+                        <Image
+                          source={{ uri: imageUri }}
+                          style={styles.itemThumb}
+                          contentFit="cover"
+                          transition={200}
+                        />
+
+                        <View style={styles.itemDetails}>
+                          <Text
+                            numberOfLines={1}
+                            style={[styles.itemTitle, { color: textColor }]}
+                          >
+                            {item.product.title || item.product.name}
+                          </Text>
+                          <Text style={styles.itemUnitPrice}>
+                            {(price * item.quantity).toFixed(2)} ETB
+                          </Text>
+                        </View>
+
+                        <View style={styles.qtyControlRow}>
+                          <TouchableOpacity
+                            onPress={() =>
+                              updateQuantity(
+                                item.product.id,
+                                item.quantity - 1,
+                              )
+                            }
+                            style={[
+                              styles.qtyStepBtn,
+                              {
+                                backgroundColor: isDark
+                                  ? "#3F3F46"
+                                  : "#E2E8F0",
+                              },
+                            ]}
+                          >
+                            <Ionicons
+                              name="remove"
+                              size={15}
+                              color={textColor}
+                            />
+                          </TouchableOpacity>
+
+                          <Text
+                            style={[styles.qtyNumber, { color: textColor }]}
+                          >
+                            {item.quantity}
+                          </Text>
+
+                          <TouchableOpacity
+                            onPress={() =>
+                              updateQuantity(
+                                item.product.id,
+                                item.quantity + 1,
+                              )
+                            }
+                            style={[
+                              styles.qtyStepBtn,
+                              { backgroundColor: PRIMARY },
+                            ]}
+                          >
+                            <Ionicons name="add" size={15} color="#FFFFFF" />
+                          </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity
+                          onPress={() => removeFromCart(item.product.id)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          style={styles.trashBtn}
+                        >
+                          <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color="#EF4444"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  }}
+                />
+
+                {/* Campus Pickup Note */}
+                <View
+                  style={[
+                    styles.infoNoticeBox,
+                    {
+                      backgroundColor: isDark ? "#1E293B" : "#F0FDF4",
+                      borderColor: isDark ? "#334155" : "#BBF7D0",
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="location-outline"
+                    size={18}
+                    color={PRIMARY}
+                    style={{ marginTop: 2 }}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
                       style={[
-                        styles.cartItem,
-                        isDark ? styles.cartItemDark : styles.cartItemLight,
+                        styles.noticeTitle,
+                        { color: isDark ? "#E2E8F0" : "#166534" },
                       ]}
                     >
-                      <Image
-                        source={{ uri: imageUri }}
-                        style={styles.itemImage}
-                        contentFit="cover"
-                        transition={300}
-                      />
-                      <View style={styles.itemInfo}>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.itemName,
-                            { color: isDark ? "#fafafa" : "#18181b" },
-                          ]}
-                        >
-                          {item.product.title}
-                        </Text>
-                        <Text style={styles.itemPrice}>
-                          {(price * item.quantity).toFixed(2)} ETB
-                        </Text>
-                      </View>
+                      Campus Fellowship Pickup
+                    </Text>
+                    <Text
+                      style={[
+                        styles.noticeDesc,
+                        { color: isDark ? "#94A3B8" : "#15803D" },
+                      ]}
+                    >
+                      Pick up directly at the 4 Kilo Fellowship Office or after
+                      fellowship services.
+                    </Text>
+                  </View>
+                </View>
 
-                      <View style={styles.quantityControls}>
-                        <TouchableOpacity
-                          onPress={() =>
-                            updateQuantity(item.product.id, item.quantity - 1)
-                          }
-                          style={[
-                            styles.qtyBtn,
-                            {
-                              backgroundColor: isDark ? "#3f3f46" : "#f4f4f5",
-                            },
-                          ]}
-                        >
-                          <Ionicons
-                            name="remove"
-                            size={16}
-                            color={isDark ? "#fff" : "#18181b"}
-                          />
-                        </TouchableOpacity>
-                        <Text
-                          style={[
-                            styles.qtyText,
-                            { color: isDark ? "#fff" : "#18181b" },
-                          ]}
-                        >
-                          {item.quantity}
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() =>
-                            updateQuantity(item.product.id, item.quantity + 1)
-                          }
-                          style={[
-                            styles.qtyBtn,
-                            {
-                              backgroundColor: isDark ? "#3f3f46" : "#f4f4f5",
-                            },
-                          ]}
-                        >
-                          <Ionicons
-                            name="add"
-                            size={16}
-                            color={isDark ? "#fff" : "#18181b"}
-                          />
-                        </TouchableOpacity>
-                      </View>
+                {/* Footer Totals & CTA */}
+                <View
+                  style={[
+                    styles.sheetFooter,
+                    { borderTopColor: borderColor },
+                  ]}
+                >
+                  <View style={styles.totalRow}>
+                    <Text
+                      style={[styles.totalLabel, { color: subTextColor }]}
+                    >
+                      Order Total
+                    </Text>
+                    <Text style={[styles.totalAmount, { color: PRIMARY }]}>
+                      {total.toFixed(2)} ETB
+                    </Text>
+                  </View>
 
-                      <TouchableOpacity
-                        onPress={() => removeFromCart(item.product.id)}
-                        hitSlop={8}
-                        style={styles.removeBtn}
-                      >
-                        <Ionicons
-                          name="trash-outline"
-                          size={18}
-                          color="#ef4444"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                }}
+                  <Pressable
+                    onPress={handleProceedToConfirm}
+                    style={({ pressed }) => [
+                      styles.primaryActionBtn,
+                      Platform.OS === "ios" && pressed && { opacity: 0.88 },
+                    ]}
+                  >
+                    <Text style={styles.primaryActionBtnText}>
+                      Review & Confirm
+                    </Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={18}
+                      color="#FFFFFF"
+                    />
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Step 2: Confirm Order Screen */}
+        {step === "confirm" && (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.confirmScrollContent}
+          >
+            <View style={styles.stepBackRow}>
+              <TouchableOpacity
+                onPress={() => setStep("cart")}
+                style={styles.backTouch}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="arrow-back" size={20} color={PRIMARY} />
+                <Text style={styles.backTouchText}>Back to Cart</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.confirmHeaderTitle, { color: textColor }]}>
+              Order Summary
+            </Text>
+            <Text style={[styles.confirmHeaderSubtitle, { color: subTextColor }]}>
+              Please verify your pickup contact info and order breakdown.
+            </Text>
+
+            {/* Buyer Info Card */}
+            <View
+              style={[
+                styles.summaryCard,
+                { backgroundColor: cardBg, borderColor },
+              ]}
+            >
+              <Text
+                style={[styles.summaryCardHeader, { color: subTextColor }]}
+              >
+                RECIPIENT CONTACT
+              </Text>
+              <View style={styles.summaryInfoRow}>
+                <Ionicons name="person-outline" size={16} color={PRIMARY} />
+                <Text style={[styles.summaryInfoText, { color: textColor }]}>
+                  {user?.fullName || "Fellowship Member"}
+                </Text>
+              </View>
+              <View style={styles.summaryInfoRow}>
+                <Ionicons name="call-outline" size={16} color={PRIMARY} />
+                <Text style={[styles.summaryInfoText, { color: textColor }]}>
+                  {user?.phoneNumber || "Phone registered"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Items Overview */}
+            <View
+              style={[
+                styles.summaryCard,
+                { backgroundColor: cardBg, borderColor },
+              ]}
+            >
+              <Text
+                style={[styles.summaryCardHeader, { color: subTextColor }]}
+              >
+                ITEMS ({cartItems.length})
+              </Text>
+              {cartItems.map((item) => {
+                const itemPrice = getProductPrice(item.product);
+                return (
+                  <View key={item.product.id} style={styles.orderItemSummaryRow}>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.orderItemName, { color: textColor }]}
+                    >
+                      {item.quantity}× {item.product.title || item.product.name}
+                    </Text>
+                    <Text
+                      style={[styles.orderItemTotal, { color: textColor }]}
+                    >
+                      {(itemPrice * item.quantity).toFixed(2)} ETB
+                    </Text>
+                  </View>
+                );
+              })}
+
+              <View
+                style={[styles.summaryDivider, { backgroundColor: borderColor }]}
               />
 
-              {/* Footer */}
+              <View style={styles.orderItemSummaryRow}>
+                <Text style={{ color: subTextColor, fontSize: 13.5 }}>
+                  Pickup Delivery
+                </Text>
+                <Text
+                  style={{ color: "#16A34A", fontSize: 13.5, fontWeight: "700" }}
+                >
+                  Free
+                </Text>
+              </View>
+
+              <View style={styles.orderItemSummaryRow}>
+                <Text
+                  style={{ color: textColor, fontSize: 16, fontWeight: "800" }}
+                >
+                  Total Due
+                </Text>
+                <Text
+                  style={{ color: PRIMARY, fontSize: 18, fontWeight: "900" }}
+                >
+                  {total.toFixed(2)} ETB
+                </Text>
+              </View>
+            </View>
+
+            {errorMessage && (
+              <View style={styles.errorBanner}>
+                <Ionicons name="alert-circle" size={18} color="#EF4444" />
+                <Text style={styles.errorBannerText}>{errorMessage}</Text>
+              </View>
+            )}
+
+            <Pressable
+              onPress={handleFinalPlaceOrder}
+              disabled={placingOrder}
+              style={({ pressed }) => [
+                styles.primaryActionBtn,
+                placingOrder && { opacity: 0.7 },
+                Platform.OS === "ios" && pressed && { opacity: 0.88 },
+              ]}
+            >
+              <Text style={styles.primaryActionBtnText}>
+                {placingOrder ? "Placing Order..." : `Confirm & Place Order`}
+              </Text>
+              {!placingOrder && (
+                <Ionicons
+                  name="checkmark-circle"
+                  size={20}
+                  color="#FFFFFF"
+                />
+              )}
+            </Pressable>
+          </ScrollView>
+        )}
+
+        {/* Step 3: Success Screen */}
+        {step === "success" && (
+          <View style={styles.successContainer}>
+            <View style={styles.successIconBubble}>
+              <Ionicons name="checkmark" size={44} color="#FFFFFF" />
+            </View>
+
+            <Text style={[styles.successTitle, { color: textColor }]}>
+              Order Placed! 🎉
+            </Text>
+
+            <Text style={[styles.successSubtitle, { color: subTextColor }]}>
+              Your fellowship merchandise order has been recorded. Our
+              leaders will have it ready for pickup at campus.
+            </Text>
+
+            {placedOrder && (
               <View
                 style={[
-                  styles.footer,
-                  {
-                    borderTopColor: isDark ? "#3f3f46" : "#e4e4e7",
-                  },
+                  styles.orderNumberPill,
+                  { backgroundColor: cardBg, borderColor },
                 ]}
               >
-                <View style={styles.totalRow}>
-                  <Text
-                    style={[
-                      styles.totalLabel,
-                      { color: isDark ? "#a1a1aa" : "#71717a" },
-                    ]}
-                  >
-                    Total
-                  </Text>
-                  <Text
-                    style={[
-                      styles.totalAmount,
-                      { color: isDark ? "#fff" : "#18181b" },
-                    ]}
-                  >
-                    {total.toFixed(2)} ETB
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.checkoutBtn, placingOrder && { opacity: 0.7 }]}
-                  onPress={handlePlaceOrder}
-                  disabled={placingOrder}
-                  activeOpacity={0.9}
-                >
-                  {placingOrder ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <>
-                      <Text style={styles.checkoutText}>Place Order</Text>
-                      <Ionicons
-                        name="arrow-forward-circle"
-                        size={22}
-                        color="#fff"
-                      />
-                    </>
-                  )}
-                </TouchableOpacity>
+                <Text style={[styles.orderNumberLabel, { color: subTextColor }]}>
+                  Order Reference:
+                </Text>
+                <Text style={[styles.orderNumberVal, { color: PRIMARY }]}>
+                  #{placedOrder.id.slice(-8).toUpperCase()}
+                </Text>
               </View>
-            </>
-          )}
-        </View>
-      </View>
+            )}
 
-      <InfoModal
-        visible={infoModal.visible}
-        onClose={() => {
-          setInfoModal((prev) => ({ ...prev, visible: false }));
-          if (infoModal.type === "success") {
-            onClose();
-          }
-        }}
-        title={infoModal.title}
-        message={infoModal.message}
-        type={infoModal.type}
-        isDark={isDark}
-      />
-    </Modal>
+            <Pressable
+              onPress={handleDismiss}
+              style={({ pressed }) => [
+                styles.primaryActionBtn,
+                { marginTop: 24, width: "100%" },
+                Platform.OS === "ios" && pressed && { opacity: 0.88 },
+              ]}
+            >
+              <Text style={styles.primaryActionBtnText}>Done</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+    </AppBottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  sheetContainer: {
+    width: "100%",
+    minHeight: 460,
+    maxHeight: 620,
+    paddingBottom: Platform.OS === "ios" ? 20 : 12,
+  },
+  contentWrap: {
     flex: 1,
-    justifyContent: "flex-end",
   },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  sheet: {
-    maxHeight: "80%",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-  },
-  sheetLight: {
-    backgroundColor: "#fff",
-  },
-  sheetDark: {
-    backgroundColor: "#1A1A1B",
-  },
-  handleContainer: {
-    alignItems: "center",
-    paddingTop: 12,
-    paddingBottom: 6,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-  },
-  header: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
+    paddingBottom: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(150, 150, 150, 0.2)",
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
+    letterSpacing: -0.3,
   },
   countBadge: {
-    backgroundColor: "#ff6719",
+    backgroundColor: PRIMARY,
     minWidth: 22,
     height: 22,
     borderRadius: 11,
@@ -376,123 +557,283 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 6,
   },
-  countText: {
-    color: "#fff",
+  countBadgeText: {
+    color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "900",
   },
-  clearText: {
-    color: "#ef4444",
-    fontWeight: "700",
+  clearBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  clearBtnText: {
+    color: "#EF4444",
     fontSize: 13,
+    fontWeight: "700",
   },
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 48,
+    paddingVertical: 56,
+    paddingHorizontal: 24,
   },
-  emptyText: {
-    marginTop: 16,
-    fontSize: 15,
-    fontWeight: "600",
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
   },
-  list: {
-    maxHeight: 350,
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 6,
   },
-  cartItem: {
+  emptySubtitle: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 19,
+  },
+  cartList: {
+    maxHeight: 280,
+    marginTop: 12,
+  },
+  cartItemCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    padding: 10,
     borderRadius: 16,
     marginBottom: 10,
     borderWidth: 1,
   },
-  cartItemLight: {
-    backgroundColor: "#fafafa",
-    borderColor: "#f4f4f5",
+  itemThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: "#E2E8F0",
   },
-  cartItemDark: {
-    backgroundColor: "#27272a",
-    borderColor: "#3f3f46",
-  },
-  itemImage: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: "#e4e4e7",
-  },
-  itemInfo: {
+  itemDetails: {
     flex: 1,
     marginLeft: 12,
+    marginRight: 8,
   },
-  itemName: {
-    fontSize: 14,
+  itemTitle: {
+    fontSize: 13.5,
     fontWeight: "700",
     marginBottom: 2,
   },
-  itemPrice: {
+  itemUnitPrice: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#ff6719",
+    color: PRIMARY,
   },
-  quantityControls: {
+  qtyControlRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginRight: 10,
+    gap: 6,
+    marginRight: 8,
   },
-  qtyBtn: {
-    width: 28,
-    height: 28,
+  qtyStepBtn: {
+    width: 26,
+    height: 26,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
-  qtyText: {
-    fontSize: 14,
+  qtyNumber: {
+    fontSize: 13,
     fontWeight: "800",
     minWidth: 18,
     textAlign: "center",
   },
-  removeBtn: {
-    padding: 4,
+  trashBtn: {
+    padding: 6,
   },
-  footer: {
-    borderTopWidth: 1,
-    paddingTop: 16,
-    marginTop: 8,
+  infoNoticeBox: {
+    flexDirection: "row",
+    gap: 10,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginVertical: 10,
+  },
+  noticeTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  noticeDesc: {
+    fontSize: 11.5,
+    lineHeight: 16,
+  },
+  sheetFooter: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 14,
   },
   totalRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   totalLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
   },
   totalAmount: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "900",
   },
-  checkoutBtn: {
-    backgroundColor: "#ff6719",
-    paddingVertical: 16,
-    borderRadius: 20,
+  primaryActionBtn: {
+    backgroundColor: PRIMARY,
+    borderRadius: 18,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: 8,
+    elevation: 3,
+    shadowColor: PRIMARY,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
+  },
+  primaryActionBtnText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: -0.2,
+  },
+  confirmScrollContent: {
+    paddingBottom: 24,
+  },
+  stepBackRow: {
+    marginBottom: 12,
+  },
+  backTouch: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  backTouchText: {
+    color: PRIMARY,
+    fontSize: 13.5,
+    fontWeight: "700",
+  },
+  confirmHeaderTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  confirmHeaderSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  summaryCard: {
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  summaryCardHeader: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  summaryInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  summaryInfoText: {
+    fontSize: 13.5,
+    fontWeight: "600",
+  },
+  orderItemSummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  orderItemName: {
+    fontSize: 13.5,
+    fontWeight: "600",
+    flex: 1,
+    marginRight: 12,
+  },
+  orderItemTotal: {
+    fontSize: 13.5,
+    fontWeight: "700",
+  },
+  summaryDivider: {
+    height: 1,
+    marginVertical: 8,
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FEE2E2",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 14,
+  },
+  errorBannerText: {
+    color: "#B91C1C",
+    fontSize: 12.5,
+    flex: 1,
+  },
+  successContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+  },
+  successIconBubble: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: PRIMARY,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
     elevation: 4,
-    shadowColor: "#ff6719",
+    shadowColor: PRIMARY,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
-  checkoutText: {
-    color: "#fff",
-    fontSize: 17,
+  successTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+  successSubtitle: {
+    fontSize: 13.5,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  orderNumberPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  orderNumberLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  orderNumberVal: {
+    fontSize: 13,
     fontWeight: "800",
   },
 });

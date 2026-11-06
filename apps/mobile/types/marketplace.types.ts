@@ -28,14 +28,34 @@ export interface OrderItem {
   product?: Product;
 }
 
+export interface OrderBuyer {
+  fullName?: string;
+  phoneNumber?: string;
+  department?: string;
+  yearOfStudy?: string;
+  telegramUserName?: string;
+}
+
 export interface Order {
   id: string;
   userId?: string;
   items: OrderItem[];
   totalAmount?: string | number;
-  status?: "pending" | "confirmed" | "completed" | "cancelled";
+  status?:
+    | "pending"
+    | "confirmed"
+    | "completed"
+    | "cancelled"
+    | "shipped"
+    | "delivered"
+    | "PENDING"
+    | "CONFIRMED"
+    | "SHIPPED"
+    | "DELIVERED"
+    | "CANCELLED";
   createdAt?: string;
   updatedAt?: string;
+  buyer?: OrderBuyer;
 }
 
 export interface ProductsApiResponse {
