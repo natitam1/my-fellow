@@ -39,11 +39,12 @@ import {
   View,
 } from "react-native";
 import { PRIMARY } from "@/constants/colors";
+import { Route, TabBar, TabView } from "react-native-tab-view";
 import * as z from "zod";
 
 type DonationForm = z.infer<typeof donationSchema>;
 
-interface CategoryRoute {
+interface CategoryRoute extends Route {
   key: string;
   title: string;
   value: string;
@@ -97,7 +98,6 @@ const Gifts = () => {
 
   const { width: screenWidth } = useWindowDimensions();
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
-  const categoryScrollRef = useRef<any>(null);
 
   const {
     products,
@@ -193,10 +193,6 @@ const Gifts = () => {
     }, {});
   }, [products]);
 
-  const activeCategory = CATEGORIES[activeCategoryIndex] || CATEGORIES[0];
-  const activeCategoryData = categoryProductsMap[activeCategory.key];
-  const activeItems = activeCategoryData?.items || [];
-
   const { user } = useUserStore();
   const { txRef, setTxRef, totalGivingsAmount, fetchMyGivings } =
     usePaymentStore();
@@ -213,15 +209,149 @@ const Gifts = () => {
     }
   }, [fetchMyGivings, fetchProducts]);
 
-  const handleTabChange = (index: number) => {
+  const handleTabChange = useCallback((index: number) => {
     if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    }
-    if (Platform.OS === "ios" || Platform.OS === "android") {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      Haptics.selectionAsync().catch(() => {});
     }
     setActiveCategoryIndex(index);
-  };
+  }, []);
+
+  const renderStoreTabBar = useCallback(
+    (props: any) => (
+      <TabBar
+        {...props}
+        scrollEnabled
+        bounces
+        tabStyle={styles.storeTabItem}
+        indicatorStyle={{
+          backgroundColor: PRIMARY,
+          height: 3,
+          borderRadius: 1.5,
+        }}
+        style={[
+          styles.storeTabBar,
+          {
+            backgroundColor: isDark ? "#1A1A1B" : "#ffffff",
+            borderBottomColor: isDark ? "#27272a" : "#eff3f4",
+          },
+        ]}
+        activeColor={PRIMARY}
+        inactiveColor={isDark ? "#71767b" : "#71717a"}
+        pressColor={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"}
+        renderLabel={({
+          route,
+          focused,
+          color,
+        }: {
+          route: CategoryRoute;
+          focused: boolean;
+          color: string;
+        }) => (
+          <View style={styles.storeTabLabelRow}>
+            <Text
+              style={[
+                styles.storeTabLabelText,
+                {
+                  color: focused ? PRIMARY : color,
+                  fontWeight: focused ? "700" : "600",
+                },
+              ]}
+            >
+              {route.title}
+            </Text>
+            {route.key === "new" && (
+              <View
+                style={[
+                  styles.storeTabNewDot,
+                  { backgroundColor: PRIMARY },
+                ]}
+              />
+            )}
+          </View>
+        )}
+      />
+    ),
+    [isDark],
+  );
+
+  const renderStoreScene = useCallback(
+    ({ route }: { route: CategoryRoute }) => {
+      const categoryData = categoryProductsMap[route.key];
+      const items = categoryData?.items || [];
+
+      if (productsLoading && products.length === 0) {
+        return (
+          <View style={styles.storeGridContainer}>
+            {[1, 2, 3, 4].map((key) => (
+              <View key={key} style={styles.storeGridItem}>
+                <ProductSkeleton isDark={isDark} />
+              </View>
+            ))}
+          </View>
+        );
+      }
+
+      if (items.length === 0) {
+        return (
+          <View style={styles.storeEmptyContainer}>
+            <View
+              style={[
+                styles.storeEmptyIconWrap,
+                { backgroundColor: isDark ? "#27272a" : "#fff7ed" },
+              ]}
+            >
+              <Ionicons
+                name={
+                  route.value === "t-shirt"
+                    ? "shirt-outline"
+                    : route.value === "stickers"
+                    ? "pricetag-outline"
+                    : "bag-handle-outline"
+                }
+                size={26}
+                color={PRIMARY}
+              />
+            </View>
+            <Text
+              style={[
+                styles.storeEmptyTitle,
+                { color: isDark ? "#f4f4f5" : "#18181b" },
+              ]}
+            >
+              No {route.title} available yet
+            </Text>
+            <Text
+              style={[
+                styles.storeEmptySubtitle,
+                { color: isDark ? "#71767b" : "#71717a" },
+              ]}
+            >
+              New fellowship items are added regularly. Check back soon!
+            </Text>
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.storeGridContainer}>
+          {items.map((item) => (
+            <View key={item.id} style={styles.storeGridItem}>
+              <ProductCard
+                product={item}
+                isDark={isDark}
+                onPress={() => router.push(`/marketplace/${item.id}` as any)}
+                onBuy={() => {
+                  setSelectedProduct(item);
+                  setBottomSheetVisible(true);
+                }}
+              />
+            </View>
+          ))}
+        </View>
+      );
+    },
+    [categoryProductsMap, productsLoading, products.length, isDark, router],
+  );
 
   const showInfoModal = (
     title: string,
@@ -794,135 +924,20 @@ const Gifts = () => {
                 />
               </View>
 
-              {/* Horizontal Category Filter Strip */}
-              <View
-                style={[
-                  styles.storeTabBar,
-                  {
-                    backgroundColor: isDark ? "#1A1A1B" : "#ffffff",
-                    borderBottomColor: isDark ? "#27272a" : "#eff3f4",
-                  },
-                ]}
-              >
-                <ScrollView
-                  ref={categoryScrollRef}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  bounces={true}
-                  contentContainerStyle={{
-                    paddingHorizontal: 16,
-                    alignItems: "center",
-                  }}
-                >
-                  {CATEGORIES.map((cat, index) => {
-                    const isSelected = activeCategoryIndex === index;
-                    return (
-                      <TouchableOpacity
-                        key={cat.key}
-                        onPress={() => handleTabChange(index)}
-                        activeOpacity={0.7}
-                        style={[
-                          styles.storeTabItem,
-                          {
-                            borderBottomColor: isSelected ? PRIMARY : "transparent",
-                            borderBottomWidth: isSelected ? 3 : 0,
-                          },
-                        ]}
-                      >
-                        <View style={styles.storeTabLabelRow}>
-                          <Text
-                            style={[
-                              styles.storeTabLabelText,
-                              {
-                                color: isSelected
-                                  ? PRIMARY
-                                  : isDark
-                                  ? "#71767b"
-                                  : "#71717a",
-                                fontWeight: isSelected ? "700" : "600",
-                              },
-                            ]}
-                          >
-                            {cat.title}
-                          </Text>
-                          {cat.key === "new" && (
-                            <View
-                              style={[
-                                styles.storeTabNewDot,
-                                { backgroundColor: PRIMARY },
-                              ]}
-                            />
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {/* Store Products / Skeletons Grid */}
-              {productsLoading && products.length === 0 ? (
-                <View style={styles.storeGridContainer}>
-                  {[1, 2, 3, 4].map((key) => (
-                    <View key={key} style={styles.storeGridItem}>
-                      <ProductSkeleton isDark={isDark} />
-                    </View>
-                  ))}
-                </View>
-              ) : activeItems.length === 0 ? (
-                <View style={styles.storeEmptyContainer}>
-                  <View
-                    style={[
-                      styles.storeEmptyIconWrap,
-                      { backgroundColor: isDark ? "#27272a" : "#fff7ed" },
-                    ]}
-                  >
-                    <Ionicons
-                      name={
-                        activeCategory.value === "t-shirt"
-                          ? "shirt-outline"
-                          : activeCategory.value === "stickers"
-                          ? "pricetag-outline"
-                          : "bag-handle-outline"
-                      }
-                      size={26}
-                      color={PRIMARY}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.storeEmptyTitle,
-                      { color: isDark ? "#f4f4f5" : "#18181b" },
-                    ]}
-                  >
-                    No {activeCategory.title} available yet
-                  </Text>
-                  <Text
-                    style={[
-                      styles.storeEmptySubtitle,
-                      { color: isDark ? "#71767b" : "#71717a" },
-                    ]}
-                  >
-                    New fellowship items are added regularly. Check back soon!
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.storeGridContainer}>
-                  {activeItems.map((item) => (
-                    <View key={item.id} style={styles.storeGridItem}>
-                      <ProductCard
-                        product={item}
-                        isDark={isDark}
-                        onPress={() => router.push(`/marketplace/${item.id}` as any)}
-                        onBuy={() => {
-                          setSelectedProduct(item);
-                          setBottomSheetVisible(true);
-                        }}
-                      />
-                    </View>
-                  ))}
-                </View>
-              )}
+              {/* Swipeable TabView powered by react-native-tab-view and react-native-pager-view */}
+              <TabView
+                navigationState={{
+                  index: activeCategoryIndex,
+                  routes: CATEGORIES,
+                }}
+                renderScene={renderStoreScene}
+                renderTabBar={renderStoreTabBar}
+                onIndexChange={handleTabChange}
+                initialLayout={{ width: screenWidth }}
+                style={{ height: 560 }}
+                lazy
+                lazyPreloadDistance={1}
+              />
             </View>
           </ScrollView>
         </View>
