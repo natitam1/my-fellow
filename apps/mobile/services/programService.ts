@@ -10,9 +10,9 @@ export const programService = {
   fetchPrograms: async (): Promise<Program[]> => {
     try {
       const programs = await fetchProgramsApi();
-      return programs.map((program: any) => ({
+      return (programs || []).map((program: any) => ({
         ...program,
-        id: program.id || program._id || "unknown",
+        id: String(program.id || program._id || ""),
         image: program.image || "",
       })) as Program[];
     } catch (error) {

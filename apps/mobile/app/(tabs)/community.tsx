@@ -301,6 +301,9 @@ export default function CommunityScreen() {
 
   const renderPostItem = ({ item }: { item: CommunityPost }) => {
     const isExpanded = !!expandedPostIds[item.id];
+    const formattedHandle = item.authorHandle
+      ? (item.authorHandle.startsWith("@") ? item.authorHandle : `@${item.authorHandle}`)
+      : `@${(item.authorName || "fellow").toLowerCase().replace(/[^a-z0-9]/g, "") || "fellow"}`;
 
     return (
       <View
@@ -355,9 +358,38 @@ export default function CommunityScreen() {
                   name="checkmark-circle"
                   size={15}
                   color={PRIMARY}
-                  style={{ marginLeft: 3 }}
+                  style={{ marginLeft: 3, flexShrink: 0 }}
                 />
               )}
+
+              {item.authorTeam === "Official Fellowship" && (
+                <View
+                  style={[
+                    styles.officialMiniBadge,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(99, 102, 241, 0.2)"
+                        : "rgba(99, 102, 241, 0.1)",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.officialMiniBadgeText,
+                      { color: isDark ? "#a5b4fc" : PRIMARY },
+                    ]}
+                  >
+                    Official
+                  </Text>
+                </View>
+              )}
+
+              <Text
+                numberOfLines={1}
+                style={[styles.tweetHandle, { color: mutedColor }]}
+              >
+                {formattedHandle}
+              </Text>
 
               <Text style={[styles.tweetMiddot, { color: mutedColor }]}>
                 ·
@@ -375,7 +407,7 @@ export default function CommunityScreen() {
                 setActivePostForSheet(item);
                 setSheetVisible(true);
               }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               style={styles.tweetMoreBtn}
             >
               <Ionicons
@@ -428,7 +460,7 @@ export default function CommunityScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Action Row: Reply, Like, Bookmark */}
+          {/* Action Row: Reply, Like, Bookmark, Share (Twitter style, NO repost) */}
           <View style={styles.tweetActionBar}>
             {/* Reply / Comment */}
             <TouchableOpacity
@@ -437,6 +469,7 @@ export default function CommunityScreen() {
                 Haptics.selectionAsync().catch(() => {});
                 router.push(`/community/${item.id}` as any);
               }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={styles.tweetActionBtn}
             >
               <Ionicons
@@ -455,6 +488,7 @@ export default function CommunityScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => handleToggleLike(item.id)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={styles.tweetActionBtn}
             >
               <Ionicons
@@ -479,12 +513,27 @@ export default function CommunityScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => handleToggleBookmark(item.id)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={styles.tweetActionBtn}
             >
               <Ionicons
                 name={item.isBookmarked ? "bookmark" : "bookmark-outline"}
                 size={18}
                 color={item.isBookmarked ? PRIMARY : mutedColor}
+              />
+            </TouchableOpacity>
+
+            {/* Share */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => handleShare(item)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.tweetActionBtn}
+            >
+              <Ionicons
+                name="share-outline"
+                size={18}
+                color={mutedColor}
               />
             </TouchableOpacity>
           </View>
@@ -986,32 +1035,49 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    flexWrap: "nowrap",
+    marginRight: 6,
+    overflow: "hidden",
   },
   tweetAuthorName: {
     fontSize: 15,
     fontWeight: "700",
     letterSpacing: -0.2,
-    maxWidth: 125,
+    flexShrink: 1,
+  },
+  officialMiniBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+    marginLeft: 4,
+    flexShrink: 0,
+  },
+  officialMiniBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+    textTransform: "uppercase",
   },
   tweetHandle: {
     fontSize: 14,
     marginLeft: 4,
-    maxWidth: 90,
+    flexShrink: 2,
   },
   tweetMiddot: {
-    marginHorizontal: 4,
-    fontSize: 14,
+    marginHorizontal: 3,
+    fontSize: 13,
+    flexShrink: 0,
   },
   tweetTime: {
-    fontSize: 14,
+    fontSize: 13,
+    flexShrink: 0,
   },
   tweetMoreBtn: {
     paddingLeft: 6,
     paddingVertical: 2,
+    flexShrink: 0,
   },
   tweetContentWrap: {
-    marginTop: 3,
+    marginTop: 4,
   },
   postText: {
     fontSize: 15,
@@ -1022,7 +1088,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     width: "100%",
     aspectRatio: 16 / 9,
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
   },
@@ -1035,14 +1101,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: 12,
-    paddingRight: 12,
+    maxWidth: 320,
+    paddingRight: 6,
   },
   tweetActionBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     paddingVertical: 4,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
   },
   tweetActionCount: {
     fontSize: 13,

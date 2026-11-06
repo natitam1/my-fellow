@@ -311,7 +311,7 @@ export default function MemberProfileScreen() {
             showAvatar={false}
           >
             <View style={styles.postAuthorLine}>
-              <Text style={[styles.postAuthorName, { color: textColor }]}>
+              <Text numberOfLines={1} style={[styles.postAuthorName, { color: textColor }]}>
                 {item.authorName}
               </Text>
               {item.isVerified && (
@@ -319,11 +319,11 @@ export default function MemberProfileScreen() {
                   name="checkmark-circle"
                   size={14}
                   color={PRIMARY}
-                  style={{ marginHorizontal: 2 }}
+                  style={{ marginHorizontal: 2, flexShrink: 0 }}
                 />
               )}
-              <Text style={[styles.postTime, { color: mutedColor }]}>
-                · {item.timestamp}
+              <Text numberOfLines={1} style={[styles.postTime, { color: mutedColor, flexShrink: 1 }]}>
+                {item.authorHandle ? ` ${item.authorHandle.startsWith("@") ? item.authorHandle : `@${item.authorHandle}`}` : ""} · {item.timestamp}
               </Text>
             </View>
           </ProfileLink>

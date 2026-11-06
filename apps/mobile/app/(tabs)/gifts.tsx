@@ -412,9 +412,29 @@ const Gifts = () => {
         await AsyncStorage.setItem("last_donation_amount", String(data.amount));
       }
 
+      // Ensure user's phone number is prefilled on jami.bio web page
+      let launchUrl = checkout_url;
+      const donorPhone = user?.phoneNumber;
+      if (launchUrl && donorPhone && !launchUrl.includes("phone=")) {
+        const rawDigits = donorPhone.replace(/\D/g, "");
+        const localFormat = rawDigits.startsWith("251")
+          ? "0" + rawDigits.slice(3)
+          : rawDigits.startsWith("0")
+            ? rawDigits
+            : "0" + rawDigits;
+        const intlFormat = rawDigits.startsWith("0")
+          ? "251" + rawDigits.slice(1)
+          : rawDigits.startsWith("251")
+            ? rawDigits
+            : "251" + rawDigits;
+
+        const sep = launchUrl.includes("?") ? "&" : "?";
+        launchUrl = `${launchUrl}${sep}phone=${encodeURIComponent(localFormat)}&phoneNumber=${encodeURIComponent(localFormat)}&customer_phone=${encodeURIComponent(intlFormat)}&msisdn=${encodeURIComponent(localFormat)}`;
+      }
+
       // openAuthSessionAsync catches redirect back to my-fellow://payment-status and auto-dismisses
       const authResult = await WebBrowser.openAuthSessionAsync(
-        checkout_url,
+        launchUrl,
         "my-fellow://payment-status",
       );
 

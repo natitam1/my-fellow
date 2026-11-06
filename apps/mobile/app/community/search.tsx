@@ -565,6 +565,10 @@ export default function CommunitySearchScreen() {
               }
 
               const post = item as CommunityPost;
+              const formattedHandle = post.authorHandle
+                ? (post.authorHandle.startsWith("@") ? post.authorHandle : `@${post.authorHandle}`)
+                : `@${(post.authorName || "fellow").toLowerCase().replace(/[^a-z0-9]/g, "") || "fellow"}`;
+
               return (
                 <TouchableOpacity
                   activeOpacity={0.85}
@@ -582,6 +586,7 @@ export default function CommunitySearchScreen() {
                         name: post.authorName,
                         username: post.authorHandle,
                         avatarUrl: post.authorAvatar,
+                        team: post.authorTeam,
                       }}
                       size={40}
                     />
@@ -591,16 +596,27 @@ export default function CommunitySearchScreen() {
                         name: post.authorName,
                         username: post.authorHandle,
                         avatarUrl: post.authorAvatar,
+                        team: post.authorTeam,
                       }}
                       showAvatar={false}
                       style={[styles.resultAuthorTextCol, { marginLeft: 10 }]}
                     >
-                      <Text style={[styles.resultAuthorName, { color: textColor }]}>
-                        {post.authorName}
-                      </Text>
-                      <Text style={[styles.resultAuthorHandle, { color: mutedColor }]}>
-                        {post.authorHandle} · {post.timestamp}
-                      </Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", flexShrink: 1 }}>
+                        <Text numberOfLines={1} style={[styles.resultAuthorName, { color: textColor }]}>
+                          {post.authorName}
+                        </Text>
+                        {post.isVerified && (
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={14}
+                            color={PRIMARY}
+                            style={{ marginLeft: 3, flexShrink: 0 }}
+                          />
+                        )}
+                        <Text numberOfLines={1} style={[styles.resultAuthorHandle, { color: mutedColor }]}>
+                          {" "}{formattedHandle} · {post.timestamp}
+                        </Text>
+                      </View>
                     </ProfileLink>
                   </View>
 
