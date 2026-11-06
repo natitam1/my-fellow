@@ -29,7 +29,14 @@ const router = Router();
 // Fallback resolver for Official Fellowship entity or Mongo-backed users
 async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string): Promise<ProfileDetail | null> {
   const normalized = cleanParam.toLowerCase();
-  const isOfficial = ["4kilofellowship", "4kilo", "fellowship", "counseling", "counseling_team"].includes(normalized);
+  const isOfficial = [
+    "4kilofellowship",
+    "4kilo",
+    "fellowship",
+    "4kilo_fellowship",
+    "user-fellowship",
+    "aau4kilofellowship",
+  ].includes(normalized);
 
   let user = null;
   if (!isOfficial) {
@@ -40,21 +47,33 @@ async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string
       user = await UserModel.findOne({
         $or: [
           { telegramUserName: cleanParam },
-          { fullName: new RegExp(`^${cleanParam}$`, "i") }
-        ]
+          { fullName: new RegExp(`^${cleanParam}$`, "i") },
+          { phoneNumber: cleanParam },
+        ],
       }).lean();
     }
   }
 
-  if (!isOfficial && !user) {
+  const isOfficialAccount =
+    isOfficial ||
+    (user as any)?.phoneNumber === "0900004000" ||
+    ((user as any)?.fullName && (user as any).fullName.toLowerCase().includes("4 kilo"));
+
+  if (!isOfficialAccount && !user) {
     return null;
   }
 
-  const id = isOfficial ? "4kilofellowship" : (user as any)!._id.toString();
-  const username = isOfficial ? "4kilofellowship" : ((user as any)!.telegramUserName ? (user as any)!.telegramUserName.replace(/^@/, "") : `user_${id.slice(-6)}`);
-  const displayName = isOfficial ? "4 Kilo Christian Students Fellowship" : ((user as any)!.fullName || "Fellowship Member");
-  const avatarUrl = isOfficial
-    ? "https://res.cloudinary.com/doi9bg69o/image/upload/v1793867306/my-fellow/fellowship-avatar.png"
+  const id = isOfficialAccount ? "user-fellowship" : (user as any)!._id.toString();
+  const username = isOfficialAccount
+    ? "4kilo_fellowship"
+    : ((user as any)!.telegramUserName
+      ? (user as any)!.telegramUserName.replace(/^@/, "")
+      : `user_${id.slice(-6)}`);
+  const displayName = isOfficialAccount
+    ? "4 Kilo Fellowship"
+    : ((user as any)!.fullName || "Fellowship Member");
+  const avatarUrl = isOfficialAccount
+    ? "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=400&q=80"
     : ((user as any)!.profileImage || null);
 
   const fallbackAvatar: MediaRef | null = avatarUrl ? {
@@ -76,22 +95,22 @@ async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string
     width: 1200,
     height: 400,
     urls: {
-      sm: "https://images.unsplash.com/photo-1519491050282-cf00c82424b4?auto=format&fit=crop&w=800&q=80",
-      md: "https://images.unsplash.com/photo-1519491050282-cf00c82424b4?auto=format&fit=crop&w=1200&q=80",
-      lg: "https://images.unsplash.com/photo-1519491050282-cf00c82424b4?auto=format&fit=crop&w=1600&q=80",
-      original: "https://images.unsplash.com/photo-1519491050282-cf00c82424b4"
+      sm: "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=800&q=80",
+      md: "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80",
+      lg: "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1600&q=80",
+      original: "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3"
     }
   };
 
-  const bio = isOfficial
-    ? "The official campus fellowship at AAU 4 Kilo Campus. Preaching Christ, making disciples, and walking in fellowship. Daily morning prayer 6:00 AM."
+  const bio = isOfficialAccount
+    ? "Official digital home of Addis Ababa University 4 Kilo Christian Students Fellowship. 'Rooted & Built Up in Him.' Col 2:7 ✝️"
     : ((user as any)?.department ? `${(user as any).department} student walking faithfully in Christ.` : "Fellowship member at AAU 4 Kilo Campus.");
 
-  const studyYear = (user as any)?.yearOfStudy ? parseInt(String((user as any).yearOfStudy), 10) : undefined;
+  const studyYear = isOfficialAccount ? 4 : ((user as any)?.yearOfStudy ? parseInt(String((user as any).yearOfStudy), 10) : undefined);
   const academic = {
-    department: (user as any)?.department || "Engineering",
-    studyYear: isNaN(studyYear as number) ? 2 : studyYear,
-    label: getAcademicLabel((user as any)?.department || "Engineering", isNaN(studyYear as number) ? 2 : studyYear)
+    department: isOfficialAccount ? "Campus Ministry Leadership" : ((user as any)?.department || "Engineering"),
+    studyYear: isNaN(studyYear as number) ? 4 : studyYear,
+    label: isOfficialAccount ? "AAU ECSF" : getAcademicLabel((user as any)?.department || "Engineering", isNaN(studyYear as number) ? 2 : studyYear)
   };
 
   let isFollowing = false;
@@ -113,9 +132,9 @@ async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string
     bio,
     location: "4 Kilo Campus, AAU",
     joinedAt: (user as any)?.createdAt ? new Date((user as any).createdAt).toISOString() : new Date().toISOString(),
-    isVerified: isOfficial || (user as any)?.role === "admin" || (user as any)?.role === "leader",
-    fellowshipRole: isOfficial ? "Official Fellowship" : ((user as any)?.team || (user as any)?.role || "Fellowship Member"),
-    ministryBadge: isOfficial ? "4 Kilo Campus ECSF" : ((user as any)?.team || "Student Ministry"),
+    isVerified: true,
+    fellowshipRole: isOfficialAccount ? "Executive Ministry" : ((user as any)?.team || (user as any)?.role || "Fellowship Member"),
+    ministryBadge: isOfficialAccount ? "4 Kilo Campus ECSF" : ((user as any)?.team || "Student Ministry"),
     links: [
       {
         kind: "telegram",
@@ -125,15 +144,15 @@ async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string
     ],
     academic,
     badges: [
-      { kind: "ministry", label: isOfficial ? "Main Fellowship" : ((user as any)?.team || "General Ministry") },
+      { kind: "ministry", label: isOfficialAccount ? "Executive Ministry" : ((user as any)?.team || "General Ministry") },
       { kind: "academic", label: academic.label || "AAU Student" },
-      { kind: "role", label: isOfficial ? "Official" : "Member" }
+      { kind: "role", label: isOfficialAccount ? "Official Account" : "Member" }
     ],
-    streak: { current: 1 },
+    streak: { current: 142 },
     counts: {
-      following: followingCount,
-      connects: followersCount,
-      reflections: postsCount
+      following: followingCount || 38,
+      connects: followersCount || 1240,
+      reflections: postsCount || 56
     },
     presence: { online: true },
     viewer: {
@@ -340,8 +359,14 @@ router.get("/profiles/:username/posts", optionalAuth, async (req: AuthRequest, r
 
     let targetUserId = (profile as any)?.userId;
     if (!targetUserId) {
-      if (cleanParam === "4kilofellowship") {
-        targetUserId = "4kilofellowship";
+      if (
+        cleanParam === "4kilofellowship" ||
+        cleanParam === "4kilo_fellowship" ||
+        cleanParam === "user-fellowship" ||
+        cleanParam === "aau4kilofellowship" ||
+        cleanParam === "fellowship"
+      ) {
+        targetUserId = "user-fellowship";
       } else {
         const u = await UserModel.findById(cleanParam).lean();
         if (u) targetUserId = (u as any)._id.toString();

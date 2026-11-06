@@ -26,10 +26,10 @@ async function seed() {
         fullName: "4 Kilo Fellowship",
         phoneNumber: "0900004000",
         role: "admin",
-        department: "Campus Ministry & Counseling",
-        telegramUserName: "aau4kilofellowship",
+        department: "Campus Ministry Leadership",
+        telegramUserName: "4kilo_fellowship",
         profileImage:
-          "https://images.unsplash.com/photo-1544427920-c49ccfb85579?auto=format&fit=crop&w=400&q=80",
+          "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=400&q=80",
       },
     },
     { upsert: true, new: true, setDefaultsOnInsert: true },
@@ -70,11 +70,11 @@ async function seed() {
     {
       title: "እርሱ በመጣ ቀን",
       type: "voice" as const,
-      author: "Counseling Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Counseling Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-11-03",
       duration: "03:38",
       audioUrl:
@@ -95,11 +95,11 @@ async function seed() {
     {
       title: "እርሱ በመጣ ቀን — በማርታና በማርያም ቤት",
       type: "text" as const,
-      author: "Counseling Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Counseling Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-11-03",
       duration: "4 min read",
       image:
@@ -117,11 +117,11 @@ async function seed() {
     {
       title: "በእርሱ ጊዜ",
       type: "voice" as const,
-      author: "Counseling Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Counseling Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-10-25",
       duration: "03:27",
       audioUrl:
@@ -142,11 +142,11 @@ async function seed() {
     {
       title: "በእርሱ ጊዜ — የሕይወት ሩጫና ትዕግሥት",
       type: "text" as const,
-      author: "Counseling Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Counseling Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-10-25",
       duration: "4 min read",
       image:
@@ -164,11 +164,11 @@ async function seed() {
     {
       title: "ውሎህ እንዴት ነው?",
       type: "voice" as const,
-      author: "Counseling Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Counseling Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-10-19",
       duration: "03:00",
       audioUrl:
@@ -189,11 +189,11 @@ async function seed() {
     {
       title: "ውሎህ እንዴት ነው? — ዕለታዊ ልማድና መንፈሳዊ ማንነት",
       type: "text" as const,
-      author: "Counseling Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Counseling Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-10-19",
       duration: "3 min read",
       image:
@@ -211,11 +211,11 @@ async function seed() {
     {
       title: "የመሆን ንድፍ",
       type: "voice" as const,
-      author: "Counseling Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Counseling Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-10-10",
       duration: "03:45",
       audioUrl:
@@ -236,11 +236,11 @@ async function seed() {
     {
       title: "የመሆን ንድፍ — ይህን ዓለም አትምሰሉ",
       type: "text" as const,
-      author: "Counseling Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Counseling Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-10-10",
       duration: "4 min read",
       image:
@@ -258,11 +258,11 @@ async function seed() {
     {
       title: "በድካም ውስጥ ስናልፍ",
       type: "voice" as const,
-      author: "I4U Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "I4U Intercession • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-09-28",
       duration: "04:12",
       audioUrl:
@@ -272,8 +272,8 @@ async function seed() {
       caption:
         "ድካም ሲሰማንና መንገዱ ሲረዝም ኃይልን የሚያድሰው የጌታ መገኘት ከእኛ ጋር ነው።",
       content:
-        "በመንፈሳዊ ጉዟችን ውስጥ ድካም የሚሰማንና ተስፋ የመቁረጥ ስሜት የሚከበንባቸው ወቅቶች ሊኖሩ ይችላሉ። ነገር ግን ሐዋርያው ጳውሎስ 'ስደክም ያን ጊዜ ኃይለኛ ነኝና' እንዳለው የእግዚአብሔር ፀጋ በድካማችን ውስጥ ይገለጻል። ጸሎት ወደዚህ እረፍት መግቢያ በር ነው። ዛሬ ሸክምህን ለእርሱ ስጥ፤ እርሱም ያሳርፍሃል።",
-      tags: ["ጸሎት", "እረፍት", "የእግዚአብሔር ፀጋ", "ጥንካሬ"],
+        "በመንፈሳዊ ጉዟችንና በዩኒቨርሲቲ የትምህርት ቆይታችን ውስጥ ድካም የሚሰማንና ተስፋ የመቁረጥ ስሜት የሚከበንባቸው ወቅቶች ሊኖሩ ይችላሉ። የፈተናዎች ጫና፣ የፕሮጀክቶች መደራረብ፣ በዶርም ውስጥ ያለው ድምፅና ግርግር፣ እንዲሁም ከቤተሰብ ርቆ በካምፓስ ውስጥ የመኖር ውጣ ውረድ አእምሯችንንና መንፈሳችንን ሊያደክመው ይችላል። በዚህ ጊዜ ብዙዎቻችን “እኔ ብቻዬን ነኝ፤ ጥንካሬዬ አልቋል” ወደሚል መደምደሚያ እንደርሳለን።\n\nነገር ግን የእግዚአብሔር ቃል በኢሳይያስ 40:29 ላይ “ለደከመው ኃይልን ይሰጣል፤ ጉልበት ለሌለውም ብርታትን ይጨምራል” ይላል። ክርስትና ማለት በእኛ ብርታት ብቻ ሮጠን የምንጨርሰው ሩጫ ሳይሆን፣ ድካማችንን ለጌታ ሰጥተን በእርሱ መደገፍን የምንማርበት መንገድ ነው። ሐዋርያው ጳውሎስ “ስደክም ያን ጊዜ ኃይለኛ ነኝና፤ ጸጋዬ ይበቃሃል፥ ኃይሌ በድካም ይፈጸማልና” ሲል የተረዳው ይህንኑ ምስጢር ነበር።\n\nብዙ ጊዜ ድካም የሚመጣው ሁሉን ነገር በእጃችን ለመቆጣጠር ስንሞክር ነው። ነገሮችን በራሳችን ጥበብ ለማስተካከል፣ ውጤታችንን ብቻችንን ለመሸከም፣ እና ለሁሉም ሰው ፍጹም መስለን ለመታየት በምንጥርበት ጊዜ ነፍሳችን ትዝላለች። ጸሎት ግን የቁጥጥር መልቀቂያ በር ነው። ጸሎት ማለት “ጌታ ሆይ፥ እኔ አልችልም፤ አንተ ግን ትችላለህ” ብሎ በፊቱ መንበርከክ ነው።\n\nዛሬ በካምፓስ ውስጥ እየተመላለስክ ድካም ከተሰማህ፣ እርምጃህን ትንሽ ቀነስ አድርግ። ጌታችን ኢየሱስ በማቴዎስ 11:28 ላይ “እናንተ ደካሞች ሸክማችሁ የከበደ ሁሉ፥ ወደ እኔ ኑ፥ እኔም አሳርፋችኋለሁ” ይልሃል። ሸክምህን በጸሎት ለእርሱ አስረክብ። እርሱ አዲስ ኃይል ያድስልሃል፤ እንደ ንስርም በክንፍ ታወጣለህ።",
+      tags: ["ጸሎት", "እረፍት", "የእግዚአብሔር ፀጋ", "ጥንካሬ", "ኢሳይያስ 40"],
       featured: false,
       views: 650,
       likes: 190,
@@ -283,11 +283,11 @@ async function seed() {
     {
       title: "እኔ በሚገባኝ ቦታ ነኝ?",
       type: "voice" as const,
-      author: "Evange Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Evangelism Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-09-18",
       duration: "03:50",
       audioUrl:
@@ -297,8 +297,8 @@ async function seed() {
       caption:
         "ሕይወት ብዙ ምርጫዎች አሏት፤ እግዚአብሔር ግን እያንዳንዳችንን ለዓላማ አስቀምጦናል።",
       content:
-        "ብዙ ጊዜ ራሳችንን ከሌሎች ጋር በማነጻጸር 'እኔ ያለሁበት ቦታ ትክክል ነው?' ብለን እንጠይቃለን። ነገር ግን ጌታ እያንዳንዳችንን በካምፓስ፣ በቡድን፣ እና በክፍላችን ያስቀመጠን እርሱ ሊሰራበት በወደደው ምክንያት ነው። እርምጃህን በቃሉ ምራ፤ እርሱም የቀና መንገድ ያደርግልሃል።",
-      tags: ["ዓላማ", "የሕይወት ጥሪ", "መመራት", "እምነት"],
+        "ብዙ ጊዜ ራሳችንን ከሌሎች የዩኒቨርሲቲ ተማሪዎች ጋር በማነጻጸር “እኔ ያለሁበት ቦታ ትክክል ነው? ለምን እዚህ ዲፓርትመንት ገባሁ? ለምን በዚህ ካምፓስ ተመደብኩ?” ብለን እንጠይቃለን። ጓደኞቻችን የተሻለ መስክ የገቡ ወይም የተሻለ እድል ያገኙ ሲመስለን፣ በልባችን ውስጥ የቅናት፣ የጥርጣሬና ያለመደሰት ዘሮች ሊዘሩ ይችላሉ።\n\nነገር ግን መጽሐፍ ቅዱስ የሚያስተምረን ታላቅ እውነት አለ፤ እግዚአብሔር በልጆቹ ሕይወት ውስጥ ምንም ዓይነት አጋጣሚ (accident) አያደርግም። ንግሥት አስቴር በአስቸጋሪ ሁኔታ ውስጥ በቤተመንግሥት ውስጥ ስትገኝ መርዶክዮስ “ለእንደዚህ ያለ ጊዜ ወደ መንግሥት እንዳልመጣሽ ማን ያውቃል?” እንዳላት፣ አንተም ዛሬ በ4 ኪሎ ካምፓስ ውስጥ፣ በዚያ ዲፓርትመንትና በዚያ ዶርም ውስጥ የተገኘኸው ለታላቅ የእግዚአብሔር ዓላማ ነው።\n\nዩኒቨርሲቲ የትምህርት ብቻ ሳይሆን የመለኮታዊ ተልእኮ ማዕከል ነው። እግዚአብሔር እያንዳንዳችንን በክፍላችን፣ በቤተ-ሙከራችን፣ እና በግቢው ውስጥ ያስቀመጠን እርሱ ሊሰራበት በወደደው ምክንያት ነው። ክርስቶስን ለተማሪዎች ለማሳየት፣ የተጨነቁትን ለማጽናናት፣ እና የሕይወት ብርሃን ሆነህ እንድትበራ ነው።\n\nስለዚህ ቦታህን አትናቀው፤ ያለህበትን ምዕራፍ በጸጸት አታሳልፈው። ምሳሌ 16:9 “የሰው ልብ መንገዱን ያዘጋጃል፥ እግዚአብሔር ግን እርምጃውን ያቀናለታል” ይላል። ዛሬ ያለህበት ቦታ ለእግዚአብሔር ክብር የምታበራበት መድረክህ ነው። እርምጃህን በቃሉ ምራ፤ እርሱም የቀና መንገድ ያደርግልሃል።",
+      tags: ["ዓላማ", "የሕይወት ጥሪ", "መመራት", "እምነት", "ምሳሌ 16"],
       featured: false,
       views: 590,
       likes: 165,
@@ -308,11 +308,11 @@ async function seed() {
     {
       title: "ምስጋናዬ የሚገባህ",
       type: "voice" as const,
-      author: "Evange Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Evangelism Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-09-10",
       duration: "05:15",
       audioUrl:
@@ -322,32 +322,31 @@ async function seed() {
       caption:
         "ሁሉ በአመስጋኝነት ልብ ሲከናወን በሕይወታችን የሰማይ ሰላም ይነግሣል።",
       content:
-        "ዳዊት በመዝሙር 103 'ነፍሴ ሆይ እግዚአብሔርን ባርኪ፥ ምስጋናውንም ሁሉ አትርሺ' እንዳለው አምላካችን በዕለት ተዕለት ውለታው ሁልጊዜ የተመሰገነ ነው። በፈተናም ሆነ በድል ውስጥ ምስጋና በልባችን ሲሞላ መንፈሳችን ይበረታል።",
-      tags: ["ምስጋና", "አምልኮ", "የልብ ሰላም", "መዝሙር 103"],
+        "ዳዊት በመዝሙር 103:1-2 ላይ “ነፍሴ ሆይ፥ እግዚአብሔርን ባርኪ፤ ምስጋናውንም ሁሉ አትርሺ” ይላል። ዳዊት ይህንን ሲጽፍ ሕይወቱ ሁልጊዜ በአበባ የተሞላ አልነበረም፤ በብዙ ፈተናዎች፣ በስደትና በጭንቀት መሃል አልፏል። ነገር ግን በነፍሱ ውስጥ ቆም ብሎ የእግዚአብሔርን ውለታ ለማሰብ ወሰነ።\n\nበዩኒቨርሲቲ ውጥረት ውስጥ፣ ብዙ ጊዜ የምናየው የጎደለንን ነገር ብቻ ነው። ያልተጠናቀቀ assignment፣ የሚመጣ ፈተና፣ የገንዘብ እጥረት፣ ወይም የጤና መጓደል ልባችንን ሊሞላው ይችላል። ነገር ግን ዛሬ እስትንፋስ ኖሮህ መንቃትህ፣ ወደዚህ ደረጃ መድረስህ፣ በፈተናዎች ሁሉ ውስጥ እግዚአብሔር ደግፎ ማቆሙ እጅግ ታላቅ ምስጋና የሚገባው ውለታ ነው።\n\nምስጋና የልብ አመለካከት ነው። 1 ኛ ተሰሎንቄ 5:18 “በሁሉ አመስግኑ፤ የእግዚአብሔር ፈቃድ በክርስቶስ ኢየሱስ ወደ እናንተ ይህ ነውና” ይለናል። በሁኔታዎች ላይ ሳይሆን በማይለወጠው በእግዚአብሔር ቸርነት ላይ መደገፍ ሲጀምር፣ ልባችን ከጭንቀት ወደ ሰላም ይሻገራል። ምስጋና በፈተና ውስጥ ብርታትን፣ በጨለማ ውስጥ ደግሞ ተስፋን ያበራል።\n\nዛሬ ከመማሪያ ክፍልህ ወይም ከቤተ-መጽሐፍት ወጥተህ ወደ ዶርምህ ስትመለስ፣ ቆም ብለህ አምላክህን አመስግን። ለሰጠህ ጤና፣ ለሰጠህ የካምፓስ ኅብረት፣ እና ነገን በክርስቶስ ተስፋ እንድትጠብቅ ስላደረገህ ልብህን በምስጋና ሙላው። በምስጋና ልብ ውስጥ የሰማይ ሰላም ይነግሣል።",
+      tags: ["ምስጋና", "አምልኮ", "የልብ ሰላም", "መዝሙር 103", "ተሰሎንቄ 5"],
       featured: false,
       views: 710,
       likes: 220,
     },
 
-    // ─── 12. የጠዋት ጸሎትና ፀጋ (Text Devotion by Admin Nati) ────────
+    // ─── 12. የጠዋት ጸሎትና ፀጋ (Text Devotion) ─────────────────────
     {
       title: "የጠዋት ጸሎትና ፀጋ — የማለዳ ኅብረት",
       type: "text" as const,
-      author: "Natnael Tamiru",
-      authorId: natiId,
-      authorAvatar:
-        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-      authorRole: "Fellowship Leader & Admin",
-      authorUsername: "nati",
+      author: "4 Kilo Fellowship",
+      authorId: officialUser._id,
+      authorAvatar: officialUser.profileImage,
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-11-04",
-      duration: "3 min read",
+      duration: "4 min read",
       image:
         "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1200&q=80",
       caption:
         "ማለዳ ከእግዚአብሔር ቃልና ከጸሎት ጋር መጀመር የቀናችንን ሙሉ አቅጣጫና ሰላም ይወስናል።",
       content:
-        "ጠዋት ማለዳ ፀሐይ ከመውጣቷ በፊት ከእግዚአብሔር ጋር የሚደረግ ኅብረት የቀኑን ሙሉ አቅጣጫ ይወስናል። ጌታችን ኢየሱስ በማለዳ ተነስቶ ወደ ምድረ በዳ ሄዶ ይጸልይ ነበር። የእኛም መንፈሳዊ ጥንካሬ የሚመነጨው ከዚህ የጸጥታ ጊዜ ነው። በዩኒቨርሲቲ ውጥረትና በፈተናዎች መሀል ቀንህን በጸሎት ጀምር፤ ጌታም መንፈስህን ያድሳል።\n\n“እግዚአብሔር ሆይ፥ በማለዳ ድምፄን ትሰማለህ፤ በማለዳ በፊትህ እቆማለሁ፥ እጠብቅማለሁ።” — መዝሙር 5:3",
-      tags: ["ማለዳ", "ጸሎት", "የእግዚአብሔር ቃል", "ካምፓስ"],
+        "ማለዳ ፀሐይ ከመውጣቷ በፊት ከእግዚአብሔር ጋር የሚደረግ ኅብረት የቀኑን ሙሉ አቅጣጫና መንፈሳዊ ድባብ ይወስናል። ጌታችን ኢየሱስ በምድር በነበረበት ዘመን፣ በማለዳ ገና ሳይነጋ ተነስቶ ወደ ምድረ በዳ ሄዶ ይጸልይ ነበር (ማርቆስ 1:35)። የአጽናፈ ዓለም ፈጣሪ የሆነው እርሱ ከአባቱ ጋር ለመገናኘት ማለዳን ከመረጠ፣ እኛ ተማሪዎችማ ምን ያህል በየማለዳው በእርሱ ጸጋ መሞላት ያስፈልገን ይሆን?\n\nበካምፓስ ውስጥ ማለዳ በቀላሉ በስልካችን notifications፣ በዜናዎች፣ እና በሚያስጨንቁን ፕሮግራሞች ሊሰረቅ ይችላል። ስልካችንን ከፍተን ማህበራዊ ሚዲያ ስንጎበኝ አእምሯችን ሳይነጋ በሰው ሀሳቦችና በዓለም ጫጫታ ይሞላል። ከዚያም ቀኑን ሙሉ እንረበሻለን፣ እንጨነቃለን፣ እና መንፈሳዊ ጥንካሬ እናጣለን።\n\nነገር ግን ጠዋት 6:00 AM ላይ በጸሎት ከጌታ ጋር ስንጀምር፣ ልባችን በእርሱ እውነት ይታጠባል። ሰቆቃወ ኤርምያስ 3:22-23 “ያልጠፋነው ከእግዚአብሔር ምሕረት የተነሣ ነው፤ ርኅራኄው አያልቅምና። ማለዳ ማለዳ አዲስ ነው፤ ታማኝነትህ ታላቅ ነው” ይላል። የትናንት ስህተታችንና ድካማችን አልፎ ዛሬ አዲስ የእግዚአብሔር ጸጋ ተዘጋጅቶልናል።\n\nበዩኒቨርሲቲ ውጥረትና በፈተናዎች መሀል ቀንህን ከእግዚአብሔር ጋር ጀምር። ከካምፓስ ኅብረት ወንድሞችና እህቶች ጋር በማለዳ ጸሎት መቆም፣ የእግዚአብሔርን ቃል መመገብ፣ እና የዕለቱን ውሎ ለጌታ መስጠት የድል ምስጢር ነው። “እግዚአብሔር ሆይ፥ በማለዳ ድምፄን ትሰማለህ፤ በማለዳ በፊትህ እቆማለሁ፥ እጠብቅማለሁ።” — መዝሙር 5:3",
+      tags: ["ማለዳ", "ጸሎት", "የእግዚአብሔር ቃል", "ካምፓስ", "መዝሙር 5"],
       featured: false,
       views: 450,
       likes: 130,
@@ -357,11 +356,11 @@ async function seed() {
     {
       title: "በፈተና ውስጥ ያለ ደስታ — ያዕቆብ 1:2",
       type: "text" as const,
-      author: "Counseling Team",
+      author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Counseling Department • 4 Kilo Fellowship",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-10-05",
       duration: "4 min read",
       image:
@@ -369,8 +368,8 @@ async function seed() {
       caption:
         "ፈተናዎች እምነታችንን የሚያጠሩና ትዕግሥትን በሕይወታችን የሚሰሩ ታላላቅ በረከቶች ናቸው።",
       content:
-        "ያዕቆብ በመልእክቱ 'ወንድሞቼ ሆይ፥ የእምነታችሁ መፈተን ትዕግሥትን እንዲያደርግላችሁ አውቃችሁ፥ ልዩ ልዩ ፈተና ሲደርስባችሁ እንደ ሙሉ ደስታ ቁጠሩት' ይለናል። በዩኒቨርሲቲ ህይወታችን ውስጥ የሚያጋጥሙን ፈተናዎች ማንነታችንን የሚቀርጹና ወደ ክርስቶስ ሙላት የሚያደርሱን የእድገት መንገዶች ናቸው። ተስፋ ሳንቆርጥ ወደ እርሱ እንመልከት።",
-      tags: ["ያዕቆብ 1", "ትዕግሥት", "ደስታ", "የእምነት ፈተና"],
+        "ያዕቆብ በመልእክቱ ምዕራፍ 1 ቁጥር 2 ላይ “ወንድሞቼ ሆይ፥ የእምነታችሁ መፈተን ትዕግሥትን እንዲያደርግላችሁ አውቃችሁ፥ ልዩ ልዩ ፈተና ሲደርስባችሁ እንደ ሙሉ ደስታ ቁጠሩት” ይለናል። ይህ ቃል ለመስማት እንግዳ ሊመስል ይችላል፤ ፈተናና መከራ እንዴት እንደ ደስታ ይቆጠራል?\n\nያዕቆብ የሚነግረን ስለ ሥጋዊ ፈንጠዝያ ሳይሆን፣ በመከራ ውስጥ ስለሚገኝ ጥልቅ መንፈሳዊ ፍሬ ነው። በዩኒቨርሲቲ ሕይወት ውስጥ የሚያጋጥሙን ፈተናዎች፣ የውጤት ውጣ ውረዶች፣ ወይም የሚደርሱብን አለመግባባቶች እምነታችንን የሚያጠሩና ወደ ብስለት የሚያደርሱን መለኮታዊ ትምህርት ቤቶች ናቸው። ወርቅ በእሳት ተፈትኖ እንደሚነጻ፣ የእኛም እምነት በፈተና ውስጥ አልፎ ጽኑ ይሆናል።\n\nፈተና ሲመጣ የምናደርገው ምርጫ ማንነታችንን ይገልጻል። ማማረር፣ ተስፋ መቁረጥ፣ ወይም ሌሎችን መውቀስ እንችላለን። ወይም ደግሞ ወደ ጌታ ቀርበን “ጌታ ሆይ፥ በዚህ ሁኔታ ውስጥ ምን ልታስተምረኝ ወደድህ?” ብለን መጠየቅ እንችላለን። ሮሜ 5:3-4 “መከራ ትዕግሥትን እንዲያደርግ፥ ትዕግሥትም ፈተናን፥ ፈተናም ተስፋን እንዲያደርግ እናውቃለን” እንደሚል፣ ፈተና የክርስቶስን ባህሪ በውስጣችን የሚቀርጽ መሳሪያ ነው።\n\nስለዚህ ዛሬ በፈተና ውስጥ እያለፍክ ከሆነ ተስፋ አትቁረጥ። የሚጠብቅህ ጌታ ታማኝ ነው፤ ከአቅምህ በላይ እንድትፈተን አይተወህም (1 ኛ ቆሮንቶስ 10:13)። ዓይኖችህን በመከራው ላይ ሳይሆን በመጨረሻው ክብር ላይ አድርግ፤ በእርሱም ጸጋ ጸንተህ ቁም።",
+      tags: ["ያዕቆብ 1", "ትዕግሥት", "ደስታ", "የእምነት ፈተና", "ሮሜ 5"],
       featured: false,
       views: 520,
       likes: 145,
@@ -383,17 +382,17 @@ async function seed() {
       author: "4 Kilo Fellowship",
       authorId: officialUser._id,
       authorAvatar: officialUser.profileImage,
-      authorRole: "Campus Ministry Leadership",
-      authorUsername: "aau4kilofellowship",
+      authorRole: "Executive Ministry",
+      authorUsername: "4kilo_fellowship",
       date: "2026-09-30",
-      duration: "3 min read",
+      duration: "4 min read",
       image:
         "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1200&q=80",
       caption:
         "በዓለም ጫጫታ መካከል የመልካሙን እረኛ የኢየሱስን ድምፅ በጥሞና እናዳምጥ።",
       content:
-        "'በጎቼ ድምፄን ይሰማሉ እኔም አውቃቸዋለሁ ይከተሉኝማል፤' ይላል ጌታችን ኢየሱስ በዮሐንስ 10:27 ላይ። በዙሪያችን ብዙ ድምፆችና ጫጫታዎች ባሉበት ዘመን የእውነተኛውን እረኛ ድምፅ ለይቶ ማወቅ ወሳኝ ነው። እርሱ ወደ ሕይወትና ወደ እረፍት ይመራናል። ዛሬ ልብህን ለእርሱ ድምፅ ክፈት።",
-      tags: ["ዮሐንስ 10", "የእረኛው ድምፅ", "መከተል", "ሕይወት"],
+        "“በጎቼ ድምፄን ይሰማሉ እኔም አውቃቸዋለሁ ይከተሉኝማል፤” ይላል ጌታችን ኢየሱስ በዮሐንስ 10:27 ላይ። በጎች የባለቤታቸውን ድምፅ ጠንቅቀው ያውቃሉ፤ እንግዳ ሰው ቢጠራቸው ግን አይከተሉትም ምክንያቱም የእንግዳውን ድምፅ አያውቁትም።\n\nበዛሬው ዓለምና በካምፓስ ሕይወት ውስጥ ብዙ ተፎካካሪ ድምፆች አሉ። የዓለም ፍልስፍናዎች፣ የማህበራዊ ሚዲያ አዝማሚያዎች፣ የጓደኞች ግፊት፣ እንዲሁም የራሳችን ፍርሃትና ጭንቀት ያለማቋረጥ ጆሯችንን ይሞሉታል። እነዚህ ድምፆች ብዙ ጊዜ ወደ ግራ መጋባት፣ ወደ ብቸኝነትና ወደ ማንነት ቀውስ ይመሩናል።\n\nየመልካሙ እረኛ ድምፅ ግን የተለየ ነው። እርሱ በጸጥታና በእውነት ይናገራል። ድምፁ የሚያረጋጋ፣ የሚያነጻ፣ ወደ ንስሐና ወደ ሕይወት የሚመራ ነው። ኢሳይያስ 30:21 “ወደ ቀኝም ወደ ግራም ፈቀቅ ብትሉ ጆሮዎችህ በኋላህ፦ መንገዱ ይህች ናት በእርስዋም ሂድ የሚለውን ቃል ይሰማሉ” ይላል። የእርሱን ድምፅ ለመስማት ግን በየቀኑ በጸጥታ በቃሉ ፊት መቆየትን መለማመድ አለብን።\n\nዛሬ የትኛውን ድምፅ እያዳመጥክ ነው? ሰዎችን ለማስደሰት የምትሮጥበትን ጩኸት ወይስ የኢየሱስን የፍቅር ጥሪ? ዛሬ ልብህን ለእውነተኛው እረኛ ክፈት። እርሱ በስምህ ይጠራሃል፤ ወደ ዘላለማዊ እረፍትና ወደ ሕይወት ማዕድ ይመራሃል።",
+      tags: ["ዮሐንስ 10", "የእረኛው ድምፅ", "መከተል", "ሕይወት", "ኢሳይያስ 30"],
       featured: false,
       views: 610,
       likes: 175,

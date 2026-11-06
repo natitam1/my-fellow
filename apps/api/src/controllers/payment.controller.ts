@@ -37,10 +37,12 @@ export class PaymentController {
         (user as any)?.email?.trim() ||
         "206413681+natitam1@users.noreply.github.com";
 
+      const targetPhone = phone || user.phoneNumber;
+
       const checkout = await jamiService.initializeCheckout({
         amount,
         email: resolvedEmail,
-        phone: phone || user.phoneNumber,
+        phone: targetPhone,
         name: user.fullName || "4 Kilo Fellowship Member",
         reason: reason || "Donation",
         returnUrl: returnUrl || process.env.JAMI_RETURN_URL,
@@ -48,8 +50,26 @@ export class PaymentController {
         tx_ref,
       });
 
-      const checkoutUrl =
+      let checkoutUrl =
         "checkoutUrl" in checkout ? checkout.checkoutUrl : null;
+
+      // Prefill buyer phone number on jami.bio web checkout page via URL params as well
+      if (checkoutUrl && targetPhone) {
+        const rawDigits = targetPhone.replace(/\D/g, "");
+        const localFormat = rawDigits.startsWith("251")
+          ? "0" + rawDigits.slice(3)
+          : rawDigits.startsWith("0")
+            ? rawDigits
+            : "0" + rawDigits;
+        const intlFormat = rawDigits.startsWith("0")
+          ? "251" + rawDigits.slice(1)
+          : rawDigits.startsWith("251")
+            ? rawDigits
+            : "251" + rawDigits;
+
+        const sep = checkoutUrl.includes("?") ? "&" : "?";
+        checkoutUrl = `${checkoutUrl}${sep}phone=${encodeURIComponent(localFormat)}&phoneNumber=${encodeURIComponent(localFormat)}&customer_phone=${encodeURIComponent(intlFormat)}&msisdn=${encodeURIComponent(localFormat)}`;
+      }
 
       const transaction = await TransactionModel.create({
         userId,
