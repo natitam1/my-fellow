@@ -1,10 +1,6 @@
 import { MainTabHeader } from "@/components/MainTabHeader";
-import { NativeViewAllButton } from "@/components/NativeViewAllButton";
 import CartSheet from "@/components/Marketplace/CartSheet";
-import ProductCard from "@/components/Marketplace/ProductCard";
-import ProductSkeleton from "@/components/Marketplace/ProductSkeleton";
 import { InfoModal } from "@/components/Modals/InfoModal";
-import { ProductBottomSheet } from "@/components/Modals/ProductBottomSheet";
 import { ReasonModal } from "@/components/Modals/ReasonModal";
 import { GivingCelebrationModal } from "@/components/Modals/GivingCelebrationModal";
 import { API_URL } from "@/constants/api";
@@ -13,12 +9,13 @@ import api from "@/services/api";
 import { useMarketplaceStore } from "@/stores/marketplace.store";
 import { usePaymentStore } from "@/stores/payment.store";
 import { useUserStore } from "@/stores/user.store";
-import { Product } from "@/types/marketplace.types";
+import { getProductImage } from "@/types/marketplace.types";
 import { donationSchema } from "@/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
+import { Image as ExpoImage } from "expo-image";
 import * as Linking from "expo-linking";
 import { useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -36,7 +33,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { PRIMARY } from "@/constants/colors";
@@ -44,30 +40,12 @@ import * as z from "zod";
 
 type DonationForm = z.infer<typeof donationSchema>;
 
-interface CategoryRoute {
-  key: string;
-  title: string;
-  value: string;
-}
-
-const CATEGORIES: CategoryRoute[] = [
-  { key: "all", title: "All", value: "All" },
-  { key: "new", title: "New", value: "new" },
-  { key: "t-shirt", title: "T-Shirts", value: "t-shirt" },
-  { key: "hoodie", title: "Hoodies", value: "hoodie" },
-  { key: "stickers", title: "Stickers", value: "stickers" },
-  { key: "accessories", title: "Accessories", value: "accessories" },
-  { key: "others", title: "Others", value: "others" },
-];
-
 const Gifts = () => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const router = useRouter();
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [reasonModalVisible, setReasonModalVisible] = useState(false);
   const [celebrationVisible, setCelebrationVisible] = useState(false);
   const [lastSuccessDetails, setLastSuccessDetails] = useState<{
@@ -96,14 +74,9 @@ const Gifts = () => {
     type: "success" | "error" | "info";
   }>({ visible: false, title: "", message: "", type: "info" });
 
-  const { width: screenWidth } = useWindowDimensions();
-  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
-
   const {
     products,
-    loading: productsLoading,
     fetchProducts,
-    addToCart,
     cartVisible,
     setCartVisible,
     getCartCount,
@@ -112,95 +85,20 @@ const Gifts = () => {
   const cartCount = getCartCount();
 
   useEffect(() => {
-    fetchProducts(true, 50, "All");
+    fetchProducts(true, 10, "All");
   }, [fetchProducts]);
 
-  const categoryProductsMap = useMemo(() => {
-    return CATEGORIES.reduce<
-      Record<
-        string,
-        { cat: CategoryRoute; items: Product[]; totalCount: number }
-      >
-    >((acc, cat) => {
-      const filtered = products.filter((p) => {
-        if (cat.value === "All") return true;
-
-        const isRecentlyCreated = () => {
-          if (!p.createdAt) return false;
-          const createdDate = new Date(p.createdAt);
-          const now = new Date();
-          const diffTime = Math.abs(now.getTime() - createdDate.getTime());
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          return diffDays <= 7;
-        };
-
-        if (cat.value === "new") {
-          return p.isNew || isRecentlyCreated();
-        }
-
-        const pCat = p.category?.toLowerCase().trim() || "";
-        const mainCategories = [
-          "t-shirt",
-          "t-shirts",
-          "tshirt",
-          "tshirts",
-          "shirt",
-          "hoodie",
-          "hoodies",
-          "hoddy",
-          "sweatshirt",
-          "stickers",
-          "sticker",
-          "accessories",
-          "accessory",
-        ];
-
-        if (cat.value === "others") {
-          return !mainCategories.includes(pCat);
-        }
-
-        if (cat.value === "t-shirt") {
-          return (
-            pCat === "t-shirt" ||
-            pCat === "t-shirts" ||
-            pCat === "tshirt" ||
-            pCat === "tshirts" ||
-            pCat === "shirt"
-          );
-        }
-
-        if (cat.value === "hoodie") {
-          return (
-            pCat === "hoodie" ||
-            pCat === "hoodies" ||
-            pCat === "hoddy" ||
-            pCat === "sweatshirt"
-          );
-        }
-
-        if (cat.value === "stickers") {
-          return pCat === "stickers" || pCat === "sticker";
-        }
-
-        if (cat.value === "accessories") {
-          return pCat === "accessories" || pCat === "accessory";
-        }
-
-        return pCat === cat.value.toLowerCase();
-      });
-
-      acc[cat.key] = {
-        cat,
-        items: filtered.slice(0, 4),
-        totalCount: filtered.length,
-      };
-      return acc;
-    }, {});
+  const storeThumbnails = useMemo(() => {
+    const list: string[] = [];
+    for (const p of products) {
+      const img = p.imageUrls?.[0] || p.image || p.imageUrl;
+      if (img && typeof img === "string" && !img.includes("via.placeholder.com")) {
+        list.push(img);
+      }
+      if (list.length >= 3) break;
+    }
+    return list;
   }, [products]);
-
-  const activeCategory = CATEGORIES[activeCategoryIndex] || CATEGORIES[0];
-  const activeCategoryData = categoryProductsMap[activeCategory.key];
-  const activeItems = activeCategoryData?.items || [];
 
   const { user } = useUserStore();
   const { txRef, setTxRef, totalGivingsAmount, fetchMyGivings } =
@@ -211,19 +109,12 @@ const Gifts = () => {
     try {
       await Promise.all([
         fetchMyGivings(),
-        fetchProducts(true, 50, "All"),
+        fetchProducts(true, 10, "All"),
       ]);
     } finally {
       setRefreshing(false);
     }
   }, [fetchMyGivings, fetchProducts]);
-
-  const handleTabChange = useCallback((index: number) => {
-    if (Platform.OS !== "web") {
-      Haptics.selectionAsync().catch(() => {});
-    }
-    setActiveCategoryIndex(index);
-  }, []);
 
   const showInfoModal = (
     title: string,
@@ -860,153 +751,182 @@ const Gifts = () => {
               </View>
             </View>
 
-            {/* FELLOWSHIP STORE SECTION */}
-            <View className="mb-12">
-              <View className="px-5 mb-3 flex-row items-center justify-between">
-                <Text
-                  numberOfLines={1}
-                  className={`text-lg font-extrabold ${
-                    isDark ? "text-white" : "text-gray-900"
-                  }`}
-                  style={{ includeFontPadding: false, flexShrink: 1, marginRight: 8 }}
-                >
-                  Fellowship Store
-                </Text>
-                <NativeViewAllButton
-                  onPress={() => router.push("/marketplace" as any)}
-                  isDark={isDark}
-                  accessibilityLabel="View all store items"
-                />
-              </View>
-
-              {/* Horizontal Category Filter Strip */}
-              <View
-                style={[
-                  styles.storeTabBar,
+            {/* FELLOWSHIP STORE REDIRECTION BANNER */}
+            <View
+              style={[
+                styles.storeBannerWrapper,
+                {
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.16)"
+                    : "rgba(0, 0, 0, 0.12)",
+                },
+              ]}
+            >
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS !== "web") {
+                    Haptics.impactAsync(
+                      Haptics.ImpactFeedbackStyle.Light,
+                    ).catch(() => {});
+                  }
+                  router.push("/marketplace" as any);
+                }}
+                unstable_pressDelay={0}
+                accessibilityRole="button"
+                accessibilityLabel="Visit Fellowship Store"
+                android_ripple={{
+                  color: isDark
+                    ? "rgba(255, 255, 255, 0.08)"
+                    : "rgba(0, 0, 0, 0.06)",
+                  borderless: false,
+                  foreground: true,
+                }}
+                style={({ pressed }) => [
+                  styles.storeBannerCard,
                   {
-                    backgroundColor: isDark ? "#1A1A1B" : "#ffffff",
-                    borderBottomColor: isDark ? "#27272a" : "#eff3f4",
+                    opacity: Platform.OS === "ios" && pressed ? 0.75 : 1,
                   },
                 ]}
               >
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  bounces={true}
-                  contentContainerStyle={{
-                    paddingHorizontal: 16,
-                    alignItems: "center",
-                  }}
-                >
-                  {CATEGORIES.map((cat, index) => {
-                    const isSelected = activeCategoryIndex === index;
-                    return (
-                      <TouchableOpacity
-                        key={cat.key}
-                        onPress={() => handleTabChange(index)}
-                        activeOpacity={0.7}
-                        style={[
-                          styles.storeTabItem,
-                          {
-                            borderBottomColor: isSelected ? PRIMARY : "transparent",
-                            borderBottomWidth: isSelected ? 3 : 0,
-                          },
-                        ]}
-                      >
-                        <View style={styles.storeTabLabelRow}>
-                          <Text
-                            style={[
-                              styles.storeTabLabelText,
-                              {
-                                color: isSelected
-                                  ? PRIMARY
-                                  : isDark
-                                  ? "#71767b"
-                                  : "#71717a",
-                                fontWeight: isSelected ? "700" : "600",
-                              },
-                            ]}
-                          >
-                            {cat.title}
-                          </Text>
-                          {cat.key === "new" && (
-                            <View
-                              style={[
-                                styles.storeTabNewDot,
-                                { backgroundColor: PRIMARY },
-                              ]}
-                            />
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {/* Store Products / Skeletons Grid */}
-              {productsLoading && products.length === 0 ? (
-                <View style={styles.storeGridContainer}>
-                  {[1, 2, 3, 4].map((key) => (
-                    <View key={key} style={styles.storeGridItem}>
-                      <ProductSkeleton isDark={isDark} />
-                    </View>
-                  ))}
-                </View>
-              ) : activeItems.length === 0 ? (
-                <View style={styles.storeEmptyContainer}>
+                {/* Left: 3 Overlapping Sticker Images Illustration */}
+                <View style={styles.stickersContainer}>
+                  {/* Sticker 1: tilted left */}
                   <View
                     style={[
-                      styles.storeEmptyIconWrap,
-                      { backgroundColor: isDark ? "#27272a" : "#fff7ed" },
+                      styles.stickerBadge,
+                      styles.sticker1,
+                      {
+                        borderColor: isDark ? "#3f3f46" : "#ffffff",
+                      },
                     ]}
                   >
-                    <Ionicons
-                      name={
-                        activeCategory.value === "t-shirt"
-                          ? "shirt-outline"
-                          : activeCategory.value === "stickers"
-                          ? "pricetag-outline"
-                          : "bag-handle-outline"
-                      }
-                      size={26}
-                      color={PRIMARY}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.storeEmptyTitle,
-                      { color: isDark ? "#f4f4f5" : "#18181b" },
-                    ]}
-                  >
-                    No {activeCategory.title} available yet
-                  </Text>
-                  <Text
-                    style={[
-                      styles.storeEmptySubtitle,
-                      { color: isDark ? "#71767b" : "#71717a" },
-                    ]}
-                  >
-                    New fellowship items are added regularly. Check back soon!
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.storeGridContainer}>
-                  {activeItems.map((item) => (
-                    <View key={item.id} style={styles.storeGridItem}>
-                      <ProductCard
-                        product={item}
-                        isDark={isDark}
-                        onPress={() => router.push(`/marketplace/${item.id}` as any)}
-                        onBuy={() => {
-                          setSelectedProduct(item);
-                          setBottomSheetVisible(true);
-                        }}
+                    {storeThumbnails[0] ? (
+                      <ExpoImage
+                        source={{ uri: storeThumbnails[0] }}
+                        style={styles.stickerImg}
+                        contentFit="cover"
+                        transition={200}
                       />
-                    </View>
-                  ))}
+                    ) : (
+                      <View
+                        style={[
+                          styles.stickerFallback,
+                          { backgroundColor: isDark ? "#27272a" : "#f1f5f9" },
+                        ]}
+                      >
+                        <Ionicons
+                          name="shirt-outline"
+                          size={20}
+                          color={PRIMARY}
+                        />
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Sticker 2: tilted right */}
+                  <View
+                    style={[
+                      styles.stickerBadge,
+                      styles.sticker2,
+                      {
+                        borderColor: isDark ? "#3f3f46" : "#ffffff",
+                      },
+                    ]}
+                  >
+                    {storeThumbnails[1] ? (
+                      <ExpoImage
+                        source={{ uri: storeThumbnails[1] }}
+                        style={styles.stickerImg}
+                        contentFit="cover"
+                        transition={200}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.stickerFallback,
+                          { backgroundColor: isDark ? "#27272a" : "#fef3c7" },
+                        ]}
+                      >
+                        <Ionicons name="sparkles" size={18} color="#f59e0b" />
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Sticker 3: front center / highlighted */}
+                  <View
+                    style={[
+                      styles.stickerBadge,
+                      styles.sticker3,
+                      { borderColor: PRIMARY },
+                    ]}
+                  >
+                    {storeThumbnails[2] ? (
+                      <ExpoImage
+                        source={{ uri: storeThumbnails[2] }}
+                        style={styles.stickerImg}
+                        contentFit="cover"
+                        transition={200}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.stickerFallback,
+                          { backgroundColor: isDark ? "#1c1917" : "#fff7ed" },
+                        ]}
+                      >
+                        <Ionicons
+                          name="bag-handle"
+                          size={22}
+                          color={PRIMARY}
+                        />
+                      </View>
+                    )}
+                  </View>
                 </View>
-              )}
+
+                {/* Right: Title, Subtitle, and Native Action Button with Text & Arrow */}
+                <View style={styles.storeBannerContent}>
+                  <Text
+                    style={[
+                      styles.storeBannerTitle,
+                      { color: isDark ? "#ffffff" : "#0f172a" },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Fellowship Store
+                  </Text>
+                  <Text
+                    style={[
+                      styles.storeBannerSubtitle,
+                      { color: isDark ? "#a1a1aa" : "#64748b" },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Official Hoodies, T-Shirts & Stickers
+                  </Text>
+                  <View
+                    style={[
+                      styles.storeActionBtn,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255, 103, 25, 0.14)"
+                          : "rgba(255, 103, 25, 0.1)",
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.storeActionText, { color: PRIMARY }]}>
+                      Visit Store
+                    </Text>
+                    <Ionicons name="arrow-forward" size={13} color={PRIMARY} />
+                  </View>
+                </View>
+
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={isDark ? "#52525b" : "#94a3b8"}
+                />
+              </Pressable>
             </View>
           </ScrollView>
         </View>
@@ -1017,28 +937,6 @@ const Gifts = () => {
         message={infoModal.message}
         type={infoModal.type}
         isDark={isDark}
-      />
-      <ProductBottomSheet
-        visible={bottomSheetVisible}
-        onClose={() => {
-          setBottomSheetVisible(false);
-          setSelectedProduct(null);
-        }}
-        isDark={isDark}
-        product={selectedProduct}
-        onAddToCart={(product, quantity) => {
-          addToCart(product, quantity);
-          showInfoModal(
-            "Added to Cart",
-            `${product.name || product.title} × ${quantity} added.`,
-            "success",
-          );
-        }}
-        onBuyNow={(product, quantity) => {
-          addToCart(product, quantity);
-          setBottomSheetVisible(false);
-          setCartVisible(true);
-        }}
       />
       <CartSheet
         visible={cartVisible}
@@ -1067,73 +965,104 @@ const Gifts = () => {
 };
 
 const styles = StyleSheet.create({
-  storeTabBar: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    elevation: 0,
-    shadowOpacity: 0,
+  storeBannerWrapper: {
+    marginHorizontal: 16,
+    marginBottom: 40,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    backgroundColor: "transparent",
+    overflow: "hidden",
+  },
+  storeBannerCard: {
+    minHeight: 116,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  stickersContainer: {
+    width: 90,
+    height: 78,
+    position: "relative",
+    justifyContent: "center",
+  },
+  stickerBadge: {
+    position: "absolute",
+    borderRadius: 14,
+    borderWidth: 2,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.16,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  sticker1: {
+    left: 2,
+    top: 6,
+    width: 48,
+    height: 48,
+    transform: [{ rotate: "-14deg" }],
+    zIndex: 1,
+  },
+  sticker2: {
+    left: 42,
+    top: 4,
+    width: 46,
+    height: 46,
+    transform: [{ rotate: "14deg" }],
+    zIndex: 2,
+  },
+  sticker3: {
+    left: 20,
+    top: 26,
+    width: 52,
+    height: 52,
+    transform: [{ rotate: "-2deg" }],
+    zIndex: 3,
+    borderWidth: 2.5,
+    shadowColor: PRIMARY,
+    shadowOpacity: 0.28,
+    elevation: 6,
+  },
+  stickerImg: {
+    width: "100%",
+    height: "100%",
+  },
+  stickerFallback: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storeBannerContent: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  storeBannerTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  storeBannerSubtitle: {
+    fontSize: 12.5,
+    marginTop: 2,
     marginBottom: 8,
+    lineHeight: 17,
   },
-  storeTabItem: {
-    width: "auto",
-    minWidth: 64,
-    paddingHorizontal: 16,
-    minHeight: 44,
-  },
-  storeTabIndicator: {
-    backgroundColor: PRIMARY,
-    height: 3,
-    borderRadius: 1.5,
-  },
-  storeTabLabelRow: {
+  storeActionBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
+    alignSelf: "flex-start",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    gap: 5,
   },
-  storeTabLabelText: {
-    fontSize: 14,
-    letterSpacing: -0.2,
-    textTransform: "none",
-  },
-  storeTabNewDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  storeGridContainer: {
-    paddingHorizontal: 8,
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  storeGridItem: {
-    width: "50%",
-    paddingHorizontal: 4,
-  },
-  storeEmptyContainer: {
-    paddingVertical: 36,
-    paddingHorizontal: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  storeEmptyIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  storeEmptyTitle: {
-    fontSize: 14,
+  storeActionText: {
+    fontSize: 12.5,
     fontWeight: "700",
-    textAlign: "center",
-  },
-  storeEmptySubtitle: {
-    fontSize: 12,
-    textAlign: "center",
-    marginTop: 4,
-    maxWidth: 220,
-    lineHeight: 18,
   },
 });
 
