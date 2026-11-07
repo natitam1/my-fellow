@@ -1,13 +1,7 @@
 import { AuthProvider } from "@/context/AuthContext";
 import { useTheme, ThemeProvider } from "@/context/ThemeContext";
 import { useAppStore } from "@/stores/app.store";
-import {
-  FontAwesome5,
-  Ionicons,
-  MaterialCommunityIcons,
-  MaterialIcons,
-  Octicons,
-} from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -231,17 +225,15 @@ function RootNavigator() {
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     ...Ionicons.font,
-    ...Octicons.font,
-    ...FontAwesome5.font,
-    ...MaterialCommunityIcons.font,
-    ...MaterialIcons.font,
   });
   const [hasHydrated, setHasHydrated] = useState(
     useAppStore.persist.hasHydrated(),
   );
 
   useEffect(() => {
-    if (error) throw error;
+    if (error) {
+      console.warn("[font-loader] Non-fatal font preload notice:", error.message || error);
+    }
   }, [error]);
 
   useEffect(() => {
@@ -257,12 +249,12 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (loaded && hasHydrated) {
-      SplashScreen.hideAsync();
+    if ((loaded || error) && hasHydrated) {
+      SplashScreen.hideAsync().catch(() => {});
     }
-  }, [hasHydrated, loaded]);
+  }, [hasHydrated, loaded, error]);
 
-  if (!loaded || !hasHydrated) {
+  if ((!loaded && !error) || !hasHydrated) {
     return null;
   }
 
