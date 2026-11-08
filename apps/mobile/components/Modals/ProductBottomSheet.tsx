@@ -359,12 +359,12 @@ const styles = StyleSheet.create({
   actionSection: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 4,
+    marginTop: 8,
   },
   nativeButtonOuter: {
     flex: 1,
-    height: 52,
-    borderRadius: 16,
+    height: 54,
+    borderRadius: 9999,
     overflow: "hidden",
   },
   nativeButtonInner: {
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   buyNowText: {
     color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "800",
   },
   buyNowShadow: {
     ...Platform.select({
