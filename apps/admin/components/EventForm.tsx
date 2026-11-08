@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import axios from "axios";
 import api from "@/lib/api";
 import { Loader2, Upload, X } from "lucide-react";
 import { AIPosterGenerator } from "./AIPosterGenerator";
@@ -12,6 +11,13 @@ import { AIPosterGenerator } from "./AIPosterGenerator";
 interface EventFormProps {
   initialData?: any;
 }
+
+const toDateInputValue = (dateVal?: any) => {
+  if (!dateVal) return "";
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 16);
+};
 
 export function EventForm({ initialData }: EventFormProps) {
   const router = useRouter();
@@ -39,18 +45,12 @@ export function EventForm({ initialData }: EventFormProps) {
         title: initialData.title || "",
         shortDescription: initialData.shortDescription || "",
         fullDescription: initialData.fullDescription || "",
-        startDate: initialData.startDate
-          ? new Date(initialData.startDate).toISOString().slice(0, 16)
-          : "",
-        endDate: initialData.endDate
-          ? new Date(initialData.endDate).toISOString().slice(0, 16)
-          : "",
+        startDate: toDateInputValue(initialData.startDate),
+        endDate: toDateInputValue(initialData.endDate),
         buttonText: initialData.buttonText || "",
         registrationLimit: initialData.registrationLimit?.toString() || "",
         isPublished: initialData.isPublished !== false,
-        scheduledAt: initialData.scheduledAt
-          ? new Date(initialData.scheduledAt).toISOString().slice(0, 16)
-          : "",
+        scheduledAt: toDateInputValue(initialData.scheduledAt),
       });
     }
   }, [initialData]);
@@ -71,20 +71,57 @@ export function EventForm({ initialData }: EventFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.title.trim()) {
+      toast.error("Event title is required");
+      return;
+    }
+    if (!formData.startDate) {
+      toast.error("Start date is required");
+      return;
+    }
+    if (!formData.endDate) {
+      toast.error("End date is required");
+      return;
+    }
+
+    const startD = new Date(formData.startDate);
+    const endD = new Date(formData.endDate);
+    if (isNaN(startD.getTime())) {
+      toast.error("Invalid start date");
+      return;
+    }
+    if (isNaN(endD.getTime())) {
+      toast.error("Invalid end date");
+      return;
+    }
+    if (endD <= startD) {
+      toast.error("End date must be after start date");
+      return;
+    }
+
+    if (!isEditing && !imageFile && !imagePreview) {
+      toast.error("Please upload a banner image for the event");
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const scheduledAtIso =
+        formData.scheduledAt && !isNaN(new Date(formData.scheduledAt).getTime())
+          ? new Date(formData.scheduledAt).toISOString()
+          : null;
+
       const payload = {
         ...formData,
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: new Date(formData.endDate).toISOString(),
+        startDate: startD.toISOString(),
+        endDate: endD.toISOString(),
         registrationLimit: formData.registrationLimit
-          ? parseInt(formData.registrationLimit)
+          ? parseInt(formData.registrationLimit, 10)
           : null,
         isPublished: formData.isPublished,
-        scheduledAt: formData.scheduledAt
-          ? new Date(formData.scheduledAt).toISOString()
-          : null,
+        scheduledAt: scheduledAtIso,
       };
 
       if (imageFile) {
@@ -125,6 +162,7 @@ export function EventForm({ initialData }: EventFormProps) {
     } catch (error: any) {
       const message =
         error.response?.data?.message ||
+        error.response?.data?.errors?.[0]?.message ||
         error.response?.data?.error ||
         "Failed to save event";
       console.error("Event save error:", error.response?.data);
@@ -168,6 +206,7 @@ export function EventForm({ initialData }: EventFormProps) {
                     src={imagePreview}
                     alt="Preview"
                     fill
+                    unoptimized
                     className="object-contain"
                   />
                   <button
@@ -184,7 +223,7 @@ export function EventForm({ initialData }: EventFormProps) {
               ) : (
                 <div className="space-y-1 text-center">
                   <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
+                  <div className="flex text-sm text-gray-600 justify-center">
                     <label
                       htmlFor="file-upload"
                       className="relative cursor-pointer bg-white rounded-md font-medium text-[#ff6719] hover:text-[#e55a15] focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#ff6719]"
@@ -197,13 +236,12 @@ export function EventForm({ initialData }: EventFormProps) {
                         className="sr-only"
                         accept="image/*"
                         onChange={handleImageChange}
-                        required={!isEditing}
                       />
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
                   <p className="text-xs text-gray-500">
-                    PNG, JPG, GIF up to 10MB
+                    PNG, JPG, WebP up to 10MB
                   </p>
                 </div>
               )}
@@ -215,7 +253,7 @@ export function EventForm({ initialData }: EventFormProps) {
               htmlFor="title"
               className="block text-sm font-medium text-gray-700"
             >
-              Event Title
+              Event Title *
             </label>
             <div className="mt-1">
               <input
@@ -225,6 +263,7 @@ export function EventForm({ initialData }: EventFormProps) {
                 required
                 value={formData.title}
                 onChange={handleChange}
+                placeholder="e.g. Annual Fellowship Conference 2024"
                 className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
               />
             </div>
@@ -235,7 +274,7 @@ export function EventForm({ initialData }: EventFormProps) {
               htmlFor="shortDescription"
               className="block text-sm font-medium text-gray-700"
             >
-              Short Description
+              Short Description *
             </label>
             <div className="mt-1">
               <input
@@ -245,6 +284,7 @@ export function EventForm({ initialData }: EventFormProps) {
                 required
                 value={formData.shortDescription}
                 onChange={handleChange}
+                placeholder="Brief summary of the gathering..."
                 className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
               />
             </div>
@@ -255,7 +295,7 @@ export function EventForm({ initialData }: EventFormProps) {
               htmlFor="fullDescription"
               className="block text-sm font-medium text-gray-700"
             >
-              Full Description
+              Full Description *
             </label>
             <div className="mt-1">
               <textarea
@@ -265,6 +305,7 @@ export function EventForm({ initialData }: EventFormProps) {
                 required
                 value={formData.fullDescription}
                 onChange={handleChange}
+                placeholder="Comprehensive agenda, guest speakers, location directions, and what to bring..."
                 className="shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
               />
             </div>
@@ -275,7 +316,7 @@ export function EventForm({ initialData }: EventFormProps) {
               htmlFor="startDate"
               className="block text-sm font-medium text-gray-700"
             >
-              Start Date
+              Start Date & Time *
             </label>
             <div className="mt-1">
               <input
@@ -295,7 +336,7 @@ export function EventForm({ initialData }: EventFormProps) {
               htmlFor="endDate"
               className="block text-sm font-medium text-gray-700"
             >
-              End Date
+              End Date & Time *
             </label>
             <div className="mt-1">
               <input
@@ -370,6 +411,7 @@ export function EventForm({ initialData }: EventFormProps) {
                 type="number"
                 name="registrationLimit"
                 id="registrationLimit"
+                min="1"
                 value={formData.registrationLimit}
                 onChange={handleChange}
                 placeholder="e.g. 50 (blank for unlimited)"
@@ -399,21 +441,23 @@ export function EventForm({ initialData }: EventFormProps) {
         </div>
 
         <div className="pt-5 border-t border-gray-200">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => router.back()}
-              className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6719]"
+              className="bg-white py-2 px-6 border border-gray-300 rounded-full shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6719] transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#ff6719] hover:bg-[#e55a15] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6719] disabled:opacity-50"
+              className="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-full text-white bg-[#ff6719] hover:bg-[#e55a15] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6719] disabled:opacity-50 transition-all cursor-pointer"
             >
               {loading ? (
                 <Loader2 className="animate-spin h-5 w-5" />
+              ) : isEditing ? (
+                "Update Event"
               ) : (
                 "Save Event"
               )}

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { ProductForm } from "@/components/store/ProductForm";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
@@ -20,7 +21,7 @@ export default function EditProductPage({ params }: Props) {
     const fetchProduct = async () => {
       try {
         const response = await api.get(`/marketplace/products/${id}`);
-        setInitialData(response.data.data);
+        setInitialData(response.data?.data || response.data);
       } catch (error) {
         console.error(error);
         toast.error("Failed to load product data");
@@ -37,18 +38,20 @@ export default function EditProductPage({ params }: Props) {
 
   if (loading) {
     return (
-      <div className="flex justify-center p-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff6719]"></div>
+      <div className="flex flex-col items-center justify-center p-16 gap-3">
+        <Loader2 className="animate-spin text-[#ff6719] h-8 w-8" />
+        <p className="text-sm text-gray-500">Loading product details...</p>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Product</h1>
+  if (!initialData) {
+    return (
+      <div className="text-center p-12 text-gray-500">
+        Product not found
       </div>
-      <ProductForm initialData={initialData} />
-    </div>
-  );
+    );
+  }
+
+  return <ProductForm initialData={initialData} />;
 }
