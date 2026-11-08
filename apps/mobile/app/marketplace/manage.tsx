@@ -2,6 +2,7 @@ import { AdminGuardFallback } from "@/components/Admin/AdminGuardFallback";
 import { AppBottomSheet } from "@/components/AppBottomSheet";
 import { ConfirmModal } from "@/components/Modals/ConfirmModal";
 import { InfoModal } from "@/components/Modals/InfoModal";
+import { NativeViewAllButton } from "@/components/NativeViewAllButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { PRIMARY } from "@/constants/colors";
 import { useTheme } from "@/context/ThemeContext";
@@ -17,6 +18,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -87,7 +89,7 @@ const PRODUCT_CATEGORIES: CategoryOption[] = [
   },
 ];
 
-// Minimalistic skeleton placeholder matching manage form layout
+// Minimalistic skeleton placeholder matching event manage form layout
 const ManageProductSkeleton = ({ isDark }: { isDark: boolean }) => {
   const opacity = useSharedValue(0.3);
 
@@ -109,25 +111,43 @@ const ManageProductSkeleton = ({ isDark }: { isDark: boolean }) => {
   const bg = isDark ? "#27272a" : "#e2e8f0";
 
   return (
-    <View style={{ padding: 20 }}>
-      {/* Photo carousel skeleton */}
+    <View style={{ padding: 16 }}>
+      {/* Banner / Photo carousel skeleton */}
       <Animated.View
         style={[
-          { height: 110, width: "100%", borderRadius: 16, backgroundColor: bg, marginBottom: 24 },
+          {
+            height: 120,
+            width: "100%",
+            borderRadius: 16,
+            backgroundColor: bg,
+            marginBottom: 20,
+          },
           animatedStyle,
         ]}
       />
-      {/* Title input skeleton */}
+      {/* Title skeleton */}
       <Animated.View
         style={[
-          { height: 52, width: "100%", borderRadius: 16, backgroundColor: bg, marginBottom: 20 },
+          {
+            height: 50,
+            width: "100%",
+            borderRadius: 14,
+            backgroundColor: bg,
+            marginBottom: 20,
+          },
           animatedStyle,
         ]}
       />
-      {/* Category input skeleton */}
+      {/* Category skeleton */}
       <Animated.View
         style={[
-          { height: 52, width: "100%", borderRadius: 16, backgroundColor: bg, marginBottom: 20 },
+          {
+            height: 50,
+            width: "100%",
+            borderRadius: 14,
+            backgroundColor: bg,
+            marginBottom: 20,
+          },
           animatedStyle,
         ]}
       />
@@ -135,13 +155,13 @@ const ManageProductSkeleton = ({ isDark }: { isDark: boolean }) => {
       <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
         <Animated.View
           style={[
-            { height: 52, flex: 1, borderRadius: 16, backgroundColor: bg },
+            { height: 50, flex: 1, borderRadius: 14, backgroundColor: bg },
             animatedStyle,
           ]}
         />
         <Animated.View
           style={[
-            { height: 52, flex: 1, borderRadius: 16, backgroundColor: bg },
+            { height: 50, flex: 1, borderRadius: 14, backgroundColor: bg },
             animatedStyle,
           ]}
         />
@@ -149,14 +169,25 @@ const ManageProductSkeleton = ({ isDark }: { isDark: boolean }) => {
       {/* Description textarea skeleton */}
       <Animated.View
         style={[
-          { height: 120, width: "100%", borderRadius: 16, backgroundColor: bg, marginBottom: 28 },
+          {
+            height: 110,
+            width: "100%",
+            borderRadius: 14,
+            backgroundColor: bg,
+            marginBottom: 24,
+          },
           animatedStyle,
         ]}
       />
-      {/* Button skeleton */}
+      {/* Submit button skeleton */}
       <Animated.View
         style={[
-          { height: 52, width: "100%", borderRadius: 16, backgroundColor: bg },
+          {
+            height: 52,
+            width: "100%",
+            borderRadius: 26,
+            backgroundColor: bg,
+          },
           animatedStyle,
         ]}
       />
@@ -384,7 +415,7 @@ export default function ManageProductScreen() {
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
       return "Please enter a valid price in ETB.";
     }
-    const parsedStock = parseInt(stock);
+    const parsedStock = parseInt(stock, 10);
     if (isNaN(parsedStock) || parsedStock < 0) {
       return "Please enter a valid stock quantity.";
     }
@@ -414,7 +445,7 @@ export default function ManageProductScreen() {
     try {
       setSubmitting(true);
       const parsedPrice = parseFloat(price);
-      const parsedStock = parseInt(stock);
+      const parsedStock = parseInt(stock, 10);
 
       const hasLocalImages = images.some((img) => img.isLocal);
 
@@ -538,15 +569,24 @@ export default function ManageProductScreen() {
   const selectedCategoryOption =
     PRODUCT_CATEGORIES.find((c) => c.key === category) || PRODUCT_CATEGORIES[0];
 
-  const textColor = isDark ? "#FAFAFA" : "#0F172A";
-  const subTextColor = isDark ? "#A1A1AA" : "#64748B";
-  const cardBg = isDark ? "#1C1C1E" : "#FFFFFF";
-  const borderColor = isDark ? "#27272A" : "#E2E8F0";
+  const textColor = isDark ? "#ffffff" : "#0f172a";
+  const subTextColor = isDark ? "#a1a1aa" : "#64748b";
+  const cardBg = isDark ? "#18181b" : "#ffffff";
+  const borderColor = isDark ? "#27272a" : "#cbd5e1";
+  const rippleColor = isDark
+    ? "rgba(255, 255, 255, 0.12)"
+    : "rgba(0, 0, 0, 0.08)";
 
   return (
-    <View style={[styles.screen, { backgroundColor: isDark ? "#121214" : "#F8FAFC" }]}>
+    <View style={[styles.screen, { backgroundColor: isDark ? "#0A0A0A" : "#ffffff" }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <ScreenHeader title={isEditing ? "Edit Store Product" : "Post Store Product"} />
+      <ScreenHeader
+        title={isEditing ? "Edit Product" : "Post Product"}
+        containerStyle={{
+          backgroundColor: isDark ? "#0A0A0A" : "#ffffff",
+          borderBottomColor: isDark ? "#27272a" : "#e2e8f0",
+        }}
+      />
 
       {loadingInitial ? (
         <ManageProductSkeleton isDark={isDark} />
@@ -558,79 +598,133 @@ export default function ManageProductScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.scrollContent,
-              { paddingBottom: Math.max(insets.bottom + 32, 48) },
+              { paddingBottom: Math.max(insets.bottom + 24, 40) },
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Photos Carousel */}
+            {/* Photos Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={[styles.label, { color: textColor }]}>
                   Product Images ({images.length}/4) <Text style={styles.required}>*</Text>
                 </Text>
-                {images.length < 4 && (
-                  <TouchableOpacity
+                {images.length > 0 && images.length < 4 && (
+                  <NativeViewAllButton
+                    label="Add Photos"
                     onPress={() => setPhotoSheetVisible(true)}
-                    style={styles.addPhotosLink}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="add-circle" size={16} color={PRIMARY} />
-                    <Text style={styles.addPhotosLinkText}>Add Photos</Text>
-                  </TouchableOpacity>
+                    isDark={isDark}
+                    accessibilityLabel="Add product photos"
+                  />
                 )}
               </View>
 
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.galleryRow}
-              >
-                {images.map((img, idx) => (
-                  <View key={idx} style={[styles.imageCard, { borderColor }]}>
-                    <ExpoImage
-                      source={{ uri: img.uri }}
-                      style={styles.imageCardThumb}
-                      contentFit="cover"
-                      transition={200}
-                    />
-                    <TouchableOpacity
-                      onPress={() => removeImage(idx)}
-                      style={styles.removePhotoBadge}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="close" size={14} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    {idx === 0 && (
-                      <View style={styles.coverBadge}>
-                        <Ionicons name="star" size={10} color="#FFFFFF" style={{ marginRight: 2 }} />
-                        <Text style={styles.coverBadgeText}>Cover</Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
-
-                {images.length < 4 && (
+              {images.length === 0 ? (
+                <View
+                  style={[
+                    styles.uploadPlaceholderContainer,
+                    {
+                      borderColor: isDark ? "#3f3f46" : "#cbd5e1",
+                      backgroundColor: isDark ? "#18181b" : "#f8fafc",
+                    },
+                  ]}
+                >
                   <Pressable
                     onPress={() => setPhotoSheetVisible(true)}
-                    style={({ pressed }) => [
-                      styles.imageCard,
-                      styles.imageCardAdd,
-                      {
-                        backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF",
-                        borderColor: pressed ? PRIMARY : borderColor,
-                      },
-                    ]}
+                    android_ripple={{
+                      color: rippleColor,
+                      borderless: false,
+                      foreground: true,
+                    }}
+                    style={styles.uploadPlaceholderInner}
                   >
-                    <View style={styles.addPhotoIconCircle}>
-                      <Ionicons name="camera" size={24} color={PRIMARY} />
+                    <View style={styles.uploadIconCircle}>
+                      <Ionicons name="cloud-upload-outline" size={26} color={PRIMARY} />
                     </View>
-                    <Text style={[styles.addPhotoText, { color: subTextColor }]}>
-                      Add Photo
+                    <Text style={[styles.uploadTitle, { color: textColor }]}>
+                      Tap to upload product photos
+                    </Text>
+                    <Text style={[styles.uploadSubtitle, { color: subTextColor }]}>
+                      Select up to 4 images (first image will be the product cover)
                     </Text>
                   </Pressable>
-                )}
-              </ScrollView>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.galleryRow}
+                >
+                  {images.map((img, idx) => (
+                    <View
+                      key={idx}
+                      style={[
+                        styles.imageCard,
+                        { borderColor: isDark ? "#27272a" : "#e2e8f0" },
+                      ]}
+                    >
+                      <ExpoImage
+                        source={{ uri: img.uri }}
+                        style={styles.imageCardThumb}
+                        contentFit="cover"
+                        transition={200}
+                      />
+                      <TouchableOpacity
+                        onPress={() => removeImage(idx)}
+                        style={styles.removePhotoBadge}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="close" size={14} color="#FFFFFF" />
+                      </TouchableOpacity>
+                      {idx === 0 && (
+                        <View style={styles.coverBadge}>
+                          <Ionicons
+                            name="star"
+                            size={10}
+                            color="#FFFFFF"
+                            style={{ marginRight: 2 }}
+                          />
+                          <Text style={styles.coverBadgeText}>Cover</Text>
+                        </View>
+                      )}
+                    </View>
+                  ))}
+
+                  {images.length < 4 && (
+                    <View
+                      style={[
+                        styles.imageCard,
+                        styles.imageCardAdd,
+                        {
+                          backgroundColor: isDark ? "#18181b" : "#f8fafc",
+                          borderColor: isDark ? "#3f3f46" : "#cbd5e1",
+                        },
+                      ]}
+                    >
+                      <Pressable
+                        onPress={() => setPhotoSheetVisible(true)}
+                        android_ripple={{
+                          color: rippleColor,
+                          borderless: false,
+                          foreground: true,
+                        }}
+                        style={styles.imageCardAddInner}
+                      >
+                        <View style={styles.addPhotoIconCircle}>
+                          <Ionicons
+                            name="camera-outline"
+                            size={24}
+                            color={PRIMARY}
+                          />
+                        </View>
+                        <Text style={[styles.addPhotoText, { color: subTextColor }]}>
+                          Add Photo
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </ScrollView>
+              )}
             </View>
 
             {/* Product Title Input */}
@@ -647,15 +741,16 @@ export default function ManageProductScreen() {
                 value={title}
                 onChangeText={setTitle}
                 maxLength={100}
-                placeholder="e.g. 4 Kilo Fellowship Black Hoodie"
-                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                placeholder="e.g. 4 Kilo Fellowship Classic Tee"
+                placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                 onFocus={() => setFocusedField("title")}
                 onBlur={() => setFocusedField(null)}
                 style={[
                   styles.input,
                   {
                     backgroundColor: cardBg,
-                    borderColor: focusedField === "title" ? PRIMARY : borderColor,
+                    borderColor:
+                      focusedField === "title" ? PRIMARY : borderColor,
                     color: textColor,
                   },
                 ]}
@@ -667,41 +762,65 @@ export default function ManageProductScreen() {
               <Text style={[styles.label, { color: textColor }]}>
                 Category <Text style={styles.required}>*</Text>
               </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  if (Platform.OS !== "web") {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                  }
-                  setCategorySheetVisible(true);
-                }}
+              <View
                 style={[
-                  styles.categorySelectorBtn,
+                  styles.categorySelectorWrap,
                   {
                     backgroundColor: cardBg,
-                    borderColor,
+                    borderColor: borderColor,
                   },
                 ]}
-                activeOpacity={0.8}
               >
-                <View style={styles.categorySelectorLeft}>
-                  <View style={styles.categoryIconWrap}>
-                    <Ionicons
-                      name={selectedCategoryOption.icon}
-                      size={18}
-                      color={PRIMARY}
-                    />
+                <Pressable
+                  onPress={() => {
+                    if (Platform.OS !== "web") {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+                        () => {},
+                      );
+                    }
+                    setCategorySheetVisible(true);
+                  }}
+                  android_ripple={{
+                    color: rippleColor,
+                    borderless: false,
+                    foreground: true,
+                  }}
+                  style={styles.categorySelectorInner}
+                >
+                  <View style={styles.categorySelectorLeft}>
+                    <View style={styles.categoryIconWrap}>
+                      <Ionicons
+                        name={selectedCategoryOption.icon}
+                        size={18}
+                        color={PRIMARY}
+                      />
+                    </View>
+                    <View style={{ marginLeft: 12, flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.categorySelectorTitle,
+                          { color: textColor },
+                        ]}
+                      >
+                        {selectedCategoryOption.label}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.categorySelectorSub,
+                          { color: subTextColor },
+                        ]}
+                      >
+                        {selectedCategoryOption.desc}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={{ marginLeft: 12 }}>
-                    <Text style={[styles.categorySelectorTitle, { color: textColor }]}>
-                      {selectedCategoryOption.label}
-                    </Text>
-                    <Text style={[styles.categorySelectorSub, { color: subTextColor }]}>
-                      {selectedCategoryOption.desc}
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={subTextColor} />
-              </TouchableOpacity>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={subTextColor}
+                  />
+                </Pressable>
+              </View>
             </View>
 
             {/* Price & Stock Dual Column */}
@@ -715,14 +834,15 @@ export default function ManageProductScreen() {
                   onChangeText={setPrice}
                   keyboardType="numeric"
                   placeholder="e.g. 650"
-                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                   onFocus={() => setFocusedField("price")}
                   onBlur={() => setFocusedField(null)}
                   style={[
                     styles.input,
                     {
                       backgroundColor: cardBg,
-                      borderColor: focusedField === "price" ? PRIMARY : borderColor,
+                      borderColor:
+                        focusedField === "price" ? PRIMARY : borderColor,
                       color: textColor,
                     },
                   ]}
@@ -738,14 +858,15 @@ export default function ManageProductScreen() {
                   onChangeText={setStock}
                   keyboardType="numeric"
                   placeholder="e.g. 25"
-                  placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                  placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                   onFocus={() => setFocusedField("stock")}
                   onBlur={() => setFocusedField(null)}
                   style={[
                     styles.input,
                     {
                       backgroundColor: cardBg,
-                      borderColor: focusedField === "stock" ? PRIMARY : borderColor,
+                      borderColor:
+                        focusedField === "stock" ? PRIMARY : borderColor,
                       color: textColor,
                     },
                   ]}
@@ -770,8 +891,8 @@ export default function ManageProductScreen() {
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
-                placeholder="Describe material, sizes (S/M/L/XL), fabric quality, and fellowship scripture badge details..."
-                placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+                placeholder="Describe material, sizes (S/M/L/XL), fabric quality, and fellowship scripture details..."
+                placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                 onFocus={() => setFocusedField("description")}
                 onBlur={() => setFocusedField(null)}
                 style={[
@@ -779,62 +900,89 @@ export default function ManageProductScreen() {
                   styles.textarea,
                   {
                     backgroundColor: cardBg,
-                    borderColor: focusedField === "description" ? PRIMARY : borderColor,
+                    borderColor:
+                      focusedField === "description" ? PRIMARY : borderColor,
                     color: textColor,
                   },
                 ]}
               />
             </View>
 
-            {/* Campus Pickup Notice Box */}
-            <View
-              style={[
-                styles.noticeBox,
-                {
-                  backgroundColor: isDark ? "#1C1C1E" : "#FFF7ED",
-                  borderColor: isDark ? "#2C2C2E" : "#FFEDD5",
-                },
-              ]}
-            >
-              <Ionicons name="location" size={20} color={PRIMARY} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.noticeTitle, { color: isDark ? "#FAFAFA" : "#9A3412" }]}>
-                  Campus Delivery & Handoff
-                </Text>
-                <Text style={[styles.noticeDesc, { color: isDark ? "#A1A1AA" : "#C2410C" }]}>
-                  Orders placed by fellowship members are prepared for in-person pickup at the 4 Kilo Fellowship Office.
-                </Text>
-              </View>
-            </View>
-
-            {/* Submit Primary Button */}
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={submitting}
-              style={[styles.submitBtn, submitting && { opacity: 0.75 }]}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.submitBtnText}>
-                {submitting
-                  ? "Saving Product..."
-                  : isEditing
-                    ? "Save Changes"
-                    : "Publish Product to Store"}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Delete Button (Editing Only) */}
-            {isEditing && (
-              <TouchableOpacity
-                onPress={() => setDeleteModalVisible(true)}
-                disabled={deleting}
-                style={styles.deleteBtn}
-                activeOpacity={0.7}
+            {/* Submit Action - Fully rounded pill matching event screen */}
+            <View style={styles.submitSection}>
+              <View
+                style={[
+                  styles.submitBtnWrap,
+                  { backgroundColor: PRIMARY },
+                ]}
               >
-                <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                <Text style={styles.deleteBtnText}>Delete Product</Text>
-              </TouchableOpacity>
-            )}
+                <Pressable
+                  onPress={handleSubmit}
+                  disabled={submitting || deleting}
+                  android_ripple={{
+                    color: "rgba(255, 255, 255, 0.3)",
+                    borderless: false,
+                    foreground: true,
+                  }}
+                  style={styles.submitBtnInner}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <View style={styles.btnContent}>
+                      <Ionicons
+                        name={
+                          isEditing
+                            ? "checkmark-circle-outline"
+                            : "paper-plane-outline"
+                        }
+                        size={20}
+                        color="#ffffff"
+                      />
+                      <Text style={styles.submitButtonText}>
+                        {isEditing ? "Save Changes" : "Publish Product to Store"}
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              </View>
+
+              {/* Delete Option (Editing Mode Only) - Fully rounded pill */}
+              {isEditing && (
+                <View style={styles.deleteBtnWrap}>
+                  <Pressable
+                    onPress={() => {
+                      if (Platform.OS !== "web") {
+                        Haptics.impactAsync(
+                          Haptics.ImpactFeedbackStyle.Medium,
+                        ).catch(() => {});
+                      }
+                      setDeleteModalVisible(true);
+                    }}
+                    disabled={submitting || deleting}
+                    android_ripple={{
+                      color: "rgba(239, 68, 68, 0.25)",
+                      borderless: false,
+                      foreground: true,
+                    }}
+                    style={styles.deleteBtnInner}
+                  >
+                    {deleting ? (
+                      <ActivityIndicator color="#ef4444" size="small" />
+                    ) : (
+                      <View style={styles.btnContent}>
+                        <Ionicons
+                          name="trash-outline"
+                          size={18}
+                          color="#ef4444"
+                        />
+                        <Text style={styles.deleteButtonText}>Delete Product</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                </View>
+              )}
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       )}
@@ -858,67 +1006,85 @@ export default function ManageProductScreen() {
             {PRODUCT_CATEGORIES.map((cat) => {
               const isSelected = category === cat.key;
               return (
-                <TouchableOpacity
+                <View
                   key={cat.key}
-                  onPress={() => {
-                    if (Platform.OS !== "web") {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                    }
-                    setCategory(cat.key);
-                    setCategorySheetVisible(false);
-                  }}
                   style={[
-                    styles.categoryOptionCard,
+                    styles.categoryOptionCardWrap,
                     {
                       backgroundColor: cardBg,
                       borderColor: isSelected ? PRIMARY : borderColor,
-                      borderWidth: isSelected ? 2 : 1,
+                      borderWidth: isSelected ? 2 : 1.5,
                     },
                   ]}
-                  activeOpacity={0.8}
                 >
-                  <View style={styles.categoryOptionLeft}>
-                    <View
-                      style={[
-                        styles.categoryIconWrap,
-                        isSelected && { backgroundColor: "rgba(255, 103, 25, 0.15)" },
-                      ]}
-                    >
-                      <Ionicons
-                        name={cat.icon}
-                        size={20}
-                        color={isSelected ? PRIMARY : subTextColor}
-                      />
-                    </View>
-                    <View style={{ marginLeft: 12, flex: 1 }}>
-                      <Text
+                  <Pressable
+                    onPress={() => {
+                      if (Platform.OS !== "web") {
+                        Haptics.impactAsync(
+                          Haptics.ImpactFeedbackStyle.Light,
+                        ).catch(() => {});
+                      }
+                      setCategory(cat.key);
+                      setCategorySheetVisible(false);
+                    }}
+                    android_ripple={{
+                      color: rippleColor,
+                      borderless: false,
+                      foreground: true,
+                    }}
+                    style={styles.categoryOptionInner}
+                  >
+                    <View style={styles.categoryOptionLeft}>
+                      <View
                         style={[
-                          styles.categoryOptionLabel,
-                          { color: isSelected ? PRIMARY : textColor },
+                          styles.categoryIconWrap,
+                          isSelected && {
+                            backgroundColor: "rgba(255, 103, 25, 0.15)",
+                          },
                         ]}
                       >
-                        {cat.label}
-                      </Text>
-                      <Text
-                        numberOfLines={1}
-                        style={[styles.categoryOptionDesc, { color: subTextColor }]}
-                      >
-                        {cat.desc}
-                      </Text>
+                        <Ionicons
+                          name={cat.icon}
+                          size={20}
+                          color={isSelected ? PRIMARY : subTextColor}
+                        />
+                      </View>
+                      <View style={{ marginLeft: 12, flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.categoryOptionLabel,
+                            { color: isSelected ? PRIMARY : textColor },
+                          ]}
+                        >
+                          {cat.label}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          style={[
+                            styles.categoryOptionDesc,
+                            { color: subTextColor },
+                          ]}
+                        >
+                          {cat.desc}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
 
-                  <View
-                    style={[
-                      styles.radioCircle,
-                      isSelected && { borderColor: PRIMARY, backgroundColor: PRIMARY },
-                    ]}
-                  >
-                    {isSelected && (
-                      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-                    )}
-                  </View>
-                </TouchableOpacity>
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        isSelected && {
+                          borderColor: PRIMARY,
+                          backgroundColor: PRIMARY,
+                        },
+                      ]}
+                    >
+                      {isSelected && (
+                        <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                      )}
+                    </View>
+                  </Pressable>
+                </View>
               );
             })}
           </View>
@@ -941,47 +1107,63 @@ export default function ManageProductScreen() {
           </Text>
 
           <View style={{ gap: 12, marginTop: 16 }}>
-            <TouchableOpacity
-              onPress={handlePickFromGallery}
+            <View
               style={[
-                styles.photoOptionBtn,
+                styles.photoOptionWrap,
                 { backgroundColor: cardBg, borderColor },
               ]}
-              activeOpacity={0.8}
             >
-              <View style={styles.photoOptionIconCircle}>
-                <Ionicons name="images" size={22} color={PRIMARY} />
-              </View>
-              <View style={{ marginLeft: 14 }}>
-                <Text style={[styles.photoOptionTitle, { color: textColor }]}>
-                  Choose from Gallery
-                </Text>
-                <Text style={[styles.photoOptionSub, { color: subTextColor }]}>
-                  Pick one or multiple high-quality product images
-                </Text>
-              </View>
-            </TouchableOpacity>
+              <Pressable
+                onPress={handlePickFromGallery}
+                android_ripple={{
+                  color: rippleColor,
+                  borderless: false,
+                  foreground: true,
+                }}
+                style={styles.photoOptionInner}
+              >
+                <View style={styles.photoOptionIconCircle}>
+                  <Ionicons name="images-outline" size={22} color={PRIMARY} />
+                </View>
+                <View style={{ marginLeft: 14, flex: 1 }}>
+                  <Text style={[styles.photoOptionTitle, { color: textColor }]}>
+                    Choose from Gallery
+                  </Text>
+                  <Text style={[styles.photoOptionSub, { color: subTextColor }]}>
+                    Pick one or multiple high-quality product images
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
 
-            <TouchableOpacity
-              onPress={handleTakePhotoWithCamera}
+            <View
               style={[
-                styles.photoOptionBtn,
+                styles.photoOptionWrap,
                 { backgroundColor: cardBg, borderColor },
               ]}
-              activeOpacity={0.8}
             >
-              <View style={styles.photoOptionIconCircle}>
-                <Ionicons name="camera" size={22} color={PRIMARY} />
-              </View>
-              <View style={{ marginLeft: 14 }}>
-                <Text style={[styles.photoOptionTitle, { color: textColor }]}>
-                  Take Photo with Camera
-                </Text>
-                <Text style={[styles.photoOptionSub, { color: subTextColor }]}>
-                  Capture product or apparel details directly
-                </Text>
-              </View>
-            </TouchableOpacity>
+              <Pressable
+                onPress={handleTakePhotoWithCamera}
+                android_ripple={{
+                  color: rippleColor,
+                  borderless: false,
+                  foreground: true,
+                }}
+                style={styles.photoOptionInner}
+              >
+                <View style={styles.photoOptionIconCircle}>
+                  <Ionicons name="camera-outline" size={22} color={PRIMARY} />
+                </View>
+                <View style={{ marginLeft: 14, flex: 1 }}>
+                  <Text style={[styles.photoOptionTitle, { color: textColor }]}>
+                    Take Photo with Camera
+                  </Text>
+                  <Text style={[styles.photoOptionSub, { color: subTextColor }]}>
+                    Capture product or apparel details directly
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
           </View>
         </View>
       </AppBottomSheet>
@@ -1022,8 +1204,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    padding: 16,
   },
   section: {
     marginBottom: 20,
@@ -1037,24 +1218,49 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "700",
+    marginBottom: 8,
+    letterSpacing: -0.2,
   },
   required: {
     color: PRIMARY,
-    fontWeight: "800",
   },
   charCount: {
     fontSize: 12,
     fontWeight: "500",
   },
-  addPhotosLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+  uploadPlaceholderContainer: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    overflow: "hidden",
   },
-  addPhotosLinkText: {
-    color: PRIMARY,
-    fontSize: 13,
+  uploadPlaceholderInner: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  uploadIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(255, 103, 25, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  uploadTitle: {
+    fontSize: 15,
     fontWeight: "700",
+    marginBottom: 4,
+  },
+  uploadSubtitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
   },
   galleryRow: {
     gap: 12,
@@ -1063,7 +1269,7 @@ const styles = StyleSheet.create({
   imageCard: {
     width: 100,
     height: 100,
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1.5,
     position: "relative",
@@ -1073,18 +1279,24 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   imageCardAdd: {
+    borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
-    borderStyle: "dashed",
+  },
+  imageCardAddInner: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
   },
   addPhotoIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: "rgba(255, 103, 25, 0.12)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   addPhotoText: {
     fontSize: 11,
@@ -1094,7 +1306,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 6,
     right: 6,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: "rgba(0, 0, 0, 0.72)",
     width: 22,
     height: 22,
     borderRadius: 11,
@@ -1119,23 +1331,27 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   input: {
-    height: 52,
-    borderRadius: 16,
+    height: 50,
+    borderRadius: 14,
     borderWidth: 1.5,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     fontSize: 15,
     fontWeight: "500",
   },
   textarea: {
-    height: 120,
-    paddingTop: 14,
-    paddingBottom: 14,
+    height: 110,
+    paddingTop: 12,
+    paddingBottom: 12,
+    textAlignVertical: "top",
   },
-  categorySelectorBtn: {
-    height: 64,
-    borderRadius: 16,
+  categorySelectorWrap: {
+    borderRadius: 14,
     borderWidth: 1.5,
-    paddingHorizontal: 16,
+    overflow: "hidden",
+  },
+  categorySelectorInner: {
+    height: 60,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -1165,52 +1381,50 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  noticeBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 24,
+  submitSection: {
+    marginTop: 14,
+    gap: 12,
   },
-  noticeTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 2,
+  submitBtnWrap: {
+    height: 52,
+    borderRadius: 26,
+    overflow: "hidden",
   },
-  noticeDesc: {
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  submitBtn: {
-    backgroundColor: PRIMARY,
-    height: 54,
-    borderRadius: 16,
+  submitBtnInner: {
+    width: "100%",
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
   },
-  submitBtnText: {
-    color: "#FFFFFF",
+  submitButtonText: {
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: "800",
-  },
-  deleteBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    marginBottom: 12,
-  },
-  deleteBtnText: {
-    color: "#EF4444",
-    fontSize: 14,
     fontWeight: "700",
   },
-  // Sheet Styles
+  deleteBtnWrap: {
+    height: 50,
+    borderRadius: 25,
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: "rgba(239, 68, 68, 0.35)",
+    backgroundColor: "rgba(239, 68, 68, 0.08)",
+  },
+  deleteBtnInner: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteButtonText: {
+    color: "#ef4444",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  btnContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   sheetContent: {
     paddingHorizontal: 20,
     paddingTop: 8,
@@ -1228,12 +1442,15 @@ const styles = StyleSheet.create({
   categoryList: {
     gap: 10,
   },
-  categoryOptionCard: {
+  categoryOptionCardWrap: {
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  categoryOptionInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: 14,
-    borderRadius: 16,
   },
   categoryOptionLeft: {
     flexDirection: "row",
@@ -1258,12 +1475,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  photoOptionBtn: {
+  photoOptionWrap: {
+    borderRadius: 14,
+    borderWidth: 1.5,
+    overflow: "hidden",
+  },
+  photoOptionInner: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 16,
-    borderWidth: 1.5,
   },
   photoOptionIconCircle: {
     width: 44,
