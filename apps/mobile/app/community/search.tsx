@@ -1,4 +1,5 @@
 import { ProfileLink } from "@/components/profile/ProfileLink";
+import { NativeBackButton } from "@/components/ui/NativeBackButton";
 import { PRIMARY } from "@/constants/colors";
 import { useTheme } from "@/context/ThemeContext";
 import { socialApi } from "@/services/socialApi";
@@ -267,14 +268,7 @@ export default function CommunitySearchScreen() {
 
       {/* Top Search Header */}
       <View style={[styles.headerRow, { borderBottomColor: borderColor }]}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.backBtn}
-        >
-          <Ionicons name="arrow-back" size={24} color={textColor} />
-        </TouchableOpacity>
+        <NativeBackButton style={{ marginRight: 6 }} />
 
         <View
           style={[

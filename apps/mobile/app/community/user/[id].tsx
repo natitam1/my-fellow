@@ -1,5 +1,6 @@
 import { ImageViewerModal } from "@/components/ImageViewerModal";
 import { ProfileLink } from "@/components/profile/ProfileLink";
+import { NativeBackButton } from "@/components/ui/NativeBackButton";
 import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
 import { LongPressAvatar, closeAvatarPreview } from "@/components/avatar-preview";
 import { PRIMARY } from "@/constants/colors";
@@ -693,22 +694,7 @@ export default function MemberProfileScreen() {
 
           {/* Floating Navigation Controls over Banner (Back + Share) */}
           <View style={[styles.navButtonsRow, { top: Math.max(insets.top, 14) }]}>
-            <Pressable
-              onPress={() => router.back()}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              android_ripple={{
-                color: "rgba(255, 255, 255, 0.3)",
-                borderless: true,
-                radius: 20,
-              }}
-              style={({ pressed }) => [
-                styles.floatingNavBtn,
-                pressed && Platform.OS === "ios" && { opacity: 0.8 },
-              ]}
-              accessibilityLabel="Back"
-            >
-              <Ionicons name="arrow-back" size={22} color="#ffffff" />
-            </Pressable>
+            <NativeBackButton variant="glass" size={40} />
 
             <View style={styles.topNavRightGroup}>
               <Pressable
@@ -1094,26 +1080,7 @@ export default function MemberProfileScreen() {
       >
         <View style={styles.stickyHeaderRow}>
           {/* Back Button */}
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            android_ripple={{
-              color: isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.12)",
-              borderless: true,
-              radius: 20,
-            }}
-            style={({ pressed }) => [
-              styles.scrolledNavBtn,
-              {
-                backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                borderColor,
-              },
-              pressed && Platform.OS === "ios" && { opacity: 0.8 },
-            ]}
-            accessibilityLabel="Back"
-          >
-            <Ionicons name="arrow-back" size={22} color={textColor} />
-          </Pressable>
+          <NativeBackButton size={40} />
 
           {/* Centered Member Title */}
           <View style={styles.stickyHeaderCenter}>

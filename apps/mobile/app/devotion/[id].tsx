@@ -1,5 +1,5 @@
 import SignInPromptModal from "@/components/SignInPromptModal";
-import { Placeholder } from "@/components";
+import { NativeBackButton, Placeholder } from "@/components";
 import { PRIMARY } from "@/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -335,16 +335,7 @@ const DevotionDetail = () => {
             paddingBottom: 12,
           }}
         >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-9 h-9 rounded-full items-center justify-center"
-          >
-            <Ionicons
-              name="arrow-back"
-              size={22}
-              color={isDark ? "#fff" : "#111"}
-            />
-          </TouchableOpacity>
+          <NativeBackButton size={38} />
           <Placeholder width={140} height={18} borderRadius={6} />
           <View style={{ width: 36 }} />
         </View>
@@ -428,16 +419,7 @@ const DevotionDetail = () => {
           paddingBottom: 12,
         }}
       >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-9 h-9 rounded-full items-center justify-center"
-        >
-          <Ionicons
-            name="arrow-back"
-            size={22}
-            color={isDark ? "#fff" : "#111"}
-          />
-        </TouchableOpacity>
+        <NativeBackButton size={38} />
 
         <Text
           numberOfLines={1}

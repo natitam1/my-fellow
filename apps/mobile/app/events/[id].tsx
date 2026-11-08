@@ -2,6 +2,7 @@ import {
   ConfirmModal,
   ConnectionToaster,
   InfoModal,
+  NativeBackButton,
   RegistrationModal,
   ReminderSheet,
 } from "@/components";
@@ -359,14 +360,12 @@ export default function EventDetails() {
           />
 
           {/* Back Button Header */}
-          <TouchableOpacity
+          <NativeBackButton
+            variant="glass"
+            size={40}
             onPress={handleBack}
-            activeOpacity={0.7}
-            className="absolute left-4 w-10 h-10 rounded-full bg-black/40 items-center justify-center z-20"
-            style={{ top: top + 10 }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
+            style={{ position: "absolute", left: 16, top: top + 10, zIndex: 20 }}
+          />
 
           {/* Hero Bottom Information Placeholder */}
           <View className="absolute bottom-6 left-5 right-5 z-20">
@@ -651,14 +650,12 @@ export default function EventDetails() {
           className="absolute inset-0"
         />
 
-        <TouchableOpacity
+        <NativeBackButton
+          variant="glass"
+          size={40}
           onPress={handleBack}
-          activeOpacity={0.7}
-          className="absolute left-4 w-10 h-10 rounded-full bg-black/40 items-center justify-center z-20"
-          style={{ top: top + 10 }}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
+          style={{ position: "absolute", left: 16, top: top + 10, zIndex: 20 }}
+        />
 
         {isAdmin && (
           <TouchableOpacity

@@ -1,6 +1,7 @@
 import CartSheet from "@/components/Marketplace/CartSheet";
 import ImageGallery from "@/components/Marketplace/ImageGallery";
 import { InfoModal } from "@/components/Modals/InfoModal";
+import { NativeBackButton } from "@/components/ui/NativeBackButton";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useMarketplaceStore } from "@/stores/marketplace.store";
@@ -504,13 +505,7 @@ const HeaderBar = ({
   onCart?: () => void;
 }) => (
   <View style={[styles.headerContainer, { top: top + 10 }]}>
-    <TouchableOpacity
-      onPress={onBack}
-      activeOpacity={0.8}
-      style={styles.headerButton}
-    >
-      <Ionicons name="arrow-back" size={24} color="#fff" />
-    </TouchableOpacity>
+    <NativeBackButton variant="glass" size={40} onPress={onBack} />
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       {isAdmin && onEdit && (
         <TouchableOpacity

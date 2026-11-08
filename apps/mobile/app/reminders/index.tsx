@@ -1,4 +1,4 @@
-import { AlertCard, DeleteConfirmModal } from "@/components";
+import { AlertCard, DeleteConfirmModal, NativeBackButton } from "@/components";
 import { PRIMARY } from "@/constants";
 import { useTheme } from "@/context/ThemeContext";
 import { useAlerts } from "@/hooks/useAlerts";
@@ -61,16 +61,7 @@ const RemindersScreen = () => {
         <View className="px-6 mb-8 flex-row justify-between items-center">
           <View className="flex-row items-center">
             {router.canGoBack() && (
-              <TouchableOpacity
-                onPress={() => router.back()}
-                className="mr-3 p-2 -ml-2 rounded-full"
-              >
-                <Ionicons
-                  name="arrow-back"
-                  size={24}
-                  color={isDark ? "white" : "black"}
-                />
-              </TouchableOpacity>
+              <NativeBackButton style={{ marginRight: 12, marginLeft: -6 }} />
             )}
             <View>
               <Text

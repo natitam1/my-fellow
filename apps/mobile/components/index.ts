@@ -35,6 +35,7 @@ export { MainTabHeader, type MainTabHeaderProps } from "./MainTabHeader";
 export { NativeAlert, NativeAlertFallback, type NativeAlertProps } from "./NativeAlert";
 export { NativeRipplePressable, type NativeRipplePressableProps } from "./NativeRipplePressable";
 export { NativeViewAllButton } from "./NativeViewAllButton";
+export { NativeBackButton, type NativeBackButtonProps } from "./ui/NativeBackButton";
 export { ScreenHeader, type ScreenHeaderProps } from "./ScreenHeader";
 export { default as StreakBadge } from "./StreakBadge";
 export { default as StreakModal } from "./StreakModal";

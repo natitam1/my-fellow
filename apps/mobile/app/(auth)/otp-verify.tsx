@@ -1,4 +1,5 @@
 import { InfoModal } from "@/components/Modals/InfoModal";
+import { NativeBackButton } from "@/components/ui/NativeBackButton";
 import { PRIMARY } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -261,36 +262,11 @@ export default function OtpVerifyScreen() {
 
       {/* Top Header Bar */}
       <View style={styles.headerBar}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back to Phone Number"
+        <NativeBackButton
           onPress={handleEditPhone}
-          hitSlop={8}
-          android_ripple={{
-            color: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.08)",
-            borderless: true,
-            radius: 20,
-          }}
-          style={({ pressed }) => [
-            styles.backButton,
-            {
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.08)"
-                : "rgba(0, 0, 0, 0.04)",
-              opacity: pressed ? 0.7 : 1,
-              transform:
-                Platform.OS === "ios" && pressed
-                  ? [{ scale: 0.94 }]
-                  : undefined,
-            },
-          ]}
-        >
-          <Ionicons
-            name="arrow-back"
-            size={22}
-            color={isDark ? "#FFFFFF" : "#0F172A"}
-          />
-        </Pressable>
+          variant="light"
+          accessibilityLabel="Back to Phone Number"
+        />
       </View>
 
       <KeyboardAvoidingView

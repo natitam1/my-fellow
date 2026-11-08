@@ -1,6 +1,7 @@
 import AppButton from "@/components/AppButton";
 import AuthIcon, { AuthIconName } from "@/components/AuthIcon";
 import { InfoModal } from "@/components/Modals/InfoModal";
+import { NativeBackButton } from "@/components/ui/NativeBackButton";
 import { PRIMARY } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -1385,19 +1386,11 @@ export default function PersonalizationScreen() {
         {/* Top Navigation Bar with Connected Filling Progress Indicator */}
         <View style={styles.topBar}>
           {currentPage > 0 && (
-            <Pressable
+            <NativeBackButton
               onPress={handleBackPress}
-              hitSlop={8}
-              style={styles.backButton}
-              accessibilityRole="button"
+              variant="light"
               accessibilityLabel="Back to previous step"
-            >
-              <Ionicons
-                name="arrow-back"
-                size={22}
-                color={isDark ? "#FFFFFF" : "#0F172A"}
-              />
-            </Pressable>
+            />
           )}
 
           <View

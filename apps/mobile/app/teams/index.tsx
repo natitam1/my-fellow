@@ -1,4 +1,4 @@
-import { AdminActionButton, Placeholder, QuickActions } from "@/components";
+import { AdminActionButton, NativeBackButton, Placeholder, QuickActions } from "@/components";
 import { PRIMARY } from "@/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -178,16 +178,7 @@ export default function TeamsScreen() {
         <View className="px-5 mb-4 flex-row items-center justify-between">
           <View className="flex-row items-center">
             {router.canGoBack() && (
-              <TouchableOpacity
-                onPress={() => router.back()}
-                className="mr-3 p-2 -ml-2 rounded-full"
-              >
-                <Ionicons
-                  name="arrow-back"
-                  size={24}
-                  color={isDark ? "white" : "black"}
-                />
-              </TouchableOpacity>
+              <NativeBackButton style={{ marginRight: 12, marginLeft: -6 }} />
             )}
             <Text
               className={`text-3xl font-extrabold ${isDark ? "text-white" : "text-black"}`}

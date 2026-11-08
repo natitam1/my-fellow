@@ -1,10 +1,7 @@
 import { useTheme } from "@/context/ThemeContext";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import React from "react";
+import { NativeBackButton } from "./ui/NativeBackButton";
 import {
-  Platform,
-  Pressable,
   StyleProp,
   StyleSheet,
   Text,
@@ -40,19 +37,12 @@ export function ScreenHeader({
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
-  const router = useRouter();
 
-  const handleBack = onBack || (() => router.back());
   const headerTopInset = Math.max(insets.top + 6, 12);
 
   const bgColor = isDark ? "#0A0A0A" : "#ffffff";
   const borderColor = isDark ? "#1f2937" : "#e5e7eb";
-  const iconColor = isDark ? "#ffffff" : "#0f172a";
   const titleColor = isDark ? "#ffffff" : "#0f172a";
-  const rippleColor = isDark
-    ? "rgba(255, 255, 255, 0.16)"
-    : "rgba(0, 0, 0, 0.12)";
-  const buttonBg = isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)";
 
   return (
     <View
@@ -68,28 +58,12 @@ export function ScreenHeader({
       ]}
     >
       <View style={[styles.centeredRow, style]}>
-        <Pressable
-          accessibilityRole="button"
+        <NativeBackButton
+          onPress={onBack}
+          size={44}
+          variant="light"
           accessibilityLabel="Go back"
-          onPress={handleBack}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          android_ripple={{
-            color: rippleColor,
-            borderless: false,
-            foreground: true,
-          }}
-          style={({ pressed }) => [
-            styles.iconBtn,
-            {
-              backgroundColor: buttonBg,
-              ...(Platform.OS === "ios" && pressed
-                ? { backgroundColor: rippleColor }
-                : null),
-            },
-          ]}
-        >
-          <Ionicons name="arrow-back" size={22} color={iconColor} />
-        </Pressable>
+        />
 
         <View style={styles.titleCenterContainer} pointerEvents="none">
           {title ? (

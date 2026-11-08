@@ -1,4 +1,4 @@
-import { ConfirmModal, InfoModal } from "@/components";
+import { ConfirmModal, InfoModal, NativeBackButton } from "@/components";
 import { PRIMARY } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -337,13 +337,7 @@ const TeamDetails = () => {
           zIndex: 100,
         }}
       >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-11 h-11 bg-black/30 rounded-full items-center justify-center shadow-lg"
-          activeOpacity={0.8}
-        >
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
+        <NativeBackButton variant="glass" size={44} />
       </View>
 
       {isAdmin && (

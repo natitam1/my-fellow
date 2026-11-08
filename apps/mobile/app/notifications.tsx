@@ -1,4 +1,5 @@
 import NotificationCard from "@/components/NotificationCard";
+import { NativeBackButton } from "@/components/ui/NativeBackButton";
 import { useTheme } from "@/context/ThemeContext";
 import { useNetwork } from "@/hooks/useNetwork";
 import { checkForNewNotifications } from "@/services/notificationService";
@@ -151,36 +152,7 @@ export default function NotificationsScreen() {
       >
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
-            <Pressable
-              onPress={() => router.back()}
-              hitSlop={8}
-              android_ripple={{
-                color: isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)",
-                borderless: true,
-                radius: 22,
-              }}
-              style={({ pressed }) => [
-                styles.backBtn,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255, 255, 255, 0.06)"
-                    : "rgba(0, 0, 0, 0.04)",
-                  ...(Platform.OS === "ios" && pressed
-                    ? {
-                        backgroundColor: isDark
-                          ? "rgba(255, 255, 255, 0.16)"
-                          : "rgba(0, 0, 0, 0.12)",
-                      }
-                    : null),
-                },
-              ]}
-            >
-              <Ionicons
-                name="arrow-back"
-                size={22}
-                color={isDark ? "white" : "#111827"}
-              />
-            </Pressable>
+            <NativeBackButton variant="light" size={44} style={{ marginRight: 12 }} />
             <View>
               <Text
                 style={[

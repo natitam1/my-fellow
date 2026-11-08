@@ -1,3 +1,4 @@
+import { NativeBackButton } from "@/components/ui/NativeBackButton";
 import { PRIMARY } from "@/constants/colors";
 import { useTheme } from "@/context/ThemeContext";
 import { socialApi } from "@/services/socialApi";
@@ -131,22 +132,7 @@ export default function UserConnectionsScreen() {
 
       {/* Header Bar */}
       <View style={[styles.headerRow, { borderBottomColor: borderColor }]}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={12}
-          android_ripple={{
-            color: isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)",
-            borderless: true,
-            radius: 20,
-          }}
-          style={({ pressed }) => [
-            styles.backBtn,
-            pressed && Platform.OS === "ios" && { opacity: 0.7 },
-          ]}
-          accessibilityLabel="Back"
-        >
-          <Ionicons name="arrow-back" size={22} color={textColor} />
-        </Pressable>
+        <NativeBackButton />
 
         <View style={styles.headerTitleWrap}>
           <Text style={[styles.headerTitle, { color: textColor }]} numberOfLines={1}>
