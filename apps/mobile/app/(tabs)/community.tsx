@@ -256,13 +256,30 @@ export default function CommunityScreen() {
 
   const textColor = isDark ? "#e7e9ea" : "#0f1419";
   const mutedColor = isDark ? "#71767b" : "#536471";
-  const borderColor = isDark ? "#27272a" : "#eff3f4";
+  const borderColor = isDark ? "#2f3336" : "#eff3f4";
   const bg = isDark ? "#000000" : "#ffffff";
+  const TWITTER_BLUE = "#1d9bf0";
 
-  // Helper to render styled tweet text with highlighted hashtags, mentions, and primary "Show more"
+  // Formatter for Twitter/X style metrics (e.g. 5, 72, 151, 7.1K, 88K)
+  const formatActionCount = (count?: number) => {
+    if (!count || count <= 0) return "";
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}K`;
+    return String(count);
+  };
+
+  // Formatter for Twitter/X compact relative time (e.g. "22h", "1h", "45m", "2d")
+  const formatTwitterTime = (timeStr?: string) => {
+    if (!timeStr) return "now";
+    const cleaned = timeStr.replace(/\s*ago$/i, "").trim();
+    if (cleaned.toLowerCase() === "just now") return "now";
+    return cleaned;
+  };
+
+  // Helper to render styled tweet text with highlighted hashtags, mentions, and links
   const renderFormattedText = (text: string, isExpanded: boolean, postId: string) => {
-    const isLong = text.length > 240;
-    const displayText = isLong && !isExpanded ? text.slice(0, 240) + "..." : text;
+    const isLong = text.length > 280;
+    const displayText = isLong && !isExpanded ? text.slice(0, 280) + "..." : text;
     const words = displayText.split(/(\s+)/);
 
     return (
@@ -272,10 +289,11 @@ export default function CommunityScreen() {
             word.startsWith("@") ||
             word.startsWith("#") ||
             word.startsWith("http") ||
-            word.startsWith("youtu.be")
+            word.startsWith("youtu.be") ||
+            /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/\S*)?$/.test(word)
           ) {
             return (
-              <Text key={idx} style={{ color: PRIMARY, fontWeight: "600" }}>
+              <Text key={idx} style={{ color: TWITTER_BLUE }}>
                 {word}
               </Text>
             );
@@ -285,7 +303,7 @@ export default function CommunityScreen() {
         {isLong && (
           <Text
             onPress={() => toggleExpand(postId)}
-            style={{ color: PRIMARY, fontWeight: "700" }}
+            style={{ color: TWITTER_BLUE, fontWeight: "600" }}
           >
             {isExpanded ? " Show less" : " Show more"}
           </Text>
@@ -304,6 +322,9 @@ export default function CommunityScreen() {
     const formattedHandle = item.authorHandle
       ? (item.authorHandle.startsWith("@") ? item.authorHandle : `@${item.authorHandle}`)
       : `@${(item.authorName || "fellow").toLowerCase().replace(/[^a-z0-9]/g, "") || "fellow"}`;
+    const displayTime = formatTwitterTime(item.timestamp);
+    const replyCountStr = formatActionCount(item.repliesCount);
+    const likeCountStr = formatActionCount(item.likesCount);
 
     return (
       <View
@@ -330,7 +351,7 @@ export default function CommunityScreen() {
 
         {/* Right Column: Tweet Content & Actions */}
         <View style={styles.tweetBodyCol}>
-          {/* Header: Author Name, Verified Badge, Handle, Middot, Time, More */}
+          {/* Header: Author Name, Verified Badge, Handle, Middot, Time, Vertical Three-dots */}
           <View style={styles.tweetHeaderRow}>
             <ProfileLink
               user={{
@@ -357,8 +378,8 @@ export default function CommunityScreen() {
                 <Ionicons
                   name="checkmark-circle"
                   size={15}
-                  color={PRIMARY}
-                  style={{ marginLeft: 3, flexShrink: 0 }}
+                  color={TWITTER_BLUE}
+                  style={styles.verifiedBadge}
                 />
               )}
 
@@ -368,15 +389,15 @@ export default function CommunityScreen() {
                     styles.officialMiniBadge,
                     {
                       backgroundColor: isDark
-                        ? "rgba(99, 102, 241, 0.2)"
-                        : "rgba(99, 102, 241, 0.1)",
+                        ? "rgba(29, 155, 240, 0.15)"
+                        : "rgba(29, 155, 240, 0.1)",
                     },
                   ]}
                 >
                   <Text
                     style={[
                       styles.officialMiniBadgeText,
-                      { color: isDark ? "#a5b4fc" : PRIMARY },
+                      { color: TWITTER_BLUE },
                     ]}
                   >
                     Official
@@ -396,11 +417,11 @@ export default function CommunityScreen() {
               </Text>
 
               <Text style={[styles.tweetTime, { color: mutedColor }]}>
-                {item.timestamp}
+                {displayTime}
               </Text>
             </ProfileLink>
 
-            {/* Three-dots Menu Trigger */}
+            {/* Vertical Three-dots Menu Trigger (matching Twitter/X screenshot) */}
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -411,7 +432,7 @@ export default function CommunityScreen() {
               style={styles.tweetMoreBtn}
             >
               <Ionicons
-                name="ellipsis-horizontal"
+                name="ellipsis-vertical"
                 size={16}
                 color={mutedColor}
               />
@@ -460,7 +481,7 @@ export default function CommunityScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Action Row: Reply, Like, Bookmark, Share (Twitter style, NO repost) */}
+          {/* Action Row: Reply, Like, Bookmark, Share (matching Twitter/X layout, NO repost, NO grok, NO views) */}
           <View style={styles.tweetActionBar}>
             {/* Reply / Comment */}
             <TouchableOpacity
@@ -477,11 +498,13 @@ export default function CommunityScreen() {
                 size={17}
                 color={mutedColor}
               />
-              <Text
-                style={[styles.tweetActionCount, { color: mutedColor }]}
-              >
-                {item.repliesCount}
-              </Text>
+              {replyCountStr ? (
+                <Text
+                  style={[styles.tweetActionCount, { color: mutedColor }]}
+                >
+                  {replyCountStr}
+                </Text>
+              ) : null}
             </TouchableOpacity>
 
             {/* Like */}
@@ -496,17 +519,18 @@ export default function CommunityScreen() {
                 size={18}
                 color={item.isLiked ? "#f91880" : mutedColor}
               />
-              <Text
-                style={[
-                  styles.tweetActionCount,
-                  {
-                    color: item.isLiked ? "#f91880" : mutedColor,
-                    fontWeight: item.isLiked ? "700" : "500",
-                  },
-                ]}
-              >
-                {item.likesCount}
-              </Text>
+              {likeCountStr ? (
+                <Text
+                  style={[
+                    styles.tweetActionCount,
+                    {
+                      color: item.isLiked ? "#f91880" : mutedColor,
+                    },
+                  ]}
+                >
+                  {likeCountStr}
+                </Text>
+              ) : null}
             </TouchableOpacity>
 
             {/* Bookmark */}
@@ -519,7 +543,7 @@ export default function CommunityScreen() {
               <Ionicons
                 name={item.isBookmarked ? "bookmark" : "bookmark-outline"}
                 size={18}
-                color={item.isBookmarked ? PRIMARY : mutedColor}
+                color={item.isBookmarked ? TWITTER_BLUE : mutedColor}
               />
             </TouchableOpacity>
 
@@ -531,7 +555,7 @@ export default function CommunityScreen() {
               style={styles.tweetActionBtn}
             >
               <Ionicons
-                name="share-outline"
+                name={Platform.OS === "ios" ? "share-outline" : "share-social-outline"}
                 size={18}
                 color={mutedColor}
               />
@@ -1044,6 +1068,11 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     flexShrink: 1,
   },
+  verifiedBadge: {
+    marginLeft: 3,
+    marginRight: 1,
+    flexShrink: 0,
+  },
   officialMiniBadge: {
     paddingHorizontal: 5,
     paddingVertical: 1.5,
@@ -1058,17 +1087,17 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   tweetHandle: {
-    fontSize: 14,
+    fontSize: 15,
     marginLeft: 4,
     flexShrink: 2,
   },
   tweetMiddot: {
-    marginHorizontal: 3,
-    fontSize: 13,
+    marginHorizontal: 4,
+    fontSize: 14,
     flexShrink: 0,
   },
   tweetTime: {
-    fontSize: 13,
+    fontSize: 15,
     flexShrink: 0,
   },
   tweetMoreBtn: {
@@ -1081,7 +1110,7 @@ const styles = StyleSheet.create({
   },
   postText: {
     fontSize: 15,
-    lineHeight: 21,
+    lineHeight: 22,
     letterSpacing: -0.1,
   },
   tweetMediaCard: {
@@ -1101,19 +1130,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: 12,
-    maxWidth: 320,
-    paddingRight: 6,
+    maxWidth: 340,
+    paddingRight: 16,
   },
   tweetActionBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 2,
   },
   tweetActionCount: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "400",
   },
   fabBtn: {
     position: "absolute",

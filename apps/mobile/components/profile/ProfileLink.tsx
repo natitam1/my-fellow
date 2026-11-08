@@ -191,5 +191,6 @@ const styles = StyleSheet.create({
   innerRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 1,
   },
 });

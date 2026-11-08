@@ -609,7 +609,7 @@ export default function CommunitySearchScreen() {
                           <Ionicons
                             name="checkmark-circle"
                             size={14}
-                            color={PRIMARY}
+                            color="#1d9bf0"
                             style={{ marginLeft: 3, flexShrink: 0 }}
                           />
                         )}
