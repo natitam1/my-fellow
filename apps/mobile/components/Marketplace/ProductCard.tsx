@@ -7,7 +7,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ProductCardProps {
   product: Product;
@@ -33,16 +33,13 @@ const ProductCard = ({ product, isDark, onPress, onBuy }: ProductCardProps) => {
 
   return (
     <View style={[styles.card, isDark ? styles.cardDark : styles.cardLight]}>
-      <Pressable
+      {/* Top tappable area: Image, Badge, Title, Rating */}
+      <TouchableOpacity
+        activeOpacity={0.88}
         onPress={onPress}
-        android_ripple={{
-          color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-          foreground: true,
-        }}
-        style={({ pressed }) => [
-          styles.pressableInner,
-          Platform.OS === "ios" && pressed && { opacity: 0.88 },
-        ]}
+        style={styles.cardTopTouchable}
+        accessibilityRole="button"
+        accessibilityLabel={`View ${product.title || product.name || "product"} details`}
       >
         {showNewBadge && (
           <View style={styles.badge}>
@@ -66,60 +63,50 @@ const ProductCard = ({ product, isDark, onPress, onBuy }: ProductCardProps) => {
         </View>
 
         <View style={styles.content}>
-          <View style={styles.textContainer}>
-            <Text
-              numberOfLines={1}
-              style={[styles.name, isDark ? styles.textDark : styles.textLight]}
-            >
-              {product.title || product.name || "Product"}
-            </Text>
+          <Text
+            numberOfLines={1}
+            style={[styles.name, isDark ? styles.textDark : styles.textLight]}
+          >
+            {product.title || product.name || "Product"}
+          </Text>
 
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={12} color="#ffb800" />
-              <Text
-                style={[
-                  styles.ratingText,
-                  { color: isDark ? "#a1a1aa" : "#71717a" },
-                ]}
-              >
-                4.9
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.footer}>
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={12} color="#ffb800" />
             <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
-              style={styles.price}
-            >
-              {price.toLocaleString()} ETB
-            </Text>
-            <Pressable
-              style={({ pressed }) => [
-                styles.buyButton,
-                Platform.OS === "ios" &&
-                  pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+              style={[
+                styles.ratingText,
+                { color: isDark ? "#a1a1aa" : "#71717a" },
               ]}
-              onPress={(e) => {
-                e.stopPropagation?.();
-                onBuy();
-              }}
-              android_ripple={{
-                color: "rgba(255, 255, 255, 0.25)",
-                borderless: false,
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityRole="button"
-              accessibilityLabel={`Buy ${product.title || product.name || "product"}`}
             >
-              <Ionicons name="cart" size={15} color="#ffffff" />
-              <Text style={styles.buyButtonText}>Buy</Text>
-            </Pressable>
+              4.9
+            </Text>
           </View>
         </View>
-      </Pressable>
+      </TouchableOpacity>
+
+      {/* Footer area: Price and Independent Buy Button */}
+      <View style={styles.footer}>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+          style={styles.price}
+        >
+          {price.toLocaleString()} ETB
+        </Text>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onBuy}
+          style={styles.buyButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Buy ${product.title || product.name || "product"}`}
+        >
+          <Ionicons name="cart" size={15} color="#ffffff" />
+          <Text style={styles.buyButtonText}>Buy</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -132,7 +119,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     overflow: "hidden",
   },
-  pressableInner: {
+  cardTopTouchable: {
     width: "100%",
   },
   cardLight: {
@@ -171,12 +158,9 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   content: {
-    padding: 10,
-    minHeight: 88,
-    justifyContent: "space-between",
-  },
-  textContainer: {
-    marginBottom: 6,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 2,
   },
   name: {
     fontSize: 14,
@@ -200,7 +184,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 6,
+    paddingHorizontal: 10,
     paddingTop: 2,
+    paddingBottom: 10,
   },
   price: {
     flex: 1,
@@ -213,12 +199,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    gap: 4,
+    minWidth: 62,
+    height: 32,
+    paddingHorizontal: 10,
     borderRadius: 14,
     backgroundColor: PRIMARY,
-    flexShrink: 0,
   },
   buyButtonText: {
     color: "#ffffff",
