@@ -8,7 +8,6 @@ import { getPrefilledAvatar } from "@/utils/avatar";
 import { PostableActor } from "@/types/social.types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import * as ImagePicker from "expo-image-picker";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -70,46 +69,6 @@ export default function ComposePostScreen() {
   const userAvatar =
     user?.profileImage ||
     getPrefilledAvatar(user?.phoneNumber || user?.id);
-
-  const handlePickImage = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.85,
-      });
-
-      if (!result.canceled && result.assets[0]?.uri) {
-        setPickedImageUri(result.assets[0].uri);
-      }
-    } catch {
-      Alert.alert("Permission Required", "Please allow photo library access.");
-    }
-  };
-
-  const handleCameraCapture = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert("Camera Access", "Please grant camera permission to snap a fellowship photo.");
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.85,
-      });
-
-      if (!result.canceled && result.assets[0]?.uri) {
-        setPickedImageUri(result.assets[0].uri);
-      }
-    } catch {
-      Alert.alert("Error", "Could not open camera.");
-    }
-  };
 
   const handlePost = async () => {
     if (!content.trim() && !pickedImageUri) return;
