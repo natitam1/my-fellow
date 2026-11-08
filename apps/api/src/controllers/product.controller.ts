@@ -47,11 +47,17 @@ export class ProductController {
       const { title, shortDescription, price, imageUrls, stock, category } =
         req.body;
 
-      let finalImageUrls: string[] = Array.isArray(imageUrls)
-        ? imageUrls
-        : imageUrls
-          ? [imageUrls]
-          : [];
+      let finalImageUrls: string[] = [];
+      if (Array.isArray(imageUrls)) {
+        finalImageUrls = [...imageUrls];
+      } else if (typeof imageUrls === "string") {
+        try {
+          const parsed = JSON.parse(imageUrls);
+          finalImageUrls = Array.isArray(parsed) ? [...parsed] : [imageUrls];
+        } catch {
+          if (imageUrls.trim()) finalImageUrls = [imageUrls.trim()];
+        }
+      }
 
       // Handle file uploads
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
@@ -118,7 +124,19 @@ export class ProductController {
 
       const { title, shortDescription, price, imageUrls, stock, category, isActive } =
         req.body;
-      let finalImageUrls = imageUrls;
+      let parsedBodyImages: string[] | undefined = undefined;
+      if (Array.isArray(imageUrls)) {
+        parsedBodyImages = [...imageUrls];
+      } else if (typeof imageUrls === "string") {
+        try {
+          const parsed = JSON.parse(imageUrls);
+          parsedBodyImages = Array.isArray(parsed) ? [...parsed] : [imageUrls];
+        } catch {
+          if (imageUrls.trim()) parsedBodyImages = [imageUrls.trim()];
+        }
+      }
+
+      let finalImageUrls = parsedBodyImages;
 
       // Handle file uploads if any
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
@@ -132,15 +150,7 @@ export class ProductController {
         const uploadResults = await Promise.all(uploadPromises);
         const uploadedUrls = uploadResults.map((result) => result.secure_url);
 
-        // If body has images, we append. If not, we might want to keep existing or replace.
-        // For simplicity, we'll append to existing if imageUrls is not provided in body,
-        // or append to body imageUrls if provided.
-        const baseImages = Array.isArray(imageUrls)
-          ? imageUrls
-          : imageUrls
-            ? [imageUrls]
-            : existing.imageUrls;
-
+        const baseImages = parsedBodyImages !== undefined ? parsedBodyImages : (existing.imageUrls || []);
         finalImageUrls = [...baseImages, ...uploadedUrls];
       }
 

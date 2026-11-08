@@ -2,6 +2,21 @@ import { z } from "zod";
 
 // ─── Product schemas ─────────────────────────────────────────
 
+const imageUrlsPreprocess = z
+  .preprocess((val) => {
+    if (!val || val === "[]") return undefined;
+    if (Array.isArray(val)) return val;
+    if (typeof val === "string") {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {}
+      return [val];
+    }
+    return val;
+  }, z.array(z.string().url("Each image must be a valid URL")).max(10))
+  .optional();
+
 export const createProductSchema = z.object({
   body: z.object({
     title: z
@@ -16,11 +31,7 @@ export const createProductSchema = z.object({
       .number({ message: "Price must be a number" })
       .positive("Price must be greater than 0"),
     category: z.string().optional().default("other"),
-    imageUrls: z
-      .array(z.string().url("Each image must be a valid URL"))
-      .min(1, "At least one image URL is required")
-      .max(10, "At most 10 image URLs are allowed")
-      .optional(),
+    imageUrls: imageUrlsPreprocess,
     stock: z.coerce
       .number({ message: "Stock must be a number" })
       .int("Stock must be an integer")
@@ -45,11 +56,7 @@ export const updateProductSchema = z.object({
       .number({ message: "Price must be a number" })
       .positive("Price must be greater than 0")
       .optional(),
-    imageUrls: z
-      .array(z.string().url("Each image must be a valid URL"))
-      .min(1, "At least one image URL is required")
-      .max(10, "At most 10 image URLs are allowed")
-      .optional(),
+    imageUrls: imageUrlsPreprocess,
     category: z.string().optional(),
     stock: z.coerce
       .number({ message: "Stock must be a number" })

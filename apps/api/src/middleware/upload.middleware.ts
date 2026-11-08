@@ -15,37 +15,51 @@ const imageFilter = (
   }
 };
 
-const devotionMediaFilter = (
+const devotionFilesFilter = (
   req: Request,
   file: Express.Multer.File,
   cb: FileFilterCallback,
 ) => {
-  const allowedMimeTypes = [
-    "audio/mpeg",
-    "audio/mp3",
-    "audio/wav",
-    "audio/ogg",
-    "audio/aac",
-    "audio/m4a",
-    "audio/x-m4a",
-  ];
+  if (file.fieldname === "image") {
+    if (file.mimetype.startsWith("image/")) {
+      return cb(null, true);
+    }
+    return cb(new Error("Only image files are allowed for the cover image"));
+  }
 
-  if (allowedMimeTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(
+  if (file.fieldname === "media") {
+    const allowedAudioTypes = [
+      "audio/mpeg",
+      "audio/mp3",
+      "audio/wav",
+      "audio/ogg",
+      "audio/aac",
+      "audio/m4a",
+      "audio/x-m4a",
+    ];
+
+    if (
+      allowedAudioTypes.includes(file.mimetype) ||
+      file.mimetype.startsWith("audio/")
+    ) {
+      return cb(null, true);
+    }
+    return cb(
       new Error(
         `File type "${file.mimetype}" is not allowed. Devotion audio uploads accept: audio (mp3, wav, ogg, aac, m4a)`,
       ),
     );
   }
+
+  // Any other file fields allowed
+  cb(null, true);
 };
 
 export const upload = multer({
   storage,
   fileFilter: imageFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 25 * 1024 * 1024, // 25MB to easily accommodate camera photos
   },
 });
 
@@ -56,7 +70,7 @@ export const uploadPosterImages = upload.any();
 
 export const devotionUpload = multer({
   storage,
-  fileFilter: devotionMediaFilter,
+  fileFilter: devotionFilesFilter,
   limits: {
     fileSize: 50 * 1024 * 1024,
   },

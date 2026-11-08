@@ -109,6 +109,21 @@ export const errorMiddleware = (
     return res.status(400).type("application/problem+json").json(problem);
   }
 
+  if (err && ((err as any).name === "MulterError" || (err as any).code === "LIMIT_FILE_SIZE")) {
+    const isSize = (err as any).code === "LIMIT_FILE_SIZE";
+    const problem: ProblemDetails = {
+      type: "https://api.4kfellowship.org/errors/file-upload-error",
+      title: "File Upload Error",
+      status: 400,
+      detail: isSize
+        ? "Photo file exceeds maximum limit of 25MB. Please choose a smaller photo."
+        : `Upload error: ${(err as any).message || "Invalid file"}`,
+      code: isSize ? "FILE_TOO_LARGE" : "UPLOAD_ERROR",
+      requestId,
+    };
+    return res.status(400).type("application/problem+json").json(problem);
+  }
+
   console.error("[Unhandled Error]:", err);
 
   const problem: ProblemDetails = {
