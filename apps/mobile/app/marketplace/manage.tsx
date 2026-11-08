@@ -46,45 +46,39 @@ interface ImageItem {
 interface CategoryOption {
   key: string;
   label: string;
-  desc: string;
+  desc?: string;
   icon: keyof typeof Ionicons.glyphMap;
 }
 
 const PRODUCT_CATEGORIES: CategoryOption[] = [
   {
     key: "t-shirt",
-    label: "T-Shirts & Polos",
-    desc: "Fellowship branded t-shirts, polos, and casual campus wear",
+    label: "T-Shirts",
     icon: "shirt-outline",
   },
   {
     key: "hoodie",
-    label: "Hoodies & Sweaters",
-    desc: "Warm campus fellowship hoodies, sweaters, and zip-ups",
+    label: "Hoodies",
     icon: "snow-outline",
   },
   {
     key: "soap",
-    label: "Natural Soaps & Care",
-    desc: "Handmade organic ministry soaps and natural personal care",
+    label: "Natural Soap",
     icon: "water-outline",
   },
   {
     key: "stickers",
-    label: "Stickers & Decals",
-    desc: "Durable vinyl laptop stickers, notebook decals, and seals",
+    label: "Stickers",
     icon: "sparkles-outline",
   },
   {
     key: "accessories",
-    label: "Accessories & Gear",
-    desc: "Lanyards, wristbands, notebooks, bookmarks, and badges",
+    label: "Accessories",
     icon: "key-outline",
   },
   {
     key: "others",
-    label: "Others & Ministry Crafts",
-    desc: "Special fellowship merchandise, study bibles, and crafts",
+    label: "Other Merchandise",
     icon: "grid-outline",
   },
 ];
@@ -229,7 +223,7 @@ export default function ManageProductScreen() {
   const [shortDescription, setShortDescription] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [stock, setStock] = useState<string>("10");
-  const [category, setCategory] = useState<string>("t-shirt");
+  const [category, setCategory] = useState<string>("");
   const [images, setImages] = useState<ImageItem[]>([]);
 
   const hasUnsavedChanges =
@@ -237,6 +231,7 @@ export default function ManageProductScreen() {
     (title.trim().length > 0 ||
       shortDescription.trim().length > 0 ||
       price.trim().length > 0 ||
+      category.length > 0 ||
       images.length > 0);
 
   useConfirmUnsavedChanges(hasUnsavedChanges, {
@@ -407,6 +402,9 @@ export default function ManageProductScreen() {
   const validate = (): string | null => {
     if (!title.trim() || title.trim().length < 3) {
       return "Product title must be at least 3 characters.";
+    }
+    if (!category || !category.trim()) {
+      return "Please select a product category.";
     }
     if (!shortDescription.trim() || shortDescription.trim().length < 5) {
       return "Product description must be at least 5 characters.";
@@ -788,34 +786,36 @@ export default function ManageProductScreen() {
                   style={styles.categorySelectorInner}
                 >
                   <View style={styles.categorySelectorLeft}>
-                    <View style={styles.categoryIconWrap}>
-                      <Ionicons
-                        name={selectedCategoryOption.icon}
-                        size={18}
-                        color={PRIMARY}
-                      />
-                    </View>
-                    <View style={{ marginLeft: 12, flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.categorySelectorTitle,
-                          { color: textColor },
-                        ]}
-                      >
-                        {selectedCategoryOption.label}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.categorySelectorSub,
-                          { color: subTextColor },
-                        ]}
-                      >
-                        {selectedCategoryOption.desc}
-                      </Text>
-                    </View>
+                    <Ionicons
+                      name={
+                        selectedCategoryOption
+                          ? selectedCategoryOption.icon
+                          : "grid-outline"
+                      }
+                      size={20}
+                      color={selectedCategoryOption ? PRIMARY : subTextColor}
+                    />
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.categorySelectorText,
+                        {
+                          color: selectedCategoryOption
+                            ? textColor
+                            : isDark
+                              ? "#52525b"
+                              : "#94a3b8",
+                          fontWeight: selectedCategoryOption ? "600" : "500",
+                        },
+                      ]}
+                    >
+                      {selectedCategoryOption
+                        ? selectedCategoryOption.label
+                        : "Select category..."}
+                    </Text>
                   </View>
                   <Ionicons
-                    name="chevron-forward"
+                    name="chevron-down"
                     size={18}
                     color={subTextColor}
                   />
@@ -1049,25 +1049,14 @@ export default function ManageProductScreen() {
                           color={isSelected ? PRIMARY : subTextColor}
                         />
                       </View>
-                      <View style={{ marginLeft: 12, flex: 1 }}>
-                        <Text
-                          style={[
-                            styles.categoryOptionLabel,
-                            { color: isSelected ? PRIMARY : textColor },
-                          ]}
-                        >
-                          {cat.label}
-                        </Text>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.categoryOptionDesc,
-                            { color: subTextColor },
-                          ]}
-                        >
-                          {cat.desc}
-                        </Text>
-                      </View>
+                      <Text
+                        style={[
+                          styles.categoryOptionLabel,
+                          { color: isSelected ? PRIMARY : textColor },
+                        ]}
+                      >
+                        {cat.label}
+                      </Text>
                     </View>
 
                     <View
@@ -1350,7 +1339,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   categorySelectorInner: {
-    height: 60,
+    height: 50,
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -1360,6 +1349,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    gap: 10,
+    marginRight: 8,
+  },
+  categorySelectorText: {
+    fontSize: 15,
   },
   categoryIconWrap: {
     width: 36,
@@ -1368,14 +1362,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 103, 25, 0.12)",
     alignItems: "center",
     justifyContent: "center",
-  },
-  categorySelectorTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  categorySelectorSub: {
-    fontSize: 12,
-    marginTop: 2,
   },
   row: {
     flexDirection: "row",
@@ -1456,15 +1442,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    gap: 12,
     marginRight: 10,
   },
   categoryOptionLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
-  },
-  categoryOptionDesc: {
-    fontSize: 12,
-    marginTop: 2,
   },
   radioCircle: {
     width: 22,
