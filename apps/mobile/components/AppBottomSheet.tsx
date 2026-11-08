@@ -21,7 +21,7 @@ export const AppBottomSheet: React.FC<AppBottomSheetProps> = ({
   onClose,
   children,
   isDark = false,
-  snapPoints,
+  snapPoints = ["half", "full"],
 }) => {
   const containerBg = isDark ? "#18181B" : "#FFFFFF";
 

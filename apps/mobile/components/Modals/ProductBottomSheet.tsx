@@ -11,7 +11,6 @@ import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import {
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -160,7 +159,7 @@ export const ProductBottomSheet = ({
 
         {/* Action Buttons */}
         <View style={styles.actionSection}>
-          <Pressable
+          <TouchableOpacity
             onPress={() => {
               if (Platform.OS !== "web") {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
@@ -170,36 +169,26 @@ export const ProductBottomSheet = ({
               onAddToCart(product, quantity);
               onClose();
             }}
-            unstable_pressDelay={0}
-            accessibilityRole="button"
-            accessibilityLabel="Add to Cart"
-            android_ripple={{
-              color: isDark
-                ? "rgba(255, 255, 255, 0.12)"
-                : "rgba(0, 0, 0, 0.08)",
-              borderless: false,
-              foreground: true,
-            }}
-            style={({ pressed }) => [
+            activeOpacity={0.7}
+            style={[
               styles.actionButton,
               {
                 backgroundColor: cardBg,
                 borderColor: borderColor,
                 borderWidth: 1.5,
               },
-              Platform.OS === "ios" && pressed && styles.btnPressed,
             ]}
           >
-            <Ionicons name="cart-outline" size={18} color={PRIMARY} />
+            <Ionicons name="cart-outline" size={19} color={PRIMARY} />
             <Text
               numberOfLines={1}
               style={[styles.actionButtonText, { color: textColor }]}
             >
               Add to Cart
             </Text>
-          </Pressable>
+          </TouchableOpacity>
 
-          <Pressable
+          <TouchableOpacity
             onPress={() => {
               if (Platform.OS !== "web") {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
@@ -209,20 +198,12 @@ export const ProductBottomSheet = ({
               onBuyNow(product, quantity);
               onClose();
             }}
-            unstable_pressDelay={0}
-            accessibilityRole="button"
-            accessibilityLabel="Buy Now"
-            android_ripple={{
-              color: "rgba(255, 255, 255, 0.28)",
-              borderless: false,
-              foreground: true,
-            }}
-            style={({ pressed }) => [
+            activeOpacity={0.8}
+            style={[
               styles.actionButton,
               {
                 backgroundColor: PRIMARY,
               },
-              Platform.OS === "ios" && pressed && styles.btnPressed,
             ]}
           >
             <Ionicons name="flash" size={17} color="#FFFFFF" />
@@ -232,7 +213,7 @@ export const ProductBottomSheet = ({
             >
               Buy Now
             </Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </View>
     </AppBottomSheet>
@@ -363,10 +344,6 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: "700",
     letterSpacing: 0.2,
-  },
-  btnPressed: {
-    opacity: 0.88,
-    transform: [{ scale: 0.99 }],
   },
 });
 

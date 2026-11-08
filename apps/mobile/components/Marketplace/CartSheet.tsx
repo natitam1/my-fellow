@@ -309,12 +309,10 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
                     </Text>
                   </View>
 
-                  <Pressable
+                  <TouchableOpacity
                     onPress={handleProceedToConfirm}
-                    style={({ pressed }) => [
-                      styles.primaryActionBtn,
-                      Platform.OS === "ios" && pressed && { opacity: 0.88 },
-                    ]}
+                    activeOpacity={0.8}
+                    style={styles.primaryActionBtn}
                   >
                     <Text style={styles.primaryActionBtnText}>
                       Review & Confirm
@@ -324,7 +322,7 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
                       size={18}
                       color="#FFFFFF"
                     />
-                  </Pressable>
+                  </TouchableOpacity>
                 </View>
               </>
             )}
@@ -448,13 +446,13 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
               </View>
             )}
 
-            <Pressable
+            <TouchableOpacity
               onPress={handleFinalPlaceOrder}
               disabled={placingOrder}
-              style={({ pressed }) => [
+              activeOpacity={0.8}
+              style={[
                 styles.primaryActionBtn,
                 placingOrder && { opacity: 0.7 },
-                Platform.OS === "ios" && pressed && { opacity: 0.88 },
               ]}
             >
               <Text style={styles.primaryActionBtnText}>
@@ -467,7 +465,7 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
                   color="#FFFFFF"
                 />
               )}
-            </Pressable>
+            </TouchableOpacity>
           </ScrollView>
         )}
 
@@ -503,16 +501,16 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
               </View>
             )}
 
-            <Pressable
+            <TouchableOpacity
               onPress={handleDismiss}
-              style={({ pressed }) => [
+              activeOpacity={0.8}
+              style={[
                 styles.primaryActionBtn,
                 { marginTop: 24, width: "100%" },
-                Platform.OS === "ios" && pressed && { opacity: 0.88 },
               ]}
             >
               <Text style={styles.primaryActionBtnText}>Done</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         )}
       </View>
