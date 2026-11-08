@@ -9,18 +9,16 @@ import api from "@/services/api";
 import { useMarketplaceStore } from "@/stores/marketplace.store";
 import { usePaymentStore } from "@/stores/payment.store";
 import { useUserStore } from "@/stores/user.store";
-import { getProductImage } from "@/types/marketplace.types";
 import { donationSchema } from "@/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
-import { Image as ExpoImage } from "expo-image";
 import * as Linking from "expo-linking";
 import { useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
@@ -29,7 +27,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -75,30 +72,12 @@ const Gifts = () => {
   }>({ visible: false, title: "", message: "", type: "info" });
 
   const {
-    products,
-    fetchProducts,
     cartVisible,
     setCartVisible,
     getCartCount,
   } = useMarketplaceStore();
 
   const cartCount = getCartCount();
-
-  useEffect(() => {
-    fetchProducts(true, 10, "All");
-  }, [fetchProducts]);
-
-  const storeThumbnails = useMemo(() => {
-    const list: string[] = [];
-    for (const p of products) {
-      const img = p.imageUrls?.[0] || p.image || p.imageUrl;
-      if (img && typeof img === "string" && !img.includes("via.placeholder.com")) {
-        list.push(img);
-      }
-      if (list.length >= 3) break;
-    }
-    return list;
-  }, [products]);
 
   const { user } = useUserStore();
   const { txRef, setTxRef, totalGivingsAmount, fetchMyGivings } =
@@ -107,14 +86,11 @@ const Gifts = () => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([
-        fetchMyGivings(),
-        fetchProducts(true, 10, "All"),
-      ]);
+      await fetchMyGivings();
     } finally {
       setRefreshing(false);
     }
-  }, [fetchMyGivings, fetchProducts]);
+  }, [fetchMyGivings]);
 
   const showInfoModal = (
     title: string,
@@ -751,16 +727,17 @@ const Gifts = () => {
               </View>
             </View>
 
-            {/* FELLOWSHIP STORE REDIRECTION BANNER */}
+            {/* Fellowship Store Native Button */}
             <View
-              style={[
-                styles.storeBannerWrapper,
-                {
-                  borderColor: isDark
-                    ? "rgba(255, 255, 255, 0.16)"
-                    : "rgba(0, 0, 0, 0.12)",
-                },
-              ]}
+              style={{
+                marginHorizontal: 16,
+                marginBottom: 40,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: isDark ? "#27272a" : "#e4e4e7",
+                backgroundColor: isDark ? "rgba(24, 24, 27, 0.7)" : "#ffffff",
+                overflow: "hidden",
+              }}
             >
               <Pressable
                 onPress={() => {
@@ -773,159 +750,53 @@ const Gifts = () => {
                 }}
                 unstable_pressDelay={0}
                 accessibilityRole="button"
-                accessibilityLabel="Visit Fellowship Store"
+                accessibilityLabel="View fellowship store"
                 android_ripple={{
                   color: isDark
-                    ? "rgba(255, 255, 255, 0.08)"
-                    : "rgba(0, 0, 0, 0.06)",
+                    ? "rgba(255, 255, 255, 0.14)"
+                    : "rgba(0, 0, 0, 0.08)",
                   borderless: false,
                   foreground: true,
                 }}
-                style={({ pressed }) => [
-                  styles.storeBannerCard,
-                  {
-                    opacity: Platform.OS === "ios" && pressed ? 0.75 : 1,
-                  },
-                ]}
               >
-                {/* Left: 3 Overlapping Sticker Images Illustration */}
-                <View style={styles.stickersContainer}>
-                  {/* Sticker 1: tilted left */}
+                {({ pressed }) => (
                   <View
-                    style={[
-                      styles.stickerBadge,
-                      styles.sticker1,
-                      {
-                        borderColor: isDark ? "#3f3f46" : "#ffffff",
-                      },
-                    ]}
+                    style={{
+                      width: "100%",
+                      minHeight: 84,
+                      paddingVertical: 20,
+                      paddingHorizontal: 20,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 14,
+                      opacity: Platform.OS === "ios" && pressed ? 0.7 : 1,
+                    }}
                   >
-                    {storeThumbnails[0] ? (
-                      <ExpoImage
-                        source={{ uri: storeThumbnails[0] }}
-                        style={styles.stickerImg}
-                        contentFit="cover"
-                        transition={200}
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.stickerFallback,
-                          { backgroundColor: isDark ? "#27272a" : "#f1f5f9" },
-                        ]}
+                    <Ionicons name="bag-handle" size={28} color="#ff6719" />
+                    <View style={{ flex: 1, justifyContent: "center" }}>
+                      <Text
+                        className={`text-xs font-bold uppercase tracking-wider mb-1 ${
+                          isDark ? "text-zinc-400" : "text-zinc-500"
+                        }`}
                       >
-                        <Ionicons
-                          name="shirt-outline"
-                          size={20}
-                          color={PRIMARY}
-                        />
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Sticker 2: tilted right */}
-                  <View
-                    style={[
-                      styles.stickerBadge,
-                      styles.sticker2,
-                      {
-                        borderColor: isDark ? "#3f3f46" : "#ffffff",
-                      },
-                    ]}
-                  >
-                    {storeThumbnails[1] ? (
-                      <ExpoImage
-                        source={{ uri: storeThumbnails[1] }}
-                        style={styles.stickerImg}
-                        contentFit="cover"
-                        transition={200}
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.stickerFallback,
-                          { backgroundColor: isDark ? "#27272a" : "#fef3c7" },
-                        ]}
+                        Fellowship Store
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        className={`text-2xl font-black ${
+                          isDark ? "text-white" : "text-black"
+                        }`}
                       >
-                        <Ionicons name="sparkles" size={18} color="#f59e0b" />
-                      </View>
-                    )}
+                        Official Merch
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={22}
+                      color={isDark ? "#a1a1aa" : "#71717a"}
+                    />
                   </View>
-
-                  {/* Sticker 3: front center / highlighted */}
-                  <View
-                    style={[
-                      styles.stickerBadge,
-                      styles.sticker3,
-                      { borderColor: PRIMARY },
-                    ]}
-                  >
-                    {storeThumbnails[2] ? (
-                      <ExpoImage
-                        source={{ uri: storeThumbnails[2] }}
-                        style={styles.stickerImg}
-                        contentFit="cover"
-                        transition={200}
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.stickerFallback,
-                          { backgroundColor: isDark ? "#1c1917" : "#fff7ed" },
-                        ]}
-                      >
-                        <Ionicons
-                          name="bag-handle"
-                          size={22}
-                          color={PRIMARY}
-                        />
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                {/* Right: Title, Subtitle, and Native Action Button with Text & Arrow */}
-                <View style={styles.storeBannerContent}>
-                  <Text
-                    style={[
-                      styles.storeBannerTitle,
-                      { color: isDark ? "#ffffff" : "#0f172a" },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    Fellowship Store
-                  </Text>
-                  <Text
-                    style={[
-                      styles.storeBannerSubtitle,
-                      { color: isDark ? "#a1a1aa" : "#64748b" },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    Official Hoodies, T-Shirts & Stickers
-                  </Text>
-                  <View
-                    style={[
-                      styles.storeActionBtn,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(255, 103, 25, 0.14)"
-                          : "rgba(255, 103, 25, 0.1)",
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.storeActionText, { color: PRIMARY }]}>
-                      Visit Store
-                    </Text>
-                    <Ionicons name="arrow-forward" size={13} color={PRIMARY} />
-                  </View>
-                </View>
-
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={isDark ? "#52525b" : "#94a3b8"}
-                />
+                )}
               </Pressable>
             </View>
           </ScrollView>
@@ -963,107 +834,5 @@ const Gifts = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  storeBannerWrapper: {
-    marginHorizontal: 16,
-    marginBottom: 40,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    backgroundColor: "transparent",
-    overflow: "hidden",
-  },
-  storeBannerCard: {
-    minHeight: 116,
-    paddingVertical: 18,
-    paddingHorizontal: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  stickersContainer: {
-    width: 90,
-    height: 78,
-    position: "relative",
-    justifyContent: "center",
-  },
-  stickerBadge: {
-    position: "absolute",
-    borderRadius: 14,
-    borderWidth: 2,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.16,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  sticker1: {
-    left: 2,
-    top: 6,
-    width: 48,
-    height: 48,
-    transform: [{ rotate: "-14deg" }],
-    zIndex: 1,
-  },
-  sticker2: {
-    left: 42,
-    top: 4,
-    width: 46,
-    height: 46,
-    transform: [{ rotate: "14deg" }],
-    zIndex: 2,
-  },
-  sticker3: {
-    left: 20,
-    top: 26,
-    width: 52,
-    height: 52,
-    transform: [{ rotate: "-2deg" }],
-    zIndex: 3,
-    borderWidth: 2.5,
-    shadowColor: PRIMARY,
-    shadowOpacity: 0.28,
-    elevation: 6,
-  },
-  stickerImg: {
-    width: "100%",
-    height: "100%",
-  },
-  stickerFallback: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  storeBannerContent: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  storeBannerTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    letterSpacing: -0.3,
-  },
-  storeBannerSubtitle: {
-    fontSize: 12.5,
-    marginTop: 2,
-    marginBottom: 8,
-    lineHeight: 17,
-  },
-  storeActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    gap: 5,
-  },
-  storeActionText: {
-    fontSize: 12.5,
-    fontWeight: "700",
-  },
-});
 
 export default Gifts;
