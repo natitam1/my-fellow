@@ -104,7 +104,7 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
       visible={visible}
       onClose={handleDismiss}
       isDark={isDark}
-      snapPoints={["full"]}
+      snapPoints={["half"]}
     >
       <View style={styles.sheetContainer}>
         {/* Step 1: Cart Items Summary */}
@@ -253,43 +253,6 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
                     );
                   }}
                 />
-
-                {/* Campus Pickup Note */}
-                <View
-                  style={[
-                    styles.infoNoticeBox,
-                    {
-                      backgroundColor: isDark ? "#1E293B" : "#F0FDF4",
-                      borderColor: isDark ? "#334155" : "#BBF7D0",
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="location-outline"
-                    size={18}
-                    color={PRIMARY}
-                    style={{ marginTop: 2 }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[
-                        styles.noticeTitle,
-                        { color: isDark ? "#E2E8F0" : "#166534" },
-                      ]}
-                    >
-                      Campus Fellowship Pickup
-                    </Text>
-                    <Text
-                      style={[
-                        styles.noticeDesc,
-                        { color: isDark ? "#94A3B8" : "#15803D" },
-                      ]}
-                    >
-                      Pick up directly at the 4 Kilo Fellowship Office or after
-                      fellowship services.
-                    </Text>
-                  </View>
-                </View>
 
                 {/* Footer Totals & CTA */}
                 <View
@@ -647,23 +610,6 @@ const styles = StyleSheet.create({
   },
   trashBtn: {
     padding: 6,
-  },
-  infoNoticeBox: {
-    flexDirection: "row",
-    gap: 10,
-    padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginVertical: 10,
-  },
-  noticeTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: 2,
-  },
-  noticeDesc: {
-    fontSize: 11.5,
-    lineHeight: 16,
   },
   sheetFooter: {
     borderTopWidth: StyleSheet.hairlineWidth,
