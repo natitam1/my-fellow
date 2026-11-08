@@ -255,12 +255,7 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
                 />
 
                 {/* Footer Totals & CTA */}
-                <View
-                  style={[
-                    styles.sheetFooter,
-                    { borderTopColor: borderColor },
-                  ]}
-                >
+                <View style={styles.sheetFooter}>
                   <View style={styles.totalRow}>
                     <Text
                       style={[styles.totalLabel, { color: subTextColor }]}
@@ -484,12 +479,10 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
 const styles = StyleSheet.create({
   sheetContainer: {
     width: "100%",
-    minHeight: 460,
-    maxHeight: 620,
     paddingBottom: Platform.OS === "ios" ? 20 : 12,
   },
   contentWrap: {
-    flex: 1,
+    width: "100%",
   },
   headerRow: {
     flexDirection: "row",
@@ -612,8 +605,8 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   sheetFooter: {
-    borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: 14,
+    marginTop: 4,
   },
   totalRow: {
     flexDirection: "row",
