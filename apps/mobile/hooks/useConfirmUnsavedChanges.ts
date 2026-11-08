@@ -35,6 +35,11 @@ export function useConfirmUnsavedChanges(
   } = options;
 
   usePreventRemove(hasUnsavedChanges && !isNavigatingAwayRef.current, ({ data, repeat }) => {
+    if (isNavigatingAwayRef.current) {
+      repeat();
+      return;
+    }
+
     if (onSave) {
       // 3-button flow: Save / Discard / Cancel (Keep Editing)
       confirm({
@@ -102,5 +107,10 @@ export function useConfirmUnsavedChanges(
     isNavigatingAwayRef.current = false;
   }, []);
 
-  return { resetPrevention };
+  const bypassAndNavigate = useCallback((navigateFn: () => void) => {
+    isNavigatingAwayRef.current = true;
+    navigateFn();
+  }, []);
+
+  return { resetPrevention, bypassAndNavigate };
 }

@@ -50,6 +50,7 @@ export default function ComposePostScreen() {
   const [actorPickerVisible, setActorPickerVisible] = useState(false);
   const [hasLocation, setHasLocation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [hasPostedSuccessfully, setHasPostedSuccessfully] = useState(false);
 
   useEffect(() => {
     fetchPostableActors().then((actors) => {
@@ -128,7 +129,13 @@ export default function ComposePostScreen() {
         authorActor: selectedActor || undefined,
       });
 
-      router.back();
+      setContent("");
+      setPickedImageUri(null);
+      setHasPostedSuccessfully(true);
+
+      bypassAndNavigate(() => {
+        router.back();
+      });
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
@@ -160,9 +167,12 @@ export default function ComposePostScreen() {
   const charsLeft = charLimit - content.length;
   const isOverLimit = charsLeft < 0;
   const hasContent = (!!content.trim() || !!pickedImageUri) && !isOverLimit;
-  const hasUnsavedChanges = content.trim().length > 0 || !!pickedImageUri;
+  const hasUnsavedChanges =
+    !hasPostedSuccessfully &&
+    !submitting &&
+    (content.trim().length > 0 || !!pickedImageUri);
 
-  useConfirmUnsavedChanges(hasUnsavedChanges, {
+  const { bypassAndNavigate } = useConfirmUnsavedChanges(hasUnsavedChanges, {
     title: "Discard draft?",
     message: "You have an unsaved fellowship post that will be lost.",
     discardLabel: "Discard",
