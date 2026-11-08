@@ -7,6 +7,7 @@ export interface IProduct {
   imageUrls: string[];
   category?: string;
   stock: number;
+  isActive?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -21,6 +22,7 @@ const ProductSchema = new Schema<IProductDocument>(
     imageUrls: { type: [String], default: [] },
     category: { type: String, default: "other", trim: true },
     stock: { type: Number, default: 0, min: 0 },
+    isActive: { type: Boolean, default: true },
   },
   {
     timestamps: true,

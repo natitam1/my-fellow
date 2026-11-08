@@ -13,4 +13,15 @@ router.get("/registrations/report", requirePermission("reports.export"), AdminCo
 router.get("/transactions", requirePermission("finance.view"), AdminController.getAllTransactions);
 router.get("/stats", requirePermission("reports.view"), AdminController.getStats);
 
+// Support ticket management
+router.get("/support", requirePermission("reports.view"), AdminController.getSupportTickets);
+router.patch("/support/:id/status", requirePermission("settings.manage"), AdminController.updateSupportTicketStatus);
+
+// Notification broadcasts & push device metrics
+router.post("/notifications/broadcast", requirePermission("settings.manage"), AdminController.broadcastNotification);
+router.get("/notifications", requirePermission("reports.view"), AdminController.getNotifications);
+
+// System health
+router.get("/health", requirePermission("settings.manage"), AdminController.getHealth);
+
 export default router;

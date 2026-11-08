@@ -115,6 +115,15 @@ export class RbacController {
     return res.json({ success: true });
   }
 
+  static async getUserGrants(req: AuthRequest, res: Response) {
+    const targetId = String(req.params.userId);
+    if (!mongoose.isValidObjectId(targetId)) {
+      return res.status(400).json({ success: false, message: "Valid userId is required" });
+    }
+    const grants = await RoleGrantModel.find({ userId: targetId }).lean();
+    return res.json({ success: true, data: grants });
+  }
+
   static async assignTeamRole(req: AuthRequest, res: Response) {
     const { userId, teamId } = req.params;
     const role = req.body?.role;

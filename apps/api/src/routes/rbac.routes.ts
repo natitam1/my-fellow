@@ -25,6 +25,11 @@ router.delete(
   requirePermission("settings.manage"),
   RbacController.revokePermission,
 );
+router.get(
+  "/users/:userId/grants",
+  requireMinimumRole("leader"),
+  RbacController.getUserGrants,
+);
 router.patch(
   "/teams/:teamId/users/:userId/role",
   requirePermission("team.coordinators.assign"),

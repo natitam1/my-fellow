@@ -84,6 +84,11 @@ export class ProductController {
           .json({ success: false, message: "At least one image is required" });
       }
 
+      const isActiveVal =
+        req.body.isActive !== undefined
+          ? String(req.body.isActive) === "true" || req.body.isActive === true
+          : true;
+
       const product = await ProductService.create({
         title,
         shortDescription,
@@ -91,6 +96,7 @@ export class ProductController {
         imageUrls: finalImageUrls,
         stock: parseInt(stock as string) || 0,
         category: category || "other",
+        isActive: isActiveVal,
       });
       return res.status(201).json({ success: true, data: product });
     } catch (error: any) {
@@ -110,7 +116,7 @@ export class ProductController {
           .json({ success: false, message: "Product not found" });
       }
 
-      const { title, shortDescription, price, imageUrls, stock, category } =
+      const { title, shortDescription, price, imageUrls, stock, category, isActive } =
         req.body;
       let finalImageUrls = imageUrls;
 
@@ -138,14 +144,18 @@ export class ProductController {
         finalImageUrls = [...baseImages, ...uploadedUrls];
       }
 
-      const product = await ProductService.update(id, {
-        title,
-        shortDescription,
-        price: price ? parseFloat(price as string) : undefined,
-        imageUrls: finalImageUrls,
-        stock: stock ? parseInt(stock as string) : undefined,
-        category,
-      });
+      const updateData: any = {};
+      if (title !== undefined) updateData.title = title;
+      if (shortDescription !== undefined) updateData.shortDescription = shortDescription;
+      if (price !== undefined) updateData.price = parseFloat(price as string);
+      if (finalImageUrls !== undefined) updateData.imageUrls = finalImageUrls;
+      if (stock !== undefined) updateData.stock = parseInt(stock as string);
+      if (category !== undefined) updateData.category = category;
+      if (isActive !== undefined) {
+        updateData.isActive = String(isActive) === "true" || isActive === true;
+      }
+
+      const product = await ProductService.update(id, updateData);
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
       return res.status(200).json({ success: true, data: product });
     } catch (error: any) {

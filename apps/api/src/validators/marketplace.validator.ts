@@ -19,12 +19,13 @@ export const createProductSchema = z.object({
     imageUrls: z
       .array(z.string().url("Each image must be a valid URL"))
       .min(1, "At least one image URL is required")
-      .max(4, "At most 4 image URLs are allowed")
+      .max(10, "At most 10 image URLs are allowed")
       .optional(),
     stock: z.coerce
       .number({ message: "Stock must be a number" })
       .int("Stock must be an integer")
       .min(0, "Stock cannot be negative"),
+    isActive: z.coerce.boolean().optional().default(true),
   }),
 });
 
@@ -47,7 +48,7 @@ export const updateProductSchema = z.object({
     imageUrls: z
       .array(z.string().url("Each image must be a valid URL"))
       .min(1, "At least one image URL is required")
-      .max(4, "At most 4 image URLs are allowed")
+      .max(10, "At most 10 image URLs are allowed")
       .optional(),
     category: z.string().optional(),
     stock: z.coerce
@@ -55,6 +56,7 @@ export const updateProductSchema = z.object({
       .int("Stock must be an integer")
       .min(0, "Stock cannot be negative")
       .optional(),
+    isActive: z.coerce.boolean().optional(),
   }),
 });
 
