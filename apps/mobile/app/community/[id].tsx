@@ -1,5 +1,6 @@
 import { ImageViewerModal } from "@/components/ImageViewerModal";
 import { ProfileLink } from "@/components/profile/ProfileLink";
+import { NativeBackButton } from "@/components/ui/NativeBackButton";
 import { PRIMARY } from "@/constants/colors";
 import { useTheme } from "@/context/ThemeContext";
 import {
@@ -19,6 +20,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   Share,
   StyleSheet,
   Text,
@@ -146,23 +148,30 @@ export default function PostDetailScreen() {
 
       {/* Header */}
       <View style={[styles.topHeader, { borderBottomColor: borderColor }]}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.headerBtn}
-        >
-          <Ionicons name="arrow-back" size={24} color={textColor} />
-        </TouchableOpacity>
+        <NativeBackButton />
 
         <Text style={[styles.headerTitle, { color: textColor }]}>Post</Text>
 
-        <TouchableOpacity
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Share post"
           onPress={handleShare}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.headerBtn}
+          hitSlop={8}
+          android_ripple={{
+            color: isDark ? "rgba(255, 255, 255, 0.16)" : "rgba(0, 0, 0, 0.10)",
+            borderless: true,
+            radius: 20,
+          }}
+          style={({ pressed }) => [
+            styles.headerBtn,
+            {
+              opacity: pressed ? (Platform.OS === "ios" ? 0.6 : 0.85) : 1,
+              transform: Platform.OS === "ios" && pressed ? [{ scale: 0.94 }] : undefined,
+            },
+          ]}
         >
-          <Ionicons name="share-outline" size={22} color={textColor} />
-        </TouchableOpacity>
+          <Ionicons name={Platform.OS === "ios" ? "share-outline" : "share-social-outline"} size={22} color={textColor} />
+        </Pressable>
       </View>
 
       <KeyboardAvoidingView
@@ -534,7 +543,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerBtn: {
-    padding: 6,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   headerTitle: {
     fontSize: 18,
