@@ -15,6 +15,7 @@ export class ProductController {
       const category = (req.query.category as string) || undefined;
 
       const result = await ProductService.getAll(page, limit, category);
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
       return res.status(200).json({ success: true, data: result });
     } catch (error: any) {
       return res
@@ -32,6 +33,7 @@ export class ProductController {
           .status(404)
           .json({ success: false, message: "Product not found" });
       }
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
       return res.status(200).json({ success: true, data: product });
     } catch (error: any) {
       return res
@@ -144,6 +146,7 @@ export class ProductController {
         stock: stock ? parseInt(stock as string) : undefined,
         category,
       });
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
       return res.status(200).json({ success: true, data: product });
     } catch (error: any) {
       return res
