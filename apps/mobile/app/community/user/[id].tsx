@@ -318,7 +318,7 @@ export default function MemberProfileScreen() {
                 <Ionicons
                   name="checkmark-circle"
                   size={14}
-                  color="#1d9bf0"
+                  color={PRIMARY}
                   style={{ marginHorizontal: 2, flexShrink: 0 }}
                 />
               )}

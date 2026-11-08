@@ -283,7 +283,7 @@ export default function PostDetailScreen() {
                         <Ionicons
                           name="checkmark-circle"
                           size={16}
-                          color="#1d9bf0"
+                          color={PRIMARY}
                           style={{ marginLeft: 4 }}
                         />
                       )}

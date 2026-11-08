@@ -378,7 +378,7 @@ export default function CommunityScreen() {
                 <Ionicons
                   name="checkmark-circle"
                   size={15}
-                  color={TWITTER_BLUE}
+                  color={PRIMARY}
                   style={styles.verifiedBadge}
                 />
               )}
@@ -389,15 +389,15 @@ export default function CommunityScreen() {
                     styles.officialMiniBadge,
                     {
                       backgroundColor: isDark
-                        ? "rgba(29, 155, 240, 0.15)"
-                        : "rgba(29, 155, 240, 0.1)",
+                        ? "rgba(255, 103, 25, 0.18)"
+                        : "rgba(255, 103, 25, 0.1)",
                     },
                   ]}
                 >
                   <Text
                     style={[
                       styles.officialMiniBadgeText,
-                      { color: TWITTER_BLUE },
+                      { color: PRIMARY },
                     ]}
                   >
                     Official

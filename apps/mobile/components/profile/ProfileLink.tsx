@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { USE_APPLE_ZOOM } from "@/lib/transitions";
+import { getPrefilledAvatar } from "@/utils/avatar";
 
 export interface ProfileSeed {
   id: string;
@@ -71,10 +72,17 @@ export function ProfileLink({
     pressed.value = withTiming(0, { duration: 110 });
   };
 
+  const resolvedAvatar =
+    user.avatarUrl && typeof user.avatarUrl === "string" && user.avatarUrl.trim() !== ""
+      ? user.avatarUrl
+      : typeof user.avatarUrl === "object" && user.avatarUrl !== null
+      ? user.avatarUrl
+      : getPrefilledAvatar(user.id || user.name || user.username || "fellow");
+
   const avatarSource =
-    typeof user.avatarUrl === "string"
-      ? { uri: user.avatarUrl }
-      : user.avatarUrl;
+    typeof resolvedAvatar === "string"
+      ? { uri: resolvedAvatar }
+      : resolvedAvatar;
 
   const hitSlopPadding = Math.max(0, (44 - size) / 2);
 
@@ -82,7 +90,7 @@ export function ProfileLink({
     id: user.id || "user-fellowship",
     name: user.name || "",
     username: user.username || "",
-    avatar: typeof user.avatarUrl === "string" ? user.avatarUrl : "",
+    avatar: typeof resolvedAvatar === "string" ? resolvedAvatar : "",
     blurhash: user.blurhash || "",
     team: user.team || "",
     department: user.department || "",
@@ -107,6 +115,7 @@ export function ProfileLink({
           height: size,
           borderRadius: size / 2,
           overflow: "hidden",
+          backgroundColor: "#fed7aa",
         }}
         collapsable={false}
       >
