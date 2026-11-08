@@ -68,17 +68,10 @@ const ProductSkeleton = ({ isDark }: ProductSkeletonProps) => {
           height={14}
           borderRadius={6}
           isDark={isDark}
-          style={{ marginBottom: 8 }}
+          style={{ marginBottom: 6 }}
         />
         <SkeletonBox
-          width="100%"
-          height={10}
-          borderRadius={4}
-          isDark={isDark}
-          style={{ marginBottom: 4 }}
-        />
-        <SkeletonBox
-          width="60%"
+          width="40%"
           height={10}
           borderRadius={4}
           isDark={isDark}
@@ -87,9 +80,9 @@ const ProductSkeleton = ({ isDark }: ProductSkeletonProps) => {
         <View style={styles.footer}>
           <SkeletonBox width={70} height={16} borderRadius={6} isDark={isDark} />
           <SkeletonBox
-            width={34}
-            height={34}
-            borderRadius={10}
+            width={58}
+            height={28}
+            borderRadius={14}
             isDark={isDark}
           />
         </View>
@@ -101,9 +94,8 @@ const ProductSkeleton = ({ isDark }: ProductSkeletonProps) => {
 const styles = StyleSheet.create({
   card: {
     width: "100%",
-    minHeight: 270,
-    marginVertical: 8,
-    borderRadius: 24,
+    marginVertical: 6,
+    borderRadius: 20,
     borderWidth: 1.5,
     overflow: "hidden",
   },
@@ -116,8 +108,8 @@ const styles = StyleSheet.create({
     borderColor: "#2c2c2e",
   },
   content: {
-    padding: 12,
-    flex: 1,
+    padding: 10,
+    minHeight: 88,
     justifyContent: "space-between",
   },
   footer: {

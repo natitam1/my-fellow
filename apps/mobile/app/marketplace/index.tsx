@@ -436,19 +436,61 @@ export default function MarketplaceScreen() {
         title="Fellowship Store"
         borderBottom={false}
         rightAction={
-          <TouchableOpacity
-            onPress={() => router.push("/marketplace/orders" as any)}
-            activeOpacity={0.8}
-            className="w-10 h-10 rounded-full items-center justify-center"
-            accessibilityRole="button"
-            accessibilityLabel="View Orders"
-          >
-            <Ionicons
-              name="receipt-outline"
-              size={22}
-              color={isDark ? "white" : "#0f172a"}
-            />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <TouchableOpacity
+              onPress={() => router.push("/marketplace/orders" as any)}
+              activeOpacity={0.8}
+              className="w-10 h-10 rounded-full items-center justify-center"
+              accessibilityRole="button"
+              accessibilityLabel="View Orders"
+            >
+              <Ionicons
+                name="receipt-outline"
+                size={22}
+                color={isDark ? "white" : "#0f172a"}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setCartVisible(true)}
+              activeOpacity={0.8}
+              className="w-10 h-10 rounded-full items-center justify-center relative"
+              accessibilityRole="button"
+              accessibilityLabel="View Shopping Cart"
+            >
+              <Ionicons
+                name="cart-outline"
+                size={22}
+                color={isDark ? "white" : "#0f172a"}
+              />
+              {cartCount > 0 && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    backgroundColor: PRIMARY,
+                    minWidth: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingHorizontal: 3,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#ffffff",
+                      fontSize: 10,
+                      fontWeight: "800",
+                    }}
+                  >
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         }
       />
 

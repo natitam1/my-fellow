@@ -1,3 +1,4 @@
+import { PRIMARY } from "@/constants/colors";
 import {
   Product,
   getProductImage,
@@ -65,7 +66,7 @@ const ProductCard = ({ product, isDark, onPress, onBuy }: ProductCardProps) => {
         </View>
 
         <View style={styles.content}>
-          <View>
+          <View style={styles.textContainer}>
             <Text
               numberOfLines={1}
               style={[styles.name, isDark ? styles.textDark : styles.textLight]}
@@ -84,27 +85,22 @@ const ProductCard = ({ product, isDark, onPress, onBuy }: ProductCardProps) => {
                 4.9
               </Text>
             </View>
-
-            {product.shortDescription && (
-              <Text
-                numberOfLines={2}
-                style={[
-                  styles.description,
-                  { color: isDark ? "#a1a1aa" : "#71717a" },
-                ]}
-              >
-                {product.shortDescription}
-              </Text>
-            )}
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.price}>{price.toFixed(2)} ETB</Text>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              style={styles.price}
+            >
+              {price.toLocaleString()} ETB
+            </Text>
             <Pressable
               style={({ pressed }) => [
                 styles.buyButton,
                 Platform.OS === "ios" &&
-                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
               ]}
               onPress={(e) => {
                 e.stopPropagation?.();
@@ -114,9 +110,9 @@ const ProductCard = ({ product, isDark, onPress, onBuy }: ProductCardProps) => {
                 color: "rgba(255, 255, 255, 0.25)",
                 borderless: false,
               }}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
-              accessibilityLabel={`Buy ${product.title || "product"}`}
+              accessibilityLabel={`Buy ${product.title || product.name || "product"}`}
             >
               <Ionicons name="cart" size={15} color="#ffffff" />
               <Text style={styles.buyButtonText}>Buy</Text>
@@ -131,18 +127,16 @@ const ProductCard = ({ product, isDark, onPress, onBuy }: ProductCardProps) => {
 const styles = StyleSheet.create({
   card: {
     width: "100%",
-    minHeight: 275,
-    marginVertical: 8,
-    borderRadius: 24,
+    marginVertical: 6,
+    borderRadius: 20,
     borderWidth: 1.5,
     overflow: "hidden",
   },
   pressableInner: {
     width: "100%",
-    flex: 1,
   },
   cardLight: {
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     borderColor: "#f1f1f1",
   },
   cardDark: {
@@ -170,21 +164,24 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: "100%",
-    height: 145,
+    height: 140,
   },
   image: {
     width: "100%",
     height: "100%",
   },
   content: {
-    padding: 12,
-    flex: 1,
+    padding: 10,
+    minHeight: 88,
     justifyContent: "space-between",
   },
+  textContainer: {
+    marginBottom: 6,
+  },
   name: {
-    fontSize: 14.5,
+    fontSize: 14,
     fontWeight: "700",
-    marginBottom: 4,
+    marginBottom: 3,
     letterSpacing: -0.3,
   },
   textLight: { color: "#18181b" },
@@ -193,27 +190,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginBottom: 6,
   },
   ratingText: {
     fontSize: 11,
     fontWeight: "700",
   },
-  description: {
-    fontSize: 11,
-    lineHeight: 15,
-    marginBottom: 8,
-  },
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 6,
-    paddingTop: 4,
+    gap: 6,
+    paddingTop: 2,
   },
   price: {
-    fontSize: 14.5,
-    color: "#ff6719",
+    flex: 1,
+    fontSize: 14,
+    color: PRIMARY,
     fontWeight: "900",
     letterSpacing: -0.2,
   },
@@ -223,9 +215,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 5,
     paddingHorizontal: 12,
-    paddingVertical: 6.5,
-    borderRadius: 16,
-    backgroundColor: "#ff6719",
+    paddingVertical: 7,
+    borderRadius: 14,
+    backgroundColor: PRIMARY,
+    flexShrink: 0,
   },
   buyButtonText: {
     color: "#ffffff",
