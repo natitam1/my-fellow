@@ -860,6 +860,7 @@ const styles = StyleSheet.create({
   },
   resultAuthorTextCol: {
     flex: 1,
+    justifyContent: "flex-start",
   },
   resultAuthorName: {
     fontSize: 14,

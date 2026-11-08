@@ -1058,6 +1058,7 @@ const styles = StyleSheet.create({
   tweetAuthorInfo: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-start",
     flex: 1,
     marginRight: 6,
     overflow: "hidden",

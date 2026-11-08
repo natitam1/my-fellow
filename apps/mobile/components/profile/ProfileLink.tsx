@@ -195,11 +195,14 @@ export function ProfileLink({
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
   },
   innerRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-start",
     flexShrink: 1,
+    maxWidth: "100%",
   },
 });
