@@ -63,7 +63,6 @@ export const ProductBottomSheet = ({
       visible={visible}
       onClose={onClose}
       isDark={isDark}
-      snapPoints={["half", "full"]}
     >
       <View style={styles.sheetContainer}>
         {/* Product Info Row */}
@@ -161,92 +160,79 @@ export const ProductBottomSheet = ({
 
         {/* Action Buttons */}
         <View style={styles.actionSection}>
-          <View
-            style={[
-              styles.nativeButtonOuter,
+          <Pressable
+            onPress={() => {
+              if (Platform.OS !== "web") {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+                  () => {},
+                );
+              }
+              onAddToCart(product, quantity);
+              onClose();
+            }}
+            unstable_pressDelay={0}
+            accessibilityRole="button"
+            accessibilityLabel="Add to Cart"
+            android_ripple={{
+              color: isDark
+                ? "rgba(255, 255, 255, 0.12)"
+                : "rgba(0, 0, 0, 0.08)",
+              borderless: false,
+              foreground: true,
+            }}
+            style={({ pressed }) => [
+              styles.actionButton,
               {
                 backgroundColor: cardBg,
                 borderColor: borderColor,
                 borderWidth: 1.5,
               },
+              Platform.OS === "ios" && pressed && styles.btnPressed,
             ]}
           >
-            <Pressable
-              onPress={() => {
-                if (Platform.OS !== "web") {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
-                    () => {},
-                  );
-                }
-                onAddToCart(product, quantity);
-                onClose();
-              }}
-              unstable_pressDelay={0}
-              accessibilityRole="button"
-              accessibilityLabel="Add to Cart"
-              android_ripple={{
-                color: isDark
-                  ? "rgba(255, 255, 255, 0.12)"
-                  : "rgba(0, 0, 0, 0.08)",
-                borderless: false,
-                foreground: true,
-              }}
-              style={({ pressed }) => [
-                styles.nativeButtonInner,
-                Platform.OS === "ios" &&
-                  pressed && {
-                    opacity: 0.85,
-                    transform: [{ scale: 0.99 }],
-                  },
-              ]}
+            <Ionicons name="cart-outline" size={18} color={PRIMARY} />
+            <Text
+              numberOfLines={1}
+              style={[styles.actionButtonText, { color: textColor }]}
             >
-              <Ionicons name="cart-outline" size={20} color={PRIMARY} />
-              <Text style={[styles.addToCartText, { color: textColor }]}>
-                Add to Cart
-              </Text>
-            </Pressable>
-          </View>
+              Add to Cart
+            </Text>
+          </Pressable>
 
-          <View
-            style={[
-              styles.nativeButtonOuter,
+          <Pressable
+            onPress={() => {
+              if (Platform.OS !== "web") {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+                  () => {},
+                );
+              }
+              onBuyNow(product, quantity);
+              onClose();
+            }}
+            unstable_pressDelay={0}
+            accessibilityRole="button"
+            accessibilityLabel="Buy Now"
+            android_ripple={{
+              color: "rgba(255, 255, 255, 0.28)",
+              borderless: false,
+              foreground: true,
+            }}
+            style={({ pressed }) => [
+              styles.actionButton,
               {
                 backgroundColor: PRIMARY,
               },
-              styles.buyNowShadow,
+              Platform.OS === "ios" && pressed && styles.btnPressed,
             ]}
           >
-            <Pressable
-              onPress={() => {
-                if (Platform.OS !== "web") {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
-                    () => {},
-                  );
-                }
-                onBuyNow(product, quantity);
-                onClose();
-              }}
-              unstable_pressDelay={0}
-              accessibilityRole="button"
-              accessibilityLabel="Buy Now"
-              android_ripple={{
-                color: "rgba(255, 255, 255, 0.28)",
-                borderless: false,
-                foreground: true,
-              }}
-              style={({ pressed }) => [
-                styles.nativeButtonInner,
-                Platform.OS === "ios" &&
-                  pressed && {
-                    opacity: 0.88,
-                    transform: [{ scale: 0.99 }],
-                  },
-              ]}
+            <Ionicons name="flash" size={17} color="#FFFFFF" />
+            <Text
+              numberOfLines={1}
+              style={[styles.actionButtonText, { color: "#FFFFFF" }]}
             >
-              <Ionicons name="flash" size={18} color="#FFFFFF" />
-              <Text style={styles.buyNowText}>Buy Now</Text>
-            </Pressable>
-          </View>
+              Buy Now
+            </Text>
+          </Pressable>
         </View>
       </View>
     </AppBottomSheet>
@@ -256,7 +242,7 @@ export const ProductBottomSheet = ({
 const styles = StyleSheet.create({
   sheetContainer: {
     width: "100%",
-    paddingBottom: Platform.OS === "ios" ? 16 : 8,
+    paddingBottom: Platform.OS === "ios" ? 16 : 12,
   },
   productRow: {
     flexDirection: "row",
@@ -359,43 +345,28 @@ const styles = StyleSheet.create({
   actionSection: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 8,
+    marginTop: 10,
+    marginBottom: Platform.OS === "android" ? 6 : 2,
   },
-  nativeButtonOuter: {
+  actionButton: {
     flex: 1,
-    height: 54,
+    height: 52,
     borderRadius: 9999,
-    overflow: "hidden",
-  },
-  nativeButtonInner: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingHorizontal: 16,
+    gap: 6,
+    paddingHorizontal: 12,
+    overflow: "hidden",
   },
-  addToCartText: {
-    fontSize: 15,
+  actionButtonText: {
+    fontSize: 14.5,
     fontWeight: "700",
+    letterSpacing: 0.2,
   },
-  buyNowText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  buyNowShadow: {
-    ...Platform.select({
-      ios: {
-        shadowColor: "#ff6719",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+  btnPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.99 }],
   },
 });
 

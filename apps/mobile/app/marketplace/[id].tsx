@@ -751,11 +751,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 9999,
     gap: 8,
-    elevation: 4,
-    shadowColor: "#ff6719",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
   },
   buyNowText: {
     color: "#fff",

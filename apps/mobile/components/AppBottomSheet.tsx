@@ -21,7 +21,7 @@ export const AppBottomSheet: React.FC<AppBottomSheetProps> = ({
   onClose,
   children,
   isDark = false,
-  snapPoints = ["half", "full"],
+  snapPoints,
 }) => {
   const containerBg = isDark ? "#18181B" : "#FFFFFF";
 
@@ -88,10 +88,9 @@ export const AppBottomSheet: React.FC<AppBottomSheetProps> = ({
 const styles = StyleSheet.create({
   sheetContent: {
     width: "100%",
-    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: Platform.OS === "ios" ? 36 : 24,
+    paddingBottom: Platform.OS === "ios" ? 36 : 28,
   },
   webOverlay: {
     flex: 1,
