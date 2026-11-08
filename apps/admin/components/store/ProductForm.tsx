@@ -37,6 +37,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
   const productId = initialData?.id || initialData?._id;
   const isEditing = Boolean(productId);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   // Existing images (URLs already stored on server)
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -239,9 +240,17 @@ export function ProductForm({ initialData }: ProductFormProps) {
         form.append("imageUrls", url);
       });
 
+      const onUploadProgress = (progressEvent: any) => {
+        if (progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percent);
+        }
+      };
+
       if (isEditing && productId) {
         await api.put(`/marketplace/products/${productId}`, form, {
           headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress,
           transformRequest: [
             (data, headers) => {
               delete headers["Content-Type"];
@@ -252,6 +261,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
       } else {
         await api.post("/marketplace/products", form, {
           headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress,
           transformRequest: [
             (data, headers) => {
               delete headers["Content-Type"];
@@ -276,6 +286,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
       toast.error(message);
     } finally {
       setLoading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -624,6 +635,21 @@ export function ProductForm({ initialData }: ProductFormProps) {
           </div>
         </div>
 
+        {uploadProgress !== null && uploadProgress > 0 && uploadProgress < 100 && (
+          <div className="w-full space-y-1 pt-2">
+            <div className="flex justify-between text-xs text-gray-500 font-medium">
+              <span>Uploading images...</span>
+              <span>{uploadProgress}%</span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-[#ff6719] h-full rounded-full transition-all duration-200"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons: Fully rounded pills matching EventForm */}
         <div className="pt-5 border-t border-gray-200">
           <div className="flex justify-end gap-3">
@@ -640,7 +666,16 @@ export function ProductForm({ initialData }: ProductFormProps) {
               className="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-full text-white bg-[#ff6719] hover:bg-[#e55a15] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6719] disabled:opacity-50 transition-all cursor-pointer"
             >
               {loading ? (
-                <Loader2 className="animate-spin h-5 w-5" />
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin h-4 w-4" />
+                  <span>
+                    {uploadProgress !== null && uploadProgress < 100
+                      ? `Uploading (${uploadProgress}%)...`
+                      : isEditing
+                        ? "Updating..."
+                        : "Publishing..."}
+                  </span>
+                </span>
               ) : isEditing ? (
                 "Update Product"
               ) : (
