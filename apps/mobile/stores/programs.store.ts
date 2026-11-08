@@ -4,6 +4,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+// Clear out legacy cache keys from previous iterations
+AsyncStorage.multiRemove([
+  "programs-storage",
+  "programs-storage-v2",
+  "programs-storage-v3",
+]).catch(() => {});
+
 const DAY_ORDER: Record<string, number> = {
   monday: 1,
   "monday - friday": 2,
@@ -44,6 +51,7 @@ interface ProgramsState {
   createProgram: (data: FormData | any) => Promise<Program>;
   updateProgram: (id: string, data: FormData | any) => Promise<Program>;
   deleteProgram: (id: string) => Promise<boolean>;
+  clearAll: () => Promise<void>;
 }
 
 export const useProgramsStore = create<ProgramsState>()(
@@ -55,6 +63,11 @@ export const useProgramsStore = create<ProgramsState>()(
       error: null,
 
       setPrograms: (programs) => set({ programs: sortPrograms(programs) }),
+
+      clearAll: async () => {
+        set({ programs: [], error: null });
+        await AsyncStorage.removeItem("programs-storage-clean").catch(() => {});
+      },
 
       loadPrograms: async (forceRefresh = false) => {
         const hasData = get().programs.length > 0;
@@ -120,7 +133,7 @@ export const useProgramsStore = create<ProgramsState>()(
       },
     }),
     {
-      name: "programs-storage-v3",
+      name: "programs-storage-clean",
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),
