@@ -79,7 +79,9 @@ const ImageGallery = ({ images, isDark }: ImageGalleryProps) => {
               source={{ uri: item }}
               style={styles.heroImage}
               contentFit="cover"
-              transition={300}
+              transition={200}
+              cachePolicy="memory-disk"
+              priority="high"
             />
           </View>
         )}
@@ -140,7 +142,8 @@ const ImageGallery = ({ images, isDark }: ImageGalleryProps) => {
                   source={{ uri }}
                   style={styles.thumbnail}
                   contentFit="cover"
-                  transition={200}
+                  transition={150}
+                  cachePolicy="memory-disk"
                 />
               </TouchableOpacity>
             );

@@ -741,7 +741,7 @@ export default function CommunityScreen() {
         )}
       />
 
-      {/* Floating Action Button (+) — Fellowship Primary Orange Circle */}
+      {/* Floating Action Button (+) — Floats cleanly above the bottom navigation tab bar (Twitter/X style) */}
       <TouchableOpacity
         activeOpacity={0.88}
         onPress={() => {
@@ -752,7 +752,7 @@ export default function CommunityScreen() {
           styles.fabBtn,
           {
             backgroundColor: PRIMARY,
-            bottom: Math.max(insets.bottom, 12) + 28,
+            bottom: 60 + Math.max(insets.bottom, 6) + 16,
           },
         ]}
       >

@@ -62,6 +62,7 @@ export const ProductBottomSheet = ({
       visible={visible}
       onClose={onClose}
       isDark={isDark}
+      snapPoints={["half"]}
     >
       <View style={styles.sheetContainer}>
         {/* Product Info Row */}
@@ -71,7 +72,8 @@ export const ProductBottomSheet = ({
               source={{ uri: imageUri }}
               style={styles.productImage}
               contentFit="cover"
-              transition={300}
+              transition={200}
+              cachePolicy="memory-disk"
             />
           </View>
           <View style={styles.productInfo}>

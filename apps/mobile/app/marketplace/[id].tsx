@@ -169,7 +169,7 @@ export default function ProductDetailScreen() {
   const decrementQuantity = () => setQuantity((q) => Math.max(1, q - 1));
 
   // ── Loading state ───────────────────────────────────────────────────────────
-  if (loading) {
+  if (loading && !product) {
     return <ProductDetailSkeleton isDark={isDark} />;
   }
 

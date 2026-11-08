@@ -372,8 +372,8 @@ export default function OrdersScreen() {
               </Text>
               <Text style={[styles.emptySubtitle, { color: subTextColor }]}>
                 {activeTab === "admin"
-                  ? "When fellowship members purchase apparel or stickers from the store, their orders will appear here for tracking."
-                  : "Explore the fellowship store to find hoodies, t-shirts, and stickers that support campus ministry."}
+                  ? "When fellowship members purchase merchandise from the store, their orders will appear here for tracking."
+                  : "Explore the fellowship store to find official hoodies, t-shirts, and handcrafted soap that support fellowship ministry."}
               </Text>
               {activeTab === "my" && (
                 <TouchableOpacity

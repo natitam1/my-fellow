@@ -28,6 +28,7 @@ type MarketplaceState = {
   hasMore: boolean;
   refreshing: boolean;
   selectedCategory: string;
+  productsLastFetched: number | null;
 
   // Cart
   cartItems: CartItem[];
@@ -90,6 +91,7 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       hasMore: true,
       refreshing: false,
       selectedCategory: "All",
+      productsLastFetched: null,
 
       cartItems: [],
       cartVisible: false,
@@ -110,9 +112,22 @@ export const useMarketplaceStore = create<MarketplaceState>()(
         limit = 20,
         categoryOverride?: string,
       ) => {
-        const currentPage = reset ? 1 : get().page;
+        const state = get();
+        const hasCachedProducts = state.products.length > 0;
+        const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes fresh cache
+        const isFresh =
+          state.productsLastFetched &&
+          Date.now() - state.productsLastFetched < CACHE_TTL_MS;
+
+        // If not a forced reset, and we have fresh cached products, return immediately
+        if (!reset && hasCachedProducts && isFresh) {
+          return;
+        }
+
+        const currentPage = reset ? 1 : state.page;
+        // Don't show full-screen loader if we already have cached products
         set({
-          loading: reset ? true : get().loading,
+          loading: hasCachedProducts ? false : (reset ? true : state.loading),
           refreshing: reset,
           error: null,
         });
@@ -121,7 +136,7 @@ export const useMarketplaceStore = create<MarketplaceState>()(
           const categoryToFetch =
             categoryOverride !== undefined
               ? categoryOverride
-              : get().selectedCategory;
+              : state.selectedCategory;
           const response = await fetchProductsApi(
             currentPage,
             limit,
@@ -137,10 +152,12 @@ export const useMarketplaceStore = create<MarketplaceState>()(
             hasMore: currentPage < totalPages,
             loading: false,
             refreshing: false,
+            productsLastFetched: Date.now(),
           });
         } catch (err: any) {
+          // On network failure, preserve existing cached products
           set({
-            error: err?.message || "Failed to fetch products",
+            error: hasCachedProducts ? null : (err?.message || "Failed to fetch products"),
             loading: false,
             refreshing: false,
           });
@@ -148,22 +165,43 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       },
 
       fetchProductById: async (id: string) => {
-        set({ loading: true, error: null, currentProduct: null });
+        const state = get();
+        // Check in-memory/persisted products cache first for instant 0ms render
+        const cached = state.products.find(
+          (p) => p.id === id || (p as any)._id === id,
+        );
+
+        if (cached) {
+          set({ currentProduct: cached, loading: false, error: null });
+        } else {
+          set({ loading: true, error: null, currentProduct: null });
+        }
+
         try {
           const response = await fetchProductByIdApi(id);
-          if (response.success) {
+          if (response.success && response.data) {
             set({ currentProduct: response.data, loading: false });
-          } else {
+            // Update or insert into cached products list
+            set((s) => ({
+              products: s.products.some((p) => p.id === id || (p as any)._id === id)
+                ? s.products.map((p) =>
+                    p.id === id || (p as any)._id === id ? response.data : p,
+                  )
+                : [response.data, ...s.products],
+            }));
+          } else if (!cached) {
             set({
               error: response.message || "Product not found",
               loading: false,
             });
           }
         } catch (err: any) {
-          set({
-            error: err?.message || "Failed to fetch product",
-            loading: false,
-          });
+          if (!cached) {
+            set({
+              error: err?.message || "Failed to fetch product",
+              loading: false,
+            });
+          }
         }
       },
 
@@ -387,6 +425,7 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       partialize: (state) => ({
         cartItems: state.cartItems,
         products: state.products,
+        productsLastFetched: state.productsLastFetched,
       }),
     },
   ),

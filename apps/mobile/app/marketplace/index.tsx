@@ -31,12 +31,9 @@ import { Route, TabBar, TabView } from "react-native-tab-view";
 
 const STORE_ROUTES: { key: string; title: string }[] = [
   { key: "All", title: "All" },
-  { key: "new", title: "New" },
   { key: "t-shirt", title: "T-Shirts" },
   { key: "hoodie", title: "Hoodies" },
-  { key: "stickers", title: "Stickers" },
-  { key: "accessories", title: "Accessories" },
-  { key: "others", title: "Others" },
+  { key: "soap", title: "Soap" },
 ];
 
 const MAIN_CATEGORIES = [
@@ -49,10 +46,8 @@ const MAIN_CATEGORIES = [
   "hoodies",
   "hoddy",
   "sweatshirt",
-  "stickers",
-  "sticker",
-  "accessories",
-  "accessory",
+  "soap",
+  "soaps",
 ];
 
 interface ProductGridSceneProps {
@@ -124,12 +119,8 @@ const ProductGridScene = React.memo(function ProductGridScene({
         );
       }
 
-      if (categoryKey === "stickers") {
-        return cat === "stickers" || cat === "sticker";
-      }
-
-      if (categoryKey === "accessories") {
-        return cat === "accessories" || cat === "accessory";
+      if (categoryKey === "soap") {
+        return cat === "soap" || cat === "soaps" || cat === "personal-care";
       }
 
       return cat === categoryKey.toLowerCase();

@@ -62,6 +62,12 @@ const PRODUCT_CATEGORIES: CategoryOption[] = [
     icon: "snow-outline",
   },
   {
+    key: "soap",
+    label: "Natural Soaps & Care",
+    desc: "Handmade organic ministry soaps and natural personal care",
+    icon: "water-outline",
+  },
+  {
     key: "stickers",
     label: "Stickers & Decals",
     desc: "Durable vinyl laptop stickers, notebook decals, and seals",

@@ -178,6 +178,7 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
                           style={styles.itemThumb}
                           contentFit="cover"
                           transition={200}
+                          cachePolicy="memory-disk"
                         />
 
                         <View style={styles.itemDetails}>
@@ -308,7 +309,7 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
               Order Summary
             </Text>
             <Text style={[styles.confirmHeaderSubtitle, { color: subTextColor }]}>
-              Please verify your pickup contact info and order breakdown.
+              Please verify your contact info and order breakdown.
             </Text>
 
             {/* Buyer Info Card */}
@@ -374,7 +375,7 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
 
               <View style={styles.orderItemSummaryRow}>
                 <Text style={{ color: subTextColor, fontSize: 13.5 }}>
-                  Pickup Delivery
+                  Delivery
                 </Text>
                 <Text
                   style={{ color: "#16A34A", fontSize: 13.5, fontWeight: "700" }}
@@ -439,8 +440,8 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
             </Text>
 
             <Text style={[styles.successSubtitle, { color: subTextColor }]}>
-              Your fellowship merchandise order has been recorded. Our
-              leaders will have it ready for pickup at campus.
+              Your fellowship merchandise order has been recorded. Our ministry
+              team will have it prepared for you.
             </Text>
 
             {placedOrder && (
@@ -734,11 +735,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
-    elevation: 4,
-    shadowColor: PRIMARY,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
   successTitle: {
     fontSize: 22,

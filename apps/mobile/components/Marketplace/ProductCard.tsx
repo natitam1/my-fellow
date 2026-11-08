@@ -59,6 +59,8 @@ const ProductCard = ({ product, isDark, onPress, onBuy }: ProductCardProps) => {
             contentFit="cover"
             transition={200}
             recyclingKey={imageUri}
+            cachePolicy="memory-disk"
+            priority="high"
           />
         </View>
 
