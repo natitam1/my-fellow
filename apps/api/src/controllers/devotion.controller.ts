@@ -1,5 +1,17 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import DevotionModel from "../models/devotion.model.js";
+import { UserModel } from "../models/user.model.js";
+import {
+  ActorModel,
+  ProfileModel,
+  TeamMemberModel,
+} from "../models/social.models.js";
+import { TeamModel } from "../models/team.model.js";
+import { TeamMembershipModel } from "../models/rbac.model.js";
+import { canPostAs, OFFICIAL_ACTOR } from "../modules/actors/actor.service.js";
+import { normalizeRole } from "../rbac/permissions.js";
+import { AuthRequest } from "../middleware/auth.middleware.js";
 import {
   createDevotionSchema,
   updateDevotionSchema,
@@ -15,6 +27,156 @@ import {
   DevotionQueryOptions,
 } from "../services/devotion.service.js";
 import { routeParam } from "../utils/routeParam.js";
+
+export interface ResolvedDevotionAuthor {
+  author: string;
+  authorHandle: string;
+  authorActorId?: string;
+  actorType: "official" | "team" | "user";
+  authorAvatar?: string;
+  authorRole: string;
+  authorUsername?: string;
+}
+
+export async function findTeamLeaderActor(userId: string) {
+  try {
+    // 1. Check TeamMemberModel
+    const teamMember = await TeamMemberModel.findOne({ userId }).lean();
+    if (teamMember?.actorId) {
+      const actor = await ActorModel.findOne({ _id: teamMember.actorId, deletedAt: null });
+      if (actor) return actor;
+    }
+
+    // 2. Check TeamMembershipModel
+    const membership = await TeamMembershipModel.findOne({ userId }).lean();
+    if (membership?.teamId) {
+      const teamDoc = await TeamModel.findById(membership.teamId).lean();
+      if (teamDoc?.name) {
+        const actor = await ActorModel.findOne({
+          $or: [
+            { displayName: teamDoc.name },
+            { teamId: String(membership.teamId) },
+            { handle: teamDoc.name.toLowerCase().replace(/[^a-z0-9]/g, "") },
+          ],
+          type: "team",
+          deletedAt: null,
+        });
+        if (actor) return actor;
+      }
+    }
+
+    // 3. Check UserModel
+    const userDoc = await UserModel.findById(userId).lean();
+    if (userDoc?.team) {
+      const teamDoc = await TeamModel.findById(userDoc.team).lean();
+      const teamName = teamDoc?.name || String(userDoc.team);
+      const actor = await ActorModel.findOne({
+        $or: [
+          { displayName: teamName },
+          { teamId: String(userDoc.team) },
+          { handle: teamName.toLowerCase().replace(/[^a-z0-9]/g, "") },
+        ],
+        type: "team",
+        deletedAt: null,
+      });
+      if (actor) return actor;
+    }
+  } catch {}
+  return null;
+}
+
+export async function resolveDevotionAuthor(
+  user: { sub: string; role?: string },
+  specifiedActor?: string | null,
+): Promise<{ error?: { status: number; message: string }; authorInfo?: ResolvedDevotionAuthor }> {
+  let targetActor = specifiedActor?.trim() || null;
+  const userRole = normalizeRole(user.role);
+  const isSuperOrLeader = userRole === "super_admin" || userRole === "leader" || user.role === "admin";
+  const isTeamLeader = userRole === "team_leader";
+
+  // 1. If no actor was specified:
+  // - If leader/super_admin: default to "fellow" official actor.
+  // - If team leader: default to their team actor.
+  // - If approved writer: default to personal ("me").
+  if (!targetActor) {
+    if (isSuperOrLeader) {
+      targetActor = "fellow";
+    } else if (isTeamLeader) {
+      const teamActor = await findTeamLeaderActor(user.sub);
+      if (teamActor) {
+        targetActor = teamActor.handle || teamActor._id.toString();
+      } else {
+        targetActor = "me";
+      }
+    } else {
+      targetActor = "me";
+    }
+  }
+
+  // 2. Call canPostAs(req.user, targetActor)
+  const { allowed, actor } = await canPostAs(user, targetActor);
+  if (!allowed) {
+    return {
+      error: {
+        status: 403,
+        message: "You are not authorized to post as this actor",
+      },
+    };
+  }
+
+  // 3. Automatically populate devotion author info strictly from the validated actor:
+  // - Official: author: "fellow", authorHandle: "fellow", actorType: "official", authorAvatar: actor.avatarUrl.
+  // - Team: author: actor.displayName, authorHandle: actor.handle, actorType: "team", authorAvatar: actor.avatarUrl.
+  // - User: author: user.fullName, authorHandle: profile?.username || user.fullName, actorType: "user", authorAvatar: user.profileImage.
+  if (actor?.type === "official" || targetActor === "fellow") {
+    return {
+      authorInfo: {
+        author: "fellow",
+        authorHandle: "fellow",
+        authorActorId: actor ? actor._id.toString() : "fellow",
+        actorType: "official",
+        authorAvatar: actor?.avatarUrl || OFFICIAL_ACTOR.avatarUrl,
+        authorRole: "Executive Ministry",
+        authorUsername: "fellow",
+      },
+    };
+  }
+
+  if (actor?.type === "team") {
+    return {
+      authorInfo: {
+        author: actor.displayName,
+        authorHandle: actor.handle,
+        authorActorId: actor._id.toString(),
+        actorType: "team",
+        authorAvatar: actor.avatarUrl || undefined,
+        authorRole: actor.displayName,
+        authorUsername: actor.handle,
+      },
+    };
+  }
+
+  // User type / personal actor ("me")
+  const [userDoc, profileDoc] = await Promise.all([
+    UserModel.findById(user.sub).lean().catch(() => null),
+    ProfileModel.findOne({ userId: user.sub }).lean().catch(() => null),
+  ]);
+
+  const fullName = userDoc?.fullName || "Fellowship Member";
+  const username = profileDoc?.username || userDoc?.fullName || "member";
+
+  return {
+    authorInfo: {
+      author: fullName,
+      authorHandle: username,
+      authorActorId: actor?._id ? actor._id.toString() : user.sub,
+      actorType: "user",
+      authorAvatar: userDoc?.profileImage || undefined,
+      authorRole: profileDoc?.fellowshipRole || "Contributing Writer",
+      authorUsername: username,
+    },
+  };
+}
 
 // ─── Helper: extract uploaded files from req.files ──────────────────
 function getUploadedFiles(req: Request) {
@@ -55,11 +217,8 @@ export class DevotionController {
       }
 
       if (!imageUrl) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "A cover image is required: upload via 'image' field or provide image URL in body",
-        });
+        imageUrl =
+          "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80";
       }
 
       // ── Handle type-specific media ──────────────────────────────────
@@ -91,13 +250,35 @@ export class DevotionController {
         });
       }
 
+      // ── Author identification & attribution strictly via Actor ───
+      const authReq = req as AuthRequest;
+      const userId = authReq.user?.sub;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+      }
+
+      const specifiedActor = req.body.authorActorId || req.body.actorHandle;
+      const resolution = await resolveDevotionAuthor(authReq.user!, specifiedActor);
+      if (resolution.error) {
+        return res.status(resolution.error.status).json({
+          success: false,
+          message: resolution.error.message,
+        });
+      }
+
+      const authorInfo = resolution.authorInfo!;
+      const authorId = new mongoose.Types.ObjectId(userId);
+
       const created = await DevotionModel.create({
         title: data.title,
-        author: data.author,
-        authorId: data.authorId,
-        authorAvatar: data.authorAvatar,
-        authorRole: data.authorRole,
-        authorUsername: data.authorUsername,
+        author: authorInfo.author,
+        authorId,
+        authorActorId: authorInfo.authorActorId,
+        actorType: authorInfo.actorType,
+        authorHandle: authorInfo.authorHandle,
+        authorAvatar: authorInfo.authorAvatar,
+        authorRole: authorInfo.authorRole,
+        authorUsername: authorInfo.authorUsername,
         date: data.date,
         type: data.type,
         views: data.views ?? 0,
@@ -191,6 +372,32 @@ export class DevotionController {
           .json({ success: false, message: "Devotion not found" });
       }
 
+      const authReq = req as AuthRequest;
+      const userId = authReq.user?.sub;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+      }
+
+      const userRole = normalizeRole(authReq.user?.role);
+      const isSuperAdmin = userRole === "super_admin" || authReq.user?.role === "admin";
+      const isCreator = existing.authorId && String(existing.authorId) === String(userId);
+
+      let isActorAuthorized = false;
+      if (existing.authorActorId) {
+        const check = await canPostAs(
+          { sub: userId, role: authReq.user?.role },
+          existing.authorActorId
+        );
+        isActorAuthorized = check.allowed;
+      }
+
+      if (!isSuperAdmin && !isCreator && !isActorAuthorized) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden: You are not authorized to modify this devotion",
+        });
+      }
+
       const parseResult = updateDevotionSchema.safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({
@@ -202,6 +409,41 @@ export class DevotionController {
 
       const data: any = { ...parseResult.data };
       const { imageFile, mediaFile } = getUploadedFiles(req);
+
+      // Prevent manual text spoofing of author/actor info
+      delete data.author;
+      delete data.authorHandle;
+      delete data.actorType;
+      delete data.authorAvatar;
+      delete data.authorRole;
+      delete data.authorUsername;
+      delete data.authorId;
+      delete data.authorActorId;
+
+      // If actor switch is requested, validate the new actor
+      const specifiedActor = req.body.authorActorId || req.body.actorHandle;
+      if (
+        specifiedActor &&
+        specifiedActor !== existing.authorActorId &&
+        specifiedActor !== existing.authorHandle
+      ) {
+        const resolution = await resolveDevotionAuthor(authReq.user!, specifiedActor);
+        if (resolution.error) {
+          return res.status(resolution.error.status).json({
+            success: false,
+            message: resolution.error.message,
+          });
+        }
+        if (resolution.authorInfo) {
+          data.author = resolution.authorInfo.author;
+          data.authorHandle = resolution.authorInfo.authorHandle;
+          data.authorActorId = resolution.authorInfo.authorActorId;
+          data.actorType = resolution.authorInfo.actorType;
+          data.authorAvatar = resolution.authorInfo.authorAvatar;
+          data.authorRole = resolution.authorInfo.authorRole;
+          data.authorUsername = resolution.authorInfo.authorUsername;
+        }
+      }
 
       // ── Replace cover image if new one uploaded ─────────────────────
       if (imageFile) {
@@ -218,6 +460,11 @@ export class DevotionController {
           data.audioUrl = result.secure_url;
           data.audioPublicId = result.public_id;
         }
+      }
+
+      // Synchronize voice caption and content if needed
+      if (data.caption && !data.content) {
+        data.content = data.caption;
       }
 
       const updated = await DevotionModel.findByIdAndUpdate(id, data, {

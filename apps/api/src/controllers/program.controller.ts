@@ -30,6 +30,18 @@ export class ProgramController {
     try {
       let data = ProgramController.parseMultipartBody(req.body);
 
+      // If a file is uploaded via multipart, provide placeholder so Zod validation passes
+      if (req.file && (!data.image || typeof data.image !== "string")) {
+        data.image = "pending_upload";
+      }
+
+      if (!req.file && (!data.image || !data.image.trim() || data.image === "pending_upload")) {
+        return res.status(400).json({
+          success: false,
+          message: "A program cover image is required",
+        });
+      }
+
       const parseResult = programBaseSchema.safeParse(data);
 
       if (!parseResult.success) {

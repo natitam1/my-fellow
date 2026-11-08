@@ -1,10 +1,125 @@
-import { Router } from "express";
+import { Router, Response, NextFunction } from "express";
 import DevotionController from "../controllers/devotion.controller.js";
 import WriterRequestController from "../controllers/writerRequest.controller.js";
 import { uploadDevotionFiles } from "../middleware/upload.middleware.js";
-import { requireAuth, requirePermission } from "../middleware/auth.middleware.js";
+import {
+  requireAuth,
+  requirePermission,
+  AuthRequest,
+} from "../middleware/auth.middleware.js";
+import { roleHasPermission, normalizeRole } from "../rbac/permissions.js";
+import WriterRequestModel from "../models/writerRequest.model.js";
+import DevotionModel from "../models/devotion.model.js";
+import { routeParam } from "../utils/routeParam.js";
+import { canPostAs } from "../modules/actors/actor.service.js";
 
 const router = Router();
+
+// ─── AUTHORIZATION GUARDS FOR DEVOTIONS ─────────────────────────────
+export async function isApprovedDevotionAuthor(user: {
+  sub: string;
+  role?: string;
+  permissions?: readonly string[];
+}): Promise<boolean> {
+  const normalized = normalizeRole(user.role);
+  if (
+    normalized === "super_admin" ||
+    normalized === "leader" ||
+    normalized === "team_leader" ||
+    user.role === "admin" ||
+    user.role === "coordinator" ||
+    roleHasPermission(user.role, "sermons.media.manage", user.permissions)
+  ) {
+    return true;
+  }
+
+  const approved = await WriterRequestModel.exists({
+    userId: user.sub,
+    status: { $in: ["accepted", "approved"] },
+  });
+
+  return Boolean(approved);
+}
+
+async function requireDevotionAuthorPermission(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const isAllowed = await isApprovedDevotionAuthor(req.user);
+  if (!isAllowed) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Forbidden: Only fellowship leaders, team leaders, and approved writers can author devotions.",
+    });
+  }
+
+  return next();
+}
+
+async function requireDevotionEditPermission(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const isAllowed = await isApprovedDevotionAuthor(req.user);
+  if (!isAllowed) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Forbidden: Only fellowship leaders, team leaders, and approved writers can modify devotions.",
+    });
+  }
+
+  const role = req.user.role;
+  const normalized = normalizeRole(role);
+  if (
+    normalized === "super_admin" ||
+    role === "admin" ||
+    roleHasPermission(role, "sermons.media.manage", req.user.permissions)
+  ) {
+    return next();
+  }
+
+  const id = routeParam(req.params.id);
+  const existing = await DevotionModel.findById(id).select("authorId authorActorId");
+  if (!existing) {
+    return res.status(404).json({ success: false, message: "Devotion not found" });
+  }
+
+  // Creator can edit
+  if (
+    existing.authorId &&
+    String(existing.authorId) === String(req.user.sub)
+  ) {
+    return next();
+  }
+
+  // Authorized actor member can edit
+  if (existing.authorActorId) {
+    const { allowed } = await canPostAs(
+      { sub: req.user.sub, role: req.user.role },
+      existing.authorActorId
+    );
+    if (allowed) {
+      return next();
+    }
+  }
+
+  return res.status(403).json({
+    success: false,
+    message: "Forbidden: You are not authorized to modify this devotion.",
+  });
+}
 
 // ─── WRITER APPLICATION REQUESTS ──────────────────────────────────────
 // POST /api/devotions/writer-requests — submit a writer application
@@ -54,7 +169,7 @@ router.post("/:id/like", requireAuth, DevotionController.likeDevotion);
 router.post(
   "/",
   requireAuth,
-  requirePermission("sermons.media.manage"),
+  requireDevotionAuthorPermission,
   uploadDevotionFiles,
   DevotionController.createDevotion,
 );
@@ -63,7 +178,7 @@ router.post(
 router.put(
   "/:id",
   requireAuth,
-  requirePermission("sermons.media.manage"),
+  requireDevotionEditPermission,
   uploadDevotionFiles,
   DevotionController.updateDevotion,
 );
@@ -72,7 +187,7 @@ router.put(
 router.delete(
   "/:id",
   requireAuth,
-  requirePermission("sermons.media.manage"),
+  requireDevotionEditPermission,
   DevotionController.deleteDevotion,
 );
 

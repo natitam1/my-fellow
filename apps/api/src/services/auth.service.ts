@@ -9,6 +9,7 @@ import { ProfileModel } from "../models/social.models.js";
 import { resolveUniqueUsername } from "../utils/username.js";
 import { uploadImageToCloudinary } from "./cloudinary.service.js";
 import { OtpService, toLocalPhone } from "./otp.service.js";
+import { ensureFollowOfficialActor } from "../modules/actors/actor.service.js";
 
 export class AuthService {
   static async createAuthToken(user: {
@@ -130,6 +131,13 @@ export class AuthService {
 
     await user.save();
     await user.populate("team", "name");
+
+    try {
+      await ensureFollowOfficialActor(user._id);
+    } catch (followErr) {
+      console.error("[register] Failed to auto-follow official actor:", followErr);
+    }
+
     const token = await AuthService.createAuthToken(user);
 
     let resolvedUsername: string | undefined = undefined;
@@ -550,6 +558,12 @@ export class AuthService {
       if (!user.fullName || !user.department) {
         isNewUser = true;
       }
+    }
+
+    try {
+      await ensureFollowOfficialActor(user._id);
+    } catch (followErr) {
+      console.error("[verifyPhoneAuthOtp] Failed to auto-follow official actor:", followErr);
     }
 
     const token = await AuthService.createAuthToken(user);

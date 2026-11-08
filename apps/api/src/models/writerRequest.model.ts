@@ -1,5 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
+export type WriterRequestStatus = "pending" | "approved" | "accepted" | "rejected";
+
 export interface IWriterRequest extends Document {
   userId: mongoose.Types.ObjectId;
   fullName: string;
@@ -9,7 +11,7 @@ export interface IWriterRequest extends Document {
   year?: string;
   sampleTopic: string;
   message?: string;
-  status: "pending" | "approved" | "rejected";
+  status: WriterRequestStatus;
   adminNotes?: string;
   reviewedBy?: mongoose.Types.ObjectId;
   reviewedAt?: Date;
@@ -29,7 +31,7 @@ const WriterRequestSchema = new Schema<IWriterRequest>(
     message: { type: String, trim: true },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "accepted", "rejected"],
       default: "pending",
     },
     adminNotes: { type: String, trim: true },

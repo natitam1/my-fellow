@@ -10,14 +10,27 @@ const devotionTypeEnum = z.enum(DEVOTION_TYPES, {
 export const createDevotionSchema = z
   .object({
     title: z.string().min(3, "Title must be at least 3 characters"),
-    author: z.string().min(2, "Author name must be at least 2 characters"),
+    author: z
+      .string()
+      .optional()
+      .transform((val) => (val && val.trim() !== "" ? val.trim() : undefined)),
     authorId: z.string().optional(),
-    authorAvatar: z.string().url().optional(),
+    authorActorId: z.string().optional(),
+    actorHandle: z.string().optional(),
+    actorType: z.enum(["official", "team", "user"]).optional(),
+    authorHandle: z.string().optional(),
+    authorAvatar: z
+      .string()
+      .optional()
+      .transform((val) => (val && val.trim() !== "" ? val.trim() : undefined)),
     authorRole: z.string().optional(),
     authorUsername: z.string().optional(),
     date: z.string().min(1, "Date is required"),
     type: devotionTypeEnum,
-    image: z.string().url().optional(), // May come via file upload instead
+    image: z
+      .string()
+      .optional()
+      .transform((val) => (val && val.trim() !== "" ? val.trim() : undefined)), // May come via file upload instead
     views: z.coerce.number().int().min(0).optional(),
     likes: z.coerce.number().int().min(0).optional(),
 
@@ -25,7 +38,10 @@ export const createDevotionSchema = z
     content: z.string().optional(),
 
     // Voice type
-    audioUrl: z.string().url().optional(),
+    audioUrl: z
+      .string()
+      .optional()
+      .transform((val) => (val && val.trim() !== "" ? val.trim() : undefined)),
     duration: z.string().optional(),
     caption: z.string().optional(), // Mandatory caption/transcript for voice devotions
 
@@ -33,13 +49,20 @@ export const createDevotionSchema = z
     tags: z
       .union([z.string(), z.array(z.string())])
       .optional()
-      .transform((val) =>
-        val
-          ? typeof val === "string"
-            ? val.split(",").map((t) => t.trim())
-            : val
-          : undefined,
-      ),
+      .transform((val) => {
+        if (!val) return undefined;
+        if (Array.isArray(val)) return val.map((t) => String(t).trim()).filter(Boolean);
+        if (typeof val === "string") {
+          try {
+            const parsed = JSON.parse(val);
+            if (Array.isArray(parsed)) {
+              return parsed.map((t) => String(t).trim()).filter(Boolean);
+            }
+          } catch {}
+          return val.split(",").map((t) => t.trim()).filter(Boolean);
+        }
+        return undefined;
+      }),
     featured: z
       .union([z.boolean(), z.string()])
       .optional()
@@ -82,33 +105,56 @@ export const createDevotionSchema = z
 // ─── Update ─────────────────────────────────────────────────────────
 export const updateDevotionSchema = z.object({
   title: z.string().min(3).optional(),
-  author: z.string().min(2).optional(),
+  author: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== "" ? val.trim() : undefined)),
   authorId: z.string().optional(),
-  authorAvatar: z.string().url().optional(),
+  authorActorId: z.string().optional(),
+  actorHandle: z.string().optional(),
+  actorType: z.enum(["official", "team", "user"]).optional(),
+  authorHandle: z.string().optional(),
+  authorAvatar: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== "" ? val.trim() : undefined)),
   authorRole: z.string().optional(),
   authorUsername: z.string().optional(),
   date: z.string().optional(),
   type: devotionTypeEnum.optional(),
-  image: z.string().url().optional(),
+  image: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== "" ? val.trim() : undefined)),
   views: z.coerce.number().int().min(0).optional(),
   likes: z.coerce.number().int().min(0).optional(),
 
   content: z.string().optional(),
 
-  audioUrl: z.string().url().optional(),
+  audioUrl: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== "" ? val.trim() : undefined)),
   duration: z.string().optional(),
   caption: z.string().optional(),
 
   tags: z
     .union([z.string(), z.array(z.string())])
     .optional()
-    .transform((val) =>
-      val
-        ? typeof val === "string"
-          ? val.split(",").map((t) => t.trim())
-          : val
-        : undefined,
-    ),
+    .transform((val) => {
+      if (!val) return undefined;
+      if (Array.isArray(val)) return val.map((t) => String(t).trim()).filter(Boolean);
+      if (typeof val === "string") {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) {
+            return parsed.map((t) => String(t).trim()).filter(Boolean);
+          }
+        } catch {}
+        return val.split(",").map((t) => t.trim()).filter(Boolean);
+      }
+      return undefined;
+    }),
   featured: z
     .union([z.boolean(), z.string()])
     .optional()

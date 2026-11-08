@@ -648,6 +648,7 @@ export interface IActor {
   isVerified?: boolean;
   userId?: string | null;
   teamId?: string | null;
+  followersCount?: number;
   deletedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -667,6 +668,7 @@ const ActorSchema = new Schema<IActorDocument>(
     isVerified: { type: Boolean, default: false },
     userId: { type: String, default: null, index: true },
     teamId: { type: String, default: null, index: true },
+    followersCount: { type: Number, default: 0 },
     deletedAt: { type: Date, default: null },
   },
   {

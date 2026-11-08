@@ -6,6 +6,9 @@ export interface IDevotion extends Document {
   title: string;
   author: string;
   authorId?: mongoose.Types.ObjectId | string;
+  authorActorId?: string;
+  actorType?: "official" | "team" | "user";
+  authorHandle?: string;
   authorAvatar?: string;
   authorRole?: string;
   authorUsername?: string;
@@ -36,6 +39,12 @@ const DevotionSchema = new Schema<IDevotion>(
     title: { type: String, required: true, trim: true },
     author: { type: String, required: true, trim: true },
     authorId: { type: Schema.Types.ObjectId, ref: "User" },
+    authorActorId: { type: String, trim: true },
+    actorType: {
+      type: String,
+      enum: ["official", "team", "user"],
+    },
+    authorHandle: { type: String, trim: true },
     authorAvatar: { type: String, trim: true },
     authorRole: { type: String, trim: true },
     authorUsername: { type: String, trim: true },
@@ -68,6 +77,8 @@ const DevotionSchema = new Schema<IDevotion>(
 
 DevotionSchema.index({ type: 1, createdAt: -1 });
 DevotionSchema.index({ authorId: 1 });
+DevotionSchema.index({ authorActorId: 1 });
+DevotionSchema.index({ actorType: 1 });
 DevotionSchema.index({ featured: 1 });
 DevotionSchema.index({ tags: 1 });
 

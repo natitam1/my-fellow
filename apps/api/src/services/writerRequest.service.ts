@@ -63,7 +63,7 @@ export class WriterRequestService {
   }
 
   static async getAllRequests(options: {
-    status?: "pending" | "approved" | "rejected";
+    status?: "pending" | "approved" | "accepted" | "rejected";
     page?: number;
     limit?: number;
   }) {
@@ -98,12 +98,12 @@ export class WriterRequestService {
 
   static async updateStatus(
     requestId: string,
-    status: "approved" | "rejected",
+    status: "approved" | "accepted" | "rejected",
     adminId?: string,
     adminNotes?: string
   ) {
-    if (!["approved", "rejected"].includes(status)) {
-      throw new Error("Invalid status. Must be approved or rejected");
+    if (!["approved", "accepted", "rejected"].includes(status)) {
+      throw new Error("Invalid status. Must be approved, accepted, or rejected");
     }
 
     const request = await WriterRequestModel.findById(requestId);

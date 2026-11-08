@@ -25,6 +25,10 @@ export class ProgramService {
       }
     }
 
+    if (!image || image === "pending_upload") {
+      throw new Error("A valid program cover image is required");
+    }
+
     const program = await ProgramModel.create({
       ...data,
       image,

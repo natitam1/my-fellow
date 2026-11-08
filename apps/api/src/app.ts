@@ -1,3 +1,6 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import cors from "cors";
 import express, { NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
@@ -22,12 +25,57 @@ import rbacRoutes from "./routes/rbac.routes.js";
 import { errorMiddleware } from "./platform/errors.js";
 import job from "./utils/cron.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 
 app.set("trust proxy", 1);
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 app.use(cors());
+
+// Static Assets Serving with Cache and CORS headers
+const staticAssetOptions = {
+  maxAge: "1d",
+  setHeaders: (res: Response) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+  },
+};
+
+// Explicit CORS & CORP headers for all /assets requests
+app.use("/assets", (req: Request, res: Response, next: NextFunction) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+// Primary static assets from public/assets
+app.use("/assets", express.static(path.join(process.cwd(), "public/assets"), staticAssetOptions));
+app.use("/assets", express.static(path.join(__dirname, "../public/assets"), staticAssetOptions));
+const cwdPublicAssets = path.resolve(process.cwd(), "my-fellow-api/public/assets");
+if (fs.existsSync(cwdPublicAssets)) {
+  app.use("/assets", express.static(cwdPublicAssets, staticAssetOptions));
+}
+
+// Fallback static assets from mobile app (my-fellow/assets/images)
+app.use("/assets", express.static(path.resolve(__dirname, "../../my-fellow/assets/images"), staticAssetOptions));
+app.use("/assets", express.static(path.resolve(process.cwd(), "../my-fellow/assets/images"), staticAssetOptions));
+const rootMobileAssets = path.resolve(process.cwd(), "my-fellow/assets/images");
+if (fs.existsSync(rootMobileAssets)) {
+  app.use("/assets", express.static(rootMobileAssets, staticAssetOptions));
+}
 
 const customAuthPaths = [
   "/api/auth/phone",
@@ -151,7 +199,7 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 // RFC 9457 Centralized Error Middleware
 app.use(errorMiddleware);
 
-if (process.env.API_URL) {
+if (process.env.API_URL && process.env.NODE_ENV !== "test") {
   job.start();
 }
 

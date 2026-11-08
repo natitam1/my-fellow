@@ -37,6 +37,7 @@ router.get("/actors", optionalAuth, async (_req: AuthRequest, res: Response, nex
         bio: a.bio,
         isVerified: Boolean(a.isVerified),
         teamId: a.teamId,
+        followersCount: a.followersCount || 0,
       })),
     });
   } catch (err) {
@@ -66,6 +67,7 @@ router.get("/actors/:id", optionalAuth, async (req: AuthRequest, res: Response, 
       bio: (actor as any).bio,
       isVerified: Boolean((actor as any).isVerified),
       teamId: (actor as any).teamId,
+      followersCount: (actor as any).followersCount || 0,
     });
   } catch (err) {
     next(err);
