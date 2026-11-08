@@ -4,6 +4,7 @@ import { ConfirmModal } from "@/components/Modals/ConfirmModal";
 import { StreakModal } from "@/components/StreakModal";
 import { LongPressAvatar, closeAvatarPreview } from "@/components/avatar-preview";
 import { ProfileLink } from "@/components/profile/ProfileLink";
+import { getPrefilledAvatar } from "@/utils/avatar";
 import { PRIMARY } from "@/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -455,6 +456,10 @@ export default function ProfileScreen() {
   };
 
   // Profile data derivations (completely dynamic - zero hardcoded data)
+  const avatarUri =
+    user?.profileImage ||
+    getPrefilledAvatar(user?.phoneNumber || user?.id || "fellow");
+
   const avatarInitial = (
     user?.fullName?.trim() ||
     currentMember?.fullName?.trim() ||
@@ -518,19 +523,17 @@ export default function ProfileScreen() {
     department ||
     displayAcademicYear ||
     location ||
-    joinedDate ||
-    telegramHandle ||
-    formattedPhone
+    joinedDate
   );
 
   // Palette matching design system
-  const bgColor = isDark ? "#09090b" : "#f8fafc";
+  const bgColor = isDark ? "#09090b" : "#ffffff";
   const cardBg = isDark ? "#18181b" : "#ffffff";
   const cardBorder = isDark ? "#27272a" : "#e2e8f0";
   const textPrimary = isDark ? "#ffffff" : "#0f172a";
-  const textSecondary = isDark ? "#a1a1aa" : "#64748b";
-  const textTertiary = isDark ? "#71717a" : "#94a3b8";
-  const pillBg = isDark ? "#27272a" : "#f1f5f9";
+  const textSecondary = isDark ? "#a1a1aa" : "#475569";
+  const textTertiary = isDark ? "#71717a" : "#64748b";
+  const pillBg = isDark ? "#27272a" : "#f8fafc";
   const dividerColor = isDark ? "#27272a" : "#f1f5f9";
   const iconMuted = isDark ? "#a1a1aa" : "#475569";
 
@@ -1475,10 +1478,10 @@ export default function ProfileScreen() {
                 },
               ]}
             >
-              {user?.profileImage ? (
+              {avatarUri ? (
                 <LongPressAvatar
                   size={80}
-                  uri={user.profileImage}
+                  uri={avatarUri}
                   name={user?.fullName || "Member"}
                   imageStyle={styles.avatarImage}
                   onPress={() => {
@@ -1526,11 +1529,6 @@ export default function ProfileScreen() {
                 },
               ]}
             >
-              <Ionicons
-                name="share-outline"
-                size={16}
-                color={isDark ? "#ffffff" : "#0f172a"}
-              />
               <Text
                 style={[
                   styles.secondaryPillText,
@@ -1557,21 +1555,16 @@ export default function ProfileScreen() {
               style={({ pressed }) => [
                 styles.primaryPillBtn,
                 {
-                  backgroundColor: PRIMARY,
-                  borderColor: PRIMARY,
+                  backgroundColor: isDark ? "#ffffff" : "#000000",
+                  borderColor: isDark ? "#ffffff" : "#000000",
                   opacity: Platform.OS === "ios" && pressed ? 0.8 : 1,
                 },
               ]}
             >
-              <Ionicons
-                name="create-outline"
-                size={15}
-                color="#ffffff"
-              />
               <Text
                 style={[
                   styles.primaryPillText,
-                  { color: "#ffffff" },
+                  { color: isDark ? "#000000" : "#ffffff" },
                 ]}
               >
                 Edit profile
@@ -1597,57 +1590,12 @@ export default function ProfileScreen() {
             />
           </View>
 
-          {systemHandle ? (
-            <Text style={[styles.handleLine, { color: textSecondary }]}>
-              {systemHandle}
-            </Text>
-          ) : null}
-
-          {/* Status Badges Strip: Active Member, Team, Streak (Dynamic) */}
-          <View style={styles.badgesWrap}>
-            <View
-              style={[
-                styles.badgePill,
-                {
-                  backgroundColor: isDark ? "#052e16" : "#f0fdf4",
-                  borderColor: isDark ? "#14532d" : "#bbf7d0",
-                },
-              ]}
-            >
-              <View style={styles.greenDot} />
-              <Text
-                style={[
-                  styles.badgePillText,
-                  { color: isDark ? "#4ade80" : "#16a34a" },
-                ]}
-              >
-                {user?.role && !["user", "member"].includes(user.role.toLowerCase())
-                  ? user.role.toUpperCase()
-                  : "Active Member"}
+          {/* Handle and Streak pill row */}
+          <View style={styles.handleAndStreakRow}>
+            {systemHandle ? (
+              <Text style={[styles.handleLine, { color: textSecondary }]}>
+                {systemHandle}
               </Text>
-            </View>
-
-            {isAssignedTeam ? (
-              <Pressable
-                onPress={() => {
-                  Haptics.selectionAsync().catch(() => {});
-                  router.push("/teams" as any);
-                }}
-                style={[
-                  styles.badgePill,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(255, 103, 25, 0.12)"
-                      : "#fff7ed",
-                    borderColor: `${PRIMARY}40`,
-                  },
-                ]}
-              >
-                <Ionicons name="heart" size={11} color={PRIMARY} />
-                <Text style={[styles.badgePillText, { color: PRIMARY }]}>
-                  {teamName}
-                </Text>
-              </Pressable>
             ) : null}
 
             {currentStreak > 0 ? (
@@ -1674,6 +1622,32 @@ export default function ProfileScreen() {
                   ]}
                 >
                   {currentStreak}d Streak
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          {/* Status Badges Strip: Team (Dynamic) */}
+          <View style={styles.badgesWrap}>
+            {isAssignedTeam ? (
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync().catch(() => {});
+                  router.push("/teams" as any);
+                }}
+                style={[
+                  styles.badgePill,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255, 103, 25, 0.12)"
+                      : "#fff7ed",
+                    borderColor: `${PRIMARY}40`,
+                  },
+                ]}
+              >
+                <Ionicons name="heart" size={11} color={PRIMARY} />
+                <Text style={[styles.badgePillText, { color: PRIMARY }]}>
+                  {teamName}
                 </Text>
               </Pressable>
             ) : null}
@@ -1744,30 +1718,6 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
               )}
-
-              {Boolean(telegramHandle) && (
-                <Pressable onPress={handleTelegramPress} style={styles.metaRow}>
-                  <Ionicons name="paper-plane" size={13} color={PRIMARY} />
-                  <Text
-                    style={[
-                      styles.metaText,
-                      { color: PRIMARY, fontWeight: "600" },
-                    ]}
-                  >
-                    {telegramHandle}
-                  </Text>
-                  <Ionicons name="open-outline" size={12} color={PRIMARY} />
-                </Pressable>
-              )}
-
-              {Boolean(formattedPhone) && (
-                <View style={styles.metaRow}>
-                  <Ionicons name="call-outline" size={13} color={iconMuted} />
-                  <Text style={[styles.metaText, { color: textSecondary }]}>
-                    {formattedPhone}
-                  </Text>
-                </View>
-              )}
             </View>
           )}
 
@@ -1826,23 +1776,6 @@ export default function ProfileScreen() {
               </Text>
               <Text style={[styles.statMuted, { color: textSecondary }]}>
                 Reflections
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
-                  () => {}
-                );
-                router.push("/(tabs)/devotions" as any);
-              }}
-              style={styles.statCounterItem}
-            >
-              <Text style={[styles.statBold, { color: textPrimary }]}>
-                {readCount}
-              </Text>
-              <Text style={[styles.statMuted, { color: textSecondary }]}>
-                Devotions
               </Text>
             </Pressable>
           </View>
@@ -2297,26 +2230,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingHorizontal: 14,
+    paddingHorizontal: 20,
     height: 38,
     borderRadius: 19,
     borderWidth: 1.5,
     overflow: "hidden",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1.5 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   secondaryPillText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     letterSpacing: -0.2,
   },
@@ -2324,26 +2245,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingHorizontal: 16,
+    paddingHorizontal: 22,
     height: 38,
     borderRadius: 19,
     borderWidth: 1.5,
     overflow: "hidden",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
   },
   primaryPillText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     letterSpacing: -0.2,
   },
@@ -2366,6 +2275,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     marginTop: 1,
+  },
+  handleAndStreakRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 2,
+    flexWrap: "wrap",
   },
   badgesWrap: {
     flexDirection: "row",

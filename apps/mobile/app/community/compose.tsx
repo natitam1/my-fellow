@@ -12,7 +12,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,6 +23,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  type TextInputInstance,
   ToastAndroid,
   View,
 } from "react-native";
@@ -51,6 +52,7 @@ export default function ComposePostScreen() {
   const [hasLocation, setHasLocation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [hasPostedSuccessfully, setHasPostedSuccessfully] = useState(false);
+  const inputRef = useRef<TextInputInstance | null>(null);
 
   useEffect(() => {
     fetchPostableActors().then((actors) => {
@@ -231,12 +233,14 @@ export default function ComposePostScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.contentWrap}
       >
         <ScrollView
           style={styles.scrollView}
-          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="none"
           showsVerticalScrollIndicator={false}
         >
           {/* User Row + Actor Identity + Audience Picker */}
@@ -271,7 +275,7 @@ export default function ComposePostScreen() {
               </View>
 
               <View style={styles.pillRow}>
-                {/* Switch Actor Pill */}
+                {/* Switch Actor Pill (Matching the rounded capsule style of the audience pill) */}
                 {postableActors.length > 1 && (
                   <Pressable
                     onPress={() => {
@@ -281,23 +285,23 @@ export default function ComposePostScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Switch author identity"
                     android_ripple={{
-                      color: isDark ? "rgba(255, 103, 25, 0.25)" : "rgba(255, 103, 25, 0.16)",
+                      color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
                       borderless: false,
                     }}
                     style={({ pressed }) => [
                       styles.actorPill,
                       {
-                        borderColor: isDark ? "rgba(255, 103, 25, 0.5)" : "#fed7aa",
-                        backgroundColor: isDark ? "rgba(255, 103, 25, 0.15)" : "#fff7ed",
+                        borderColor: isDark ? "rgba(255, 255, 255, 0.14)" : "#e2e8f0",
+                        backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc",
                         opacity: pressed ? (Platform.OS === "ios" ? 0.75 : 0.95) : 1,
                       },
                     ]}
                   >
-                    <Ionicons name="swap-horizontal" size={12} color={PRIMARY} />
-                    <Text style={[styles.actorPillText, { color: PRIMARY }]}>
+                    <Ionicons name="swap-horizontal" size={12} color={mutedColor} />
+                    <Text style={[styles.actorPillText, { color: mutedColor }]}>
                       Post as: {selectedActor && selectedActor.id !== "me" ? selectedActor.displayName : "Me"}
                     </Text>
-                    <Ionicons name="chevron-down" size={12} color={PRIMARY} />
+                    <Ionicons name="chevron-down" size={12} color={mutedColor} />
                   </Pressable>
                 )}
 
@@ -308,7 +312,7 @@ export default function ComposePostScreen() {
                   style={[
                     styles.audiencePill,
                     {
-                      borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "#e2e8f0",
+                      borderColor: isDark ? "rgba(255, 255, 255, 0.14)" : "#e2e8f0",
                       backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc",
                     },
                   ]}
@@ -322,16 +326,22 @@ export default function ComposePostScreen() {
             </View>
           </View>
 
-          {/* Text Input */}
-          <TextInput
-            value={content}
-            onChangeText={setContent}
-            placeholder="What's happening in fellowship?"
-            placeholderTextColor={isDark ? "#71717a" : "#94a3b8"}
-            multiline
-            autoFocus
-            style={[styles.textInput, { color: textColor }]}
-          />
+          {/* Tappable Canvas focusing TextInput so keyboard doesn't dismiss */}
+          <Pressable
+            style={styles.textInputCanvas}
+            onPress={() => inputRef.current?.focus()}
+          >
+            <TextInput
+              ref={inputRef}
+              value={content}
+              onChangeText={setContent}
+              placeholder="What's happening in fellowship?"
+              placeholderTextColor={isDark ? "#71717a" : "#94a3b8"}
+              multiline
+              autoFocus
+              style={[styles.textInput, { color: textColor }]}
+            />
+          </Pressable>
 
           {/* Attached Location Tag */}
           {hasLocation && (
@@ -397,36 +407,36 @@ export default function ComposePostScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.toolbarIconsRow}
           >
-            {/* 1. Gallery (Active) */}
+            {/* 1. Gallery (Coming soon) */}
             <Pressable
-              onPress={handlePickImage}
+              onPress={showComingSoonToast}
               hitSlop={6}
               accessibilityRole="button"
-              accessibilityLabel="Attach photo from gallery"
+              accessibilityLabel="Attach photo from gallery, coming soon"
               android_ripple={{
-                color: isDark ? "rgba(255, 103, 25, 0.25)" : "rgba(255, 102, 25, 0.15)",
+                color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
                 borderless: true,
                 radius: 18,
               }}
               style={styles.toolIconBtn}
             >
-              <Ionicons name="image-outline" size={22} color={PRIMARY} />
+              <Ionicons name="image-outline" size={22} color={mutedColor} />
             </Pressable>
 
-            {/* 2. Camera (Active) */}
+            {/* 2. Camera (Coming soon) */}
             <Pressable
-              onPress={handleCameraCapture}
+              onPress={showComingSoonToast}
               hitSlop={6}
               accessibilityRole="button"
-              accessibilityLabel="Take photo with camera"
+              accessibilityLabel="Take photo with camera, coming soon"
               android_ripple={{
-                color: isDark ? "rgba(255, 103, 25, 0.25)" : "rgba(255, 102, 25, 0.15)",
+                color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
                 borderless: true,
                 radius: 18,
               }}
               style={styles.toolIconBtn}
             >
-              <Ionicons name="camera-outline" size={22} color={PRIMARY} />
+              <Ionicons name="camera-outline" size={22} color={mutedColor} />
             </Pressable>
 
             {/* 3. Audio / Devotion Scripture (Muted / Coming soon) */}
@@ -731,7 +741,15 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  textInputCanvas: {
+    flex: 1,
+    minHeight: 240,
   },
   userRow: {
     flexDirection: "row",
@@ -785,16 +803,16 @@ const styles = StyleSheet.create({
   actorPill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 11,
+    paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 16,
+    borderRadius: 9999,
     borderWidth: 1,
     overflow: "hidden",
-    gap: 4,
+    gap: 5,
   },
   actorPillText: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   audienceCol: {
     marginLeft: 12,
@@ -804,9 +822,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 14,
+    borderRadius: 9999,
     borderWidth: 1,
-    gap: 4,
+    gap: 5,
   },
   audienceText: {
     fontSize: 12,
@@ -818,6 +836,7 @@ const styles = StyleSheet.create({
     minHeight: 180,
     textAlignVertical: "top",
     paddingTop: 12,
+    flex: 1,
   },
   locationBadge: {
     flexDirection: "row",

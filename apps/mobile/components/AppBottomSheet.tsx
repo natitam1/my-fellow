@@ -1,12 +1,13 @@
-import React from "react";
-import { Host, BottomSheet, RNHostView } from "@expo/ui";
+import React, { useEffect } from "react";
 import {
-  View,
-  StyleSheet,
-  Platform,
+  Keyboard,
   Modal,
-  TouchableWithoutFeedback,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export interface AppBottomSheetProps {
   visible: boolean;
@@ -23,62 +24,64 @@ export const AppBottomSheet: React.FC<AppBottomSheetProps> = ({
   isDark = false,
   snapPoints = ["half", "full"],
 }) => {
-  const containerBg = isDark ? "#18181B" : "#FFFFFF";
+  const insets = useSafeAreaInsets();
+  const containerBg = isDark ? "#18181b" : "#ffffff";
+  const handleColor = isDark ? "#3f3f46" : "#cbd5e1";
 
-  if (Platform.OS !== "web") {
-    if (!visible) return null;
-    return (
-      <Host
-        colorScheme={isDark ? "dark" : "light"}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="box-none"
-      >
-        <BottomSheet
-          isPresented={visible}
-          onDismiss={onClose}
-          showDragIndicator={true}
-          containerColor={containerBg}
-          scrimColor={isDark ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.5)"}
-          contentPadding={0}
-          snapPoints={snapPoints}
-        >
-          <RNHostView style={{ width: "100%" }}>
-            <View style={[styles.sheetContent, { backgroundColor: containerBg }]}>
-              {children}
-            </View>
-          </RNHostView>
-        </BottomSheet>
-      </Host>
-    );
-  }
+  // Dismiss keyboard when sheet opens
+  useEffect(() => {
+    if (visible) {
+      Keyboard.dismiss();
+    }
+  }, [visible]);
 
-  // Web fallback modal
+  if (!visible) return null;
+
+  const isHalfOnly = snapPoints.length === 1 && snapPoints[0] === "half";
+  const maxHeight = isHalfOnly ? "55%" : "85%";
+
   return (
     <Modal
       visible={visible}
       transparent
       animationType="slide"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View style={styles.webOverlay}>
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={styles.webBackdrop} />
-        </TouchableWithoutFeedback>
+      <View style={styles.overlay}>
+        {/* Backdrop: Tap outside to close */}
+        <Pressable
+          style={[
+            styles.backdrop,
+            {
+              backgroundColor: isDark
+                ? "rgba(0, 0, 0, 0.72)"
+                : "rgba(0, 0, 0, 0.5)",
+            },
+          ]}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close sheet"
+        />
 
+        {/* Bottom Sheet Surface */}
         <View
-          style={[styles.webSheetContainer, { backgroundColor: containerBg }]}
+          style={[
+            styles.sheetContainer,
+            {
+              backgroundColor: containerBg,
+              maxHeight,
+              paddingBottom: Math.max(insets.bottom, 16),
+            },
+          ]}
         >
+          {/* Top Drag Handle Indicator */}
           <View style={styles.handleContainer}>
-            <View
-              style={[
-                styles.handle,
-                { backgroundColor: isDark ? "#3F3F46" : "#E2E8F0" },
-              ]}
-            />
+            <View style={[styles.handle, { backgroundColor: handleColor }]} />
           </View>
-          <View style={[styles.sheetContent, { backgroundColor: containerBg }]}>
-            {children}
-          </View>
+
+          {/* Sheet Body Content */}
+          <View style={styles.sheetContent}>{children}</View>
         </View>
       </View>
     </Modal>
@@ -86,34 +89,45 @@ export const AppBottomSheet: React.FC<AppBottomSheetProps> = ({
 };
 
 const styles = StyleSheet.create({
-  sheetContent: {
-    width: "100%",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === "ios" ? 36 : 28,
-  },
-  webOverlay: {
+  overlay: {
     flex: 1,
     justifyContent: "flex-end",
   },
-  webBackdrop: {
+  backdrop: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
   },
-  webSheetContainer: {
+  sheetContainer: {
+    width: "100%",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "85%",
     overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 16,
+      },
+    }),
   },
   handleContainer: {
     alignItems: "center",
-    paddingVertical: 12,
+    justifyContent: "center",
+    paddingTop: 10,
+    paddingBottom: 8,
   },
   handle: {
-    width: 40,
-    height: 5,
+    width: 36,
+    height: 4.5,
     borderRadius: 3,
+  },
+  sheetContent: {
+    width: "100%",
+    paddingHorizontal: 20,
+    paddingBottom: 8,
   },
 });
 

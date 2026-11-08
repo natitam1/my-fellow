@@ -55,8 +55,15 @@ type MarketplaceState = {
   fetchProductById: (id: string) => Promise<void>;
   loadMore: () => Promise<void>;
   setSelectedCategory: (category: string) => void;
-  createProduct: (data: FormData | any) => Promise<Product>;
-  updateProduct: (id: string, data: FormData | any) => Promise<Product>;
+  createProduct: (
+    data: FormData | any,
+    onProgress?: (percent: number) => void,
+  ) => Promise<Product>;
+  updateProduct: (
+    id: string,
+    data: FormData | any,
+    onProgress?: (percent: number) => void,
+  ) => Promise<Product>;
   deleteProduct: (id: string) => Promise<boolean>;
 
   // Cart actions
@@ -205,8 +212,11 @@ export const useMarketplaceStore = create<MarketplaceState>()(
         }
       },
 
-      createProduct: async (data: FormData | any) => {
-        const res = await createProductApi(data);
+      createProduct: async (
+        data: FormData | any,
+        onProgress?: (percent: number) => void,
+      ) => {
+        const res = await createProductApi(data, onProgress);
         if (res.data) {
           set((state) => ({
             products: [res.data, ...state.products],
@@ -216,8 +226,12 @@ export const useMarketplaceStore = create<MarketplaceState>()(
         throw new Error(res.message || "Failed to create product");
       },
 
-      updateProduct: async (id: string, data: FormData | any) => {
-        const res = await updateProductApi(id, data);
+      updateProduct: async (
+        id: string,
+        data: FormData | any,
+        onProgress?: (percent: number) => void,
+      ) => {
+        const res = await updateProductApi(id, data, onProgress);
         if (res.data) {
           set((state) => ({
             products: state.products.map((p) =>

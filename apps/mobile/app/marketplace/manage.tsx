@@ -20,6 +20,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -225,6 +226,11 @@ export default function ManageProductScreen() {
   const [stock, setStock] = useState<string>("10");
   const [category, setCategory] = useState<string>("");
   const [images, setImages] = useState<ImageItem[]>([]);
+
+  // Realtime image upload progress states
+  const [uploadPercent, setUploadPercent] = useState<number>(0);
+  const [uploadStage, setUploadStage] = useState<"idle" | "uploading" | "saving">("idle");
+  const [uploadingModalVisible, setUploadingModalVisible] = useState<boolean>(false);
 
   const hasUnsavedChanges =
     !submitting &&
@@ -447,6 +453,14 @@ export default function ManageProductScreen() {
 
       const hasLocalImages = images.some((img) => img.isLocal);
 
+      if (hasLocalImages) {
+        setUploadStage("uploading");
+        setUploadPercent(8);
+        setUploadingModalVisible(true);
+      } else {
+        setUploadStage("saving");
+      }
+
       let payload: any;
       if (hasLocalImages) {
         const formData = new FormData();
@@ -486,11 +500,21 @@ export default function ManageProductScreen() {
         };
       }
 
+      const handleProgress = (percent: number) => {
+        setUploadPercent(percent);
+        if (percent >= 100) {
+          setUploadStage("saving");
+        }
+      };
+
       if (isEditing && id) {
-        await updateProduct(id, payload);
+        await updateProduct(id, payload, handleProgress);
       } else {
-        await createProduct(payload);
+        await createProduct(payload, handleProgress);
       }
+
+      setUploadPercent(100);
+      setUploadingModalVisible(false);
 
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
@@ -508,6 +532,14 @@ export default function ManageProductScreen() {
         router.back();
       }, 1200);
     } catch (err: any) {
+      setUploadingModalVisible(false);
+      setUploadStage("idle");
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Could not save product. Please check your connection and try again.";
       const isOffline =
         !err?.response &&
         (err?.message?.includes("Network") ||
@@ -518,13 +550,13 @@ export default function ManageProductScreen() {
         title: isOffline ? "Connection Issue" : "Save Failed",
         message: isOffline
           ? "Network connection issue. Please check your internet connection and try again."
-          : err?.response?.data?.message ||
-            err?.message ||
-            "Could not save product.",
+          : errorMsg,
         type: "error",
       });
     } finally {
       setSubmitting(false);
+      setUploadingModalVisible(false);
+      setUploadStage("idle");
     }
   };
 
@@ -683,6 +715,17 @@ export default function ManageProductScreen() {
                             style={{ marginRight: 2 }}
                           />
                           <Text style={styles.coverBadgeText}>Cover</Text>
+                        </View>
+                      )}
+                      {img.isLocal && idx !== 0 && (
+                        <View style={[styles.coverBadge, styles.newPhotoBadge]}>
+                          <Ionicons
+                            name="cloud-upload-outline"
+                            size={10}
+                            color="#FFFFFF"
+                            style={{ marginRight: 2 }}
+                          />
+                          <Text style={styles.coverBadgeText}>New</Text>
                         </View>
                       )}
                     </View>
@@ -927,7 +970,14 @@ export default function ManageProductScreen() {
                   style={styles.submitBtnInner}
                 >
                   {submitting ? (
-                    <ActivityIndicator color="#ffffff" size="small" />
+                    <View style={styles.btnContent}>
+                      <ActivityIndicator color="#ffffff" size="small" />
+                      <Text style={styles.submitButtonText}>
+                        {uploadStage === "uploading"
+                          ? `Uploading Photos... ${uploadPercent}%`
+                          : "Publishing Product..."}
+                      </Text>
+                    </View>
                   ) : (
                     <View style={styles.btnContent}>
                       <Ionicons
@@ -1184,6 +1234,63 @@ export default function ManageProductScreen() {
         type={infoModal.type}
         onClose={() => setInfoModal((prev) => ({ ...prev, visible: false }))}
       />
+
+      {/* Visual Upload Progress Modal */}
+      <Modal
+        visible={uploadingModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={styles.uploadOverlay}>
+          <View
+            style={[
+              styles.uploadCard,
+              {
+                backgroundColor: isDark ? "#18181b" : "#ffffff",
+                borderColor: isDark ? "#27272a" : "#e2e8f0",
+              },
+            ]}
+          >
+            <View style={styles.uploadIconWrap}>
+              <ActivityIndicator size="large" color={PRIMARY} />
+            </View>
+            <Text style={[styles.uploadModalTitle, { color: textColor }]}>
+              {uploadStage === "uploading"
+                ? "Uploading Product Photos..."
+                : "Publishing to Fellowship Store..."}
+            </Text>
+            <Text style={[styles.uploadModalSub, { color: subTextColor }]}>
+              {uploadStage === "uploading"
+                ? `Sending images to fellowship storage (${uploadPercent}%)`
+                : "Registering product in fellowship catalog..."}
+            </Text>
+
+            {/* Progress Track */}
+            <View
+              style={[
+                styles.progressTrack,
+                { backgroundColor: isDark ? "#27272a" : "#f1f5f9" },
+              ]}
+            >
+              <View
+                style={[styles.progressBar, { width: `${uploadPercent}%` }]}
+              />
+            </View>
+
+            <View style={styles.uploadProgressRow}>
+              <Text style={[styles.uploadProgressNote, { color: subTextColor }]}>
+                {uploadStage === "uploading"
+                  ? `${images.filter((i) => i.isLocal).length} photo(s) processing`
+                  : "Almost ready"}
+              </Text>
+              <Text style={[styles.progressPercent, { color: PRIMARY }]}>
+                {uploadPercent}%
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1483,5 +1590,77 @@ const styles = StyleSheet.create({
   photoOptionSub: {
     fontSize: 12,
     marginTop: 2,
+  },
+  newPhotoBadge: {
+    backgroundColor: PRIMARY,
+    left: 6,
+    right: undefined,
+  },
+  uploadOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  uploadCard: {
+    width: "100%",
+    maxWidth: 340,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  uploadIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255, 103, 25, 0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  uploadModalTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  uploadModalSub: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 18,
+    marginBottom: 18,
+  },
+  progressTrack: {
+    width: "100%",
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 10,
+  },
+  progressBar: {
+    height: "100%",
+    backgroundColor: PRIMARY,
+    borderRadius: 4,
+  },
+  uploadProgressRow: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  uploadProgressNote: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  progressPercent: {
+    fontSize: 13,
+    fontWeight: "700",
   },
 });
