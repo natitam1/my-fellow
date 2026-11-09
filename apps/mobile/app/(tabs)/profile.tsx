@@ -12,6 +12,7 @@ import { authService } from "@/services/authService";
 import { socialApi } from "@/services/socialApi";
 import {
   apiPostToCommunityPost,
+  apiProfileToMemberProfile,
   CommunityPost,
   useCommunityStore,
 } from "@/stores/community.store";
@@ -19,6 +20,7 @@ import { useProgramsStore } from "@/stores/programs.store";
 import { useStreakStore } from "@/stores/streak.store";
 import { useTeamsStore } from "@/stores/teams.store";
 import { useUserStore } from "@/stores/user.store";
+import { ProfileDetail } from "@/types/social.types";
 import { getPrefilledAvatar } from "@/utils/avatar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -26,11 +28,10 @@ import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -65,24 +66,6 @@ const PROFILE_TABS: ProfileTabItem[] = [
   { key: "account", label: "Account", icon: "person-circle-outline" },
 ];
 
-function formatEthiopianPhone(phone?: string) {
-  if (!phone) return "";
-  const cleaned = phone.replace(/\s+/g, "");
-  if (cleaned.startsWith("09") && cleaned.length === 10) {
-    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
-  }
-  if (cleaned.startsWith("07") && cleaned.length === 10) {
-    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
-  }
-  if (cleaned.startsWith("+251") && cleaned.length === 13) {
-    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 6)} ${cleaned.slice(6, 9)} ${cleaned.slice(9)}`;
-  }
-  if (cleaned.startsWith("251") && cleaned.length === 12) {
-    return `+${cleaned.slice(0, 3)} ${cleaned.slice(3, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8)}`;
-  }
-  return phone;
-}
-
 function formatJoinedDate(dateStr?: string | Date | null): string {
   if (!dateStr) return "";
   const date = new Date(dateStr);
@@ -104,6 +87,28 @@ function formatJoinedDate(dateStr?: string | Date | null): string {
   return `Joined ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+function extractMediaUrl(media?: any): string | null {
+  if (!media) return null;
+  if (typeof media === "string") return media;
+  if (media.id === "default-cover") return null;
+  return (
+    media.urls?.original ||
+    media.urls?.lg ||
+    media.urls?.md ||
+    media.urls?.sm ||
+    media.uri ||
+    null
+  );
+}
+
+function isFallbackUnsplashBanner(url?: string | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  return (
+    url.includes("photo-1541829070764-84a7d30dd3f3") ||
+    url.includes("photo-1516450360452-9312f5e86fc7")
+  );
+}
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { theme, toggleTheme } = useTheme();
@@ -112,11 +117,15 @@ export default function ProfileScreen() {
   const { user, setUser } = useUserStore();
   const router = useRouter();
 
+  const getCurrentUserRef = useRef(getCurrentUser);
+  getCurrentUserRef.current = getCurrentUser;
+
   // Active Tab state
   const [activeTab, setActiveTab] = useState<ProfileTabKey>("posts");
 
   // Modals state
   const [signOutConfirm, setSignOutConfirm] = useState(false);
+  const [deletePostId, setDeletePostId] = useState<string | null>(null);
   const [streakModalVisible, setStreakModalVisible] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<{
     uri: string;
@@ -130,12 +139,16 @@ export default function ProfileScreen() {
   const [localBanner, setLocalBanner] = useState<string | null>(null);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [isInitialPostsLoading, setIsInitialPostsLoading] = useState(true);
+
+  // Live social profile states from backend (/v1/meta/me and /v1/profiles/:id)
+  const [socialProfile, setSocialProfile] = useState<any>(null);
+  const [profileDetail, setProfileDetail] = useState<ProfileDetail | null>(null);
 
   // Community Store
   const posts = useCommunityStore((s) => s.posts);
   const toggleLike = useCommunityStore((s) => s.toggleLike);
   const toggleBookmark = useCommunityStore((s) => s.toggleBookmark);
-  const fetchUserProfile = useCommunityStore((s) => s.fetchUserProfile);
 
   // Streak Store
   const currentStreak = useStreakStore((s) => s.currentStreak);
@@ -149,48 +162,82 @@ export default function ProfileScreen() {
   const teams = useTeamsStore((s) => s.teams);
   const loadTeams = useTeamsStore((s) => s.loadTeams);
 
-  // Current Member details from community cache
-  const currentMember = useCommunityStore((s) =>
+  // Current Member details from community cache (ignore synthetic actor records)
+  const rawCurrentMember = useCommunityStore((s) =>
     user?.id ? s.members[user.id] : undefined
   );
+  const currentMember = rawCurrentMember?.isActor ? undefined : rawCurrentMember;
 
   // Fetched author and liked posts from backend
   const [fetchedAuthorPosts, setFetchedAuthorPosts] = useState<CommunityPost[]>([]);
   const [fetchedLikedPosts, setFetchedLikedPosts] = useState<CommunityPost[]>([]);
   const [userMinistries, setUserMinistries] = useState<any[]>([]);
 
-  // Close avatar preview if tab unfocuses or changes
-  useFocusEffect(
-    useCallback(() => {
-      syncServerStreak().catch(() => {});
-      return () => {
-        closeAvatarPreview();
-      };
-    }, [syncServerStreak])
-  );
-
-  // Refresh user data from API
+  // Refresh user data from API (stable callback — no infinite loop)
   const loadProfileData = useCallback(async () => {
-    if (!user?.id && !authState.authenticated) return;
-    try {
-      await getCurrentUser().catch(() => {});
-      const userId = user?.id;
-      if (userId) {
-        await fetchUserProfile(userId).catch(() => {});
+    const currentUser = useUserStore.getState().user;
+    if (!currentUser?.id && !authState.authenticated) {
+      setIsInitialPostsLoading(false);
+      return;
+    }
 
-        // Fetch author's posts
+    try {
+      // 1. Fetch fresh auth user and /v1/meta/me in parallel
+      // (/v1/meta/me also ensures the user's ProfileModel document exists in MongoDB)
+      const [freshUser, metaRes] = await Promise.all([
+        getCurrentUserRef.current().catch(() => null),
+        api.get("/v1/meta/me").catch(() => null),
+      ]);
+
+      const metaUser = metaRes?.data?.data?.user || metaRes?.data?.user || null;
+      if (metaUser) {
+        setSocialProfile(metaUser);
+      }
+
+      const targetUserId =
+        freshUser?.id || currentUser?.id || metaUser?.id;
+
+      if (targetUserId) {
+        // 2. Fetch full social profile detail
         socialApi
-          .getUserPosts(userId)
+          .getUserProfile(targetUserId)
+          .then((prof) => {
+            if (prof && prof.id) {
+              setProfileDetail(prof);
+              const isSyntheticFallback =
+                prof.streak?.current === 142 &&
+                prof.counts?.connects === 1240 &&
+                prof.counts?.following === 38;
+              if (!isSyntheticFallback) {
+                const member = apiProfileToMemberProfile(prof);
+                useCommunityStore.setState((state) => ({
+                  members: {
+                    ...state.members,
+                    [targetUserId]: member,
+                    [member.id]: member,
+                  },
+                }));
+              }
+            }
+          })
+          .catch(() => {});
+
+        // 3. Fetch author's posts
+        socialApi
+          .getUserPosts(targetUserId)
           .then((res) => {
             if (Array.isArray(res)) {
               setFetchedAuthorPosts(res.map(apiPostToCommunityPost));
             }
           })
-          .catch(() => {});
+          .catch(() => {})
+          .finally(() => {
+            setIsInitialPostsLoading(false);
+          });
 
-        // Fetch user's liked posts
+        // 4. Fetch user's liked posts
         socialApi
-          .getUserLikedPosts(userId)
+          .getUserLikedPosts(targetUserId)
           .then((res) => {
             if (Array.isArray(res)) {
               setFetchedLikedPosts(res.map(apiPostToCommunityPost));
@@ -198,27 +245,37 @@ export default function ProfileScreen() {
           })
           .catch(() => {});
 
-        // Fetch ministries
+        // 5. Fetch ministries
         socialApi
-          .getUserMinistries(userId)
+          .getUserMinistries(targetUserId)
           .then((res) => {
-            if (Array.isArray(res) && res.length > 0) {
+            if (Array.isArray(res)) {
               setUserMinistries(res);
             }
           })
           .catch(() => {});
+      } else {
+        setIsInitialPostsLoading(false);
       }
-      // Dynamically load active campus programs and teams
+
+      // 6. Dynamically load active campus programs and teams
       loadPrograms().catch(() => {});
       loadTeams().catch(() => {});
     } catch {
-      // Ignore network errors gracefully
+      setIsInitialPostsLoading(false);
     }
-  }, [authState.authenticated, fetchUserProfile, getCurrentUser, loadPrograms, loadTeams, user]);
+  }, [authState.authenticated, loadPrograms, loadTeams]);
 
-  useEffect(() => {
-    loadProfileData();
-  }, [loadProfileData]);
+  // Refresh profile data and streak whenever screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      loadProfileData();
+      syncServerStreak().catch(() => {});
+      return () => {
+        closeAvatarPreview();
+      };
+    }, [loadProfileData, syncServerStreak])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -286,20 +343,41 @@ export default function ProfileScreen() {
       setIsUploading(true);
 
       if (target === "avatar") {
+        const previousAvatar = user?.profileImage;
         if (user) {
           setUser({ ...user, profileImage: pickedUri });
         }
         try {
-          const updated = await authService.updateProfile({
-            profileImage: pickedUri,
-          });
+          // Ensure ProfileModel exists and update both Auth UserModel & Social ProfileModel
+          const [updated] = await Promise.all([
+            authService.updateProfile({ profileImage: pickedUri }),
+            (async () => {
+              try {
+                await api.get("/v1/meta/me").catch(() => {});
+                const uploaded = await socialApi.uploadMediaFile(pickedUri, "avatar");
+                if (uploaded.assetId) {
+                  await api.post("/v1/me/avatar", { assetId: uploaded.assetId });
+                }
+              } catch {
+                // Non-fatal if social avatar sync fails
+              }
+            })(),
+          ]);
           setUser(updated);
+          if (updated?.profileImage) {
+            setSocialProfile((prev: any) =>
+              prev ? { ...prev, avatar: updated.profileImage } : prev
+            );
+          }
           Toast.show({
             type: "success",
             text1: "Profile Photo Updated",
             text2: "Your new avatar has been saved successfully.",
           });
         } catch (err: any) {
+          if (user) {
+            setUser({ ...user, profileImage: previousAvatar });
+          }
           Toast.show({
             type: "error",
             text1: "Upload Failed",
@@ -307,17 +385,25 @@ export default function ProfileScreen() {
           });
         }
       } else {
+        const previousBanner = localBanner;
         setLocalBanner(pickedUri);
         try {
+          // Ensure ProfileModel exists in MongoDB before setting coverAssetId
+          await api.get("/v1/meta/me").catch(() => {});
           const uploaded = await socialApi.uploadMediaFile(pickedUri, "cover");
           if (uploaded.assetId) {
-            await api.patch("/v1/me/profile", {
-              coverAssetId: uploaded.assetId,
+            await api.post("/v1/me/cover", {
+              assetId: uploaded.assetId,
             });
           }
+          const finalBannerUrl = uploaded.url || pickedUri;
+          setLocalBanner(finalBannerUrl);
           if (user) {
-            setUser({ ...user, coverImage: uploaded.url || pickedUri });
+            setUser({ ...user, coverImage: finalBannerUrl });
           }
+          setSocialProfile((prev: any) =>
+            prev ? { ...prev, cover: finalBannerUrl } : prev
+          );
           if (user?.id) {
             useCommunityStore.setState((state) => {
               const member = state.members[user.id];
@@ -327,7 +413,7 @@ export default function ProfileScreen() {
                     ...state.members,
                     [user.id]: {
                       ...member,
-                      banner: uploaded.url || pickedUri,
+                      banner: finalBannerUrl,
                     },
                   },
                 };
@@ -341,6 +427,7 @@ export default function ProfileScreen() {
             text2: "Your fellowship profile banner has been saved.",
           });
         } catch (err: any) {
+          setLocalBanner(previousBanner);
           Toast.show({
             type: "error",
             text1: "Upload Failed",
@@ -359,6 +446,130 @@ export default function ProfileScreen() {
     }
   };
 
+  // Profile data derivations (100% dynamic — zero hardcoded fallbacks)
+  const resolvedAvatarFromSocial =
+    extractMediaUrl(socialProfile?.avatar) ||
+    extractMediaUrl(profileDetail?.avatar);
+
+  const avatarUri =
+    user?.profileImage ||
+    resolvedAvatarFromSocial ||
+    getPrefilledAvatar(user?.phoneNumber || user?.id || "fellow");
+
+  const fullNameDisplay =
+    user?.fullName?.trim() ||
+    socialProfile?.displayName?.trim() ||
+    profileDetail?.displayName?.trim() ||
+    currentMember?.fullName?.trim() ||
+    "Fellowship Member";
+
+  const avatarInitial =
+    fullNameDisplay
+      .replace(/^@/, "")
+      .charAt(0)
+      .toUpperCase() || "?";
+
+  const teamName =
+    typeof user?.team === "string"
+      ? user.team
+      : (user?.team as any)?.name ||
+        currentMember?.team ||
+        "";
+
+  const isAssignedTeam = Boolean(teamName && teamName !== "Fellowship Member" && teamName !== "member");
+
+  const isSyntheticProfileDetail =
+    profileDetail?.streak?.current === 142 &&
+    profileDetail?.counts?.connects === 1240 &&
+    profileDetail?.counts?.following === 38;
+
+  const department =
+    user?.department?.trim() ||
+    (!isSyntheticProfileDetail ? profileDetail?.academic?.department?.trim() : "") ||
+    currentMember?.department?.trim() ||
+    "";
+
+  const academicYear =
+    user?.yearOfStudy?.trim() ||
+    (!isSyntheticProfileDetail && profileDetail?.academic?.studyYear
+      ? String(profileDetail.academic.studyYear)
+      : "") ||
+    currentMember?.academicYear?.trim() ||
+    "";
+
+  const displayAcademicYear = academicYear
+    ? /^\d+$/.test(academicYear)
+      ? `Year ${academicYear}`
+      : academicYear
+    : "";
+
+  const rawUsername =
+    user?.username ||
+    socialProfile?.username ||
+    (!isSyntheticProfileDetail ? profileDetail?.username : "") ||
+    currentMember?.handle ||
+    user?.telegramUserName ||
+    "";
+
+  const systemHandle = rawUsername
+    ? `@${rawUsername.replace(/^@/, "")}`
+    : user?.fullName
+    ? `@${user.fullName.toLowerCase().replace(/[^a-z0-9_]/g, "")}`
+    : "";
+
+  const connectsCount =
+    socialProfile?.followersCount ??
+    (!isSyntheticProfileDetail ? profileDetail?.counts?.connects : undefined) ??
+    currentMember?.followersCount ??
+    0;
+
+  const followingCount =
+    socialProfile?.followingCount ??
+    (!isSyntheticProfileDetail ? profileDetail?.counts?.following : undefined) ??
+    currentMember?.followingCount ??
+    0;
+
+  const memberBio =
+    socialProfile?.bio?.trim() ||
+    (!isSyntheticProfileDetail ? profileDetail?.bio?.trim() : "") ||
+    currentMember?.bio?.trim() ||
+    (user as any)?.bio?.trim() ||
+    "";
+
+  const joinedDate = formatJoinedDate(
+    user?.createdAt ||
+      (!isSyntheticProfileDetail ? profileDetail?.joinedAt : null)
+  );
+
+  const location =
+    socialProfile?.location?.trim() ||
+    (!isSyntheticProfileDetail ? profileDetail?.location?.trim() : "") ||
+    currentMember?.location?.trim() ||
+    (user as any)?.location?.trim() ||
+    "";
+
+  const hasMetadata = Boolean(
+    department ||
+    displayAcademicYear ||
+    location ||
+    joinedDate
+  );
+
+  const resolvedCoverFromSocial =
+    extractMediaUrl(socialProfile?.cover) ||
+    (!isSyntheticProfileDetail ? extractMediaUrl(profileDetail?.cover) : null);
+
+  const rawBannerCandidate =
+    localBanner ||
+    user?.coverImage ||
+    resolvedCoverFromSocial ||
+    currentMember?.banner ||
+    null;
+
+  const bannerUri = isFallbackUnsplashBanner(rawBannerCandidate)
+    ? null
+    : rawBannerCandidate;
+
   // Merged live author posts (combining fetched + live store state)
   const authorPosts = useMemo(() => {
     const livePostMap = new Map<string, CommunityPost>();
@@ -367,23 +578,28 @@ export default function ProfileScreen() {
     }
 
     const merged = new Map<string, CommunityPost>();
+
+    // First include any newly created posts in store authored by current user
     for (const p of posts) {
-      if (
+      const isMine =
         (user?.id && p.authorId === user.id) ||
         (user?.fullName && p.authorName === user.fullName) ||
-        (user?.telegramUserName &&
+        (systemHandle &&
           p.authorHandle?.replace(/^@/, "").toLowerCase() ===
-            user.telegramUserName.replace(/^@/, "").toLowerCase())
-      ) {
+            systemHandle.replace(/^@/, "").toLowerCase());
+      if (isMine) {
         merged.set(p.id, p);
       }
     }
+
+    // Merge server-fetched author posts
     for (const p of fetchedAuthorPosts) {
       const live = livePostMap.get(p.id);
       merged.set(p.id, live ? { ...p, ...live } : p);
     }
+
     return Array.from(merged.values());
-  }, [posts, fetchedAuthorPosts, user]);
+  }, [posts, fetchedAuthorPosts, user?.id, user?.fullName, systemHandle]);
 
   // Media posts (author posts that have an image)
   const mediaPosts = useMemo(() => {
@@ -400,7 +616,10 @@ export default function ProfileScreen() {
     const merged = new Map<string, CommunityPost>();
     for (const p of fetchedLikedPosts) {
       const live = livePostMap.get(p.id);
-      merged.set(p.id, live ? { ...p, ...live } : p);
+      const effective = live ? { ...p, ...live } : p;
+      if (effective.isLiked !== false) {
+        merged.set(p.id, { ...effective, isLiked: true });
+      }
     }
     for (const p of posts) {
       if (p.isLiked) {
@@ -411,6 +630,130 @@ export default function ProfileScreen() {
     }
     return Array.from(merged.values());
   }, [fetchedLikedPosts, posts]);
+
+  // Reliable Like Handler (works for both store posts and profile-fetched posts)
+  const handleToggleLike = useCallback(
+    async (item: CommunityPost) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      const prevLiked = Boolean(item.isLiked);
+      const prevCount = item.likesCount ?? 0;
+      const nextLiked = !prevLiked;
+      const nextCount = nextLiked ? prevCount + 1 : Math.max(0, prevCount - 1);
+
+      const updateItem = (p: CommunityPost) =>
+        p.id === item.id
+          ? { ...p, isLiked: nextLiked, likesCount: nextCount }
+          : p;
+
+      setFetchedAuthorPosts((prev) => prev.map(updateItem));
+      setFetchedLikedPosts((prev) =>
+        nextLiked
+          ? prev.some((p) => p.id === item.id)
+            ? prev.map(updateItem)
+            : [{ ...item, isLiked: true, likesCount: nextCount }, ...prev]
+          : prev.filter((p) => p.id !== item.id)
+      );
+
+      const inStore = useCommunityStore
+        .getState()
+        .posts.some((p) => p.id === item.id);
+      if (inStore) {
+        await toggleLike(item.id);
+      } else {
+        try {
+          if (nextLiked) {
+            await socialApi.likePost(item.id);
+          } else {
+            await socialApi.unlikePost(item.id);
+          }
+        } catch {
+          const rollbackItem = (p: CommunityPost) =>
+            p.id === item.id
+              ? { ...p, isLiked: prevLiked, likesCount: prevCount }
+              : p;
+          setFetchedAuthorPosts((prev) => prev.map(rollbackItem));
+          setFetchedLikedPosts((prev) =>
+            prevLiked
+              ? prev.some((p) => p.id === item.id)
+                ? prev.map(rollbackItem)
+                : [{ ...item, isLiked: true, likesCount: prevCount }, ...prev]
+              : prev.filter((p) => p.id !== item.id)
+          );
+        }
+      }
+    },
+    [toggleLike]
+  );
+
+  // Reliable Bookmark Handler
+  const handleToggleBookmark = useCallback(
+    async (item: CommunityPost) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      const prevBookmarked = Boolean(item.isBookmarked);
+      const nextBookmarked = !prevBookmarked;
+
+      const updateItem = (p: CommunityPost) =>
+        p.id === item.id ? { ...p, isBookmarked: nextBookmarked } : p;
+
+      setFetchedAuthorPosts((prev) => prev.map(updateItem));
+      setFetchedLikedPosts((prev) => prev.map(updateItem));
+
+      const inStore = useCommunityStore
+        .getState()
+        .posts.some((p) => p.id === item.id);
+      if (inStore) {
+        await toggleBookmark(item.id);
+      } else {
+        try {
+          if (nextBookmarked) {
+            await socialApi.bookmarkPost(item.id);
+          } else {
+            await socialApi.unbookmarkPost(item.id);
+          }
+        } catch {
+          const rollbackItem = (p: CommunityPost) =>
+            p.id === item.id ? { ...p, isBookmarked: prevBookmarked } : p;
+          setFetchedAuthorPosts((prev) => prev.map(rollbackItem));
+          setFetchedLikedPosts((prev) => prev.map(rollbackItem));
+        }
+      }
+    },
+    [toggleBookmark]
+  );
+
+  // Delete Own Post Handler
+  const handleConfirmDeletePost = useCallback(async () => {
+    const targetId = deletePostId;
+    setDeletePostId(null);
+    if (!targetId) return;
+
+    const prevAuthorPosts = fetchedAuthorPosts;
+    setFetchedAuthorPosts((prev) => prev.filter((p) => p.id !== targetId));
+    setFetchedLikedPosts((prev) => prev.filter((p) => p.id !== targetId));
+    useCommunityStore.setState((state) => ({
+      posts: state.posts.filter((p) => p.id !== targetId),
+      forYouPosts: (state.forYouPosts || []).filter((p) => p.id !== targetId),
+      followingPosts: (state.followingPosts || []).filter(
+        (p) => p.id !== targetId
+      ),
+    }));
+
+    try {
+      await socialApi.deletePost(targetId);
+      Toast.show({
+        type: "success",
+        text1: "Reflection Deleted",
+        text2: "Your reflection has been removed.",
+      });
+    } catch (err: any) {
+      setFetchedAuthorPosts(prevAuthorPosts);
+      Toast.show({
+        type: "error",
+        text1: "Delete Failed",
+        text2: err?.message || "Could not delete reflection.",
+      });
+    }
+  }, [deletePostId, fetchedAuthorPosts]);
 
   // Handlers
   const handleSignOut = async () => {
@@ -428,7 +771,7 @@ export default function ProfileScreen() {
       await Haptics.selectionAsync();
       await Share.share({
         title: "4 Kilo Fellowship",
-        message: `Connect with ${user?.fullName || "fellowship member"} on 4 Kilo Christian Students Fellowship! Download the app: https://t.me/ecsf4kilo`,
+        message: `Connect with ${fullNameDisplay} on 4 Kilo Christian Students Fellowship! Download the app: https://t.me/ecsf4kilo`,
       });
     } catch {
       // ignore
@@ -440,70 +783,7 @@ export default function ProfileScreen() {
     toggleTheme();
   };
 
-  // Profile data derivations (completely dynamic - zero hardcoded data)
-  const avatarUri =
-    user?.profileImage ||
-    getPrefilledAvatar(user?.phoneNumber || user?.id || "fellow");
-
-  const avatarInitial = (
-    user?.fullName?.trim() ||
-    currentMember?.fullName?.trim() ||
-    user?.username?.trim() ||
-    "?"
-  )
-    .replace(/^@/, "")
-    .charAt(0)
-    .toUpperCase() || "?";
-
-  const teamName =
-    typeof user?.team === "string"
-      ? user.team
-      : (user?.team as any)?.name ||
-        currentMember?.team ||
-        "";
-
-  const isAssignedTeam = Boolean(teamName);
-
-  const department =
-    user?.department?.trim() || currentMember?.department?.trim() || "";
-
-  const academicYear =
-    user?.yearOfStudy?.trim() || currentMember?.academicYear?.trim() || "";
-
-  const displayAcademicYear = academicYear
-    ? /^\d+$/.test(academicYear)
-      ? `Year ${academicYear}`
-      : academicYear
-    : "";
-
-  const systemHandle = user?.username
-    ? `@${user.username.replace(/^@/, "")}`
-    : currentMember?.handle
-    ? (currentMember.handle.startsWith("@")
-        ? currentMember.handle
-        : `@${currentMember.handle}`)
-    : user?.telegramUserName
-    ? `@${user.telegramUserName.replace(/^@/, "")}`
-    : user?.fullName
-    ? `@${user.fullName.toLowerCase().replace(/[^a-z0-9_]/g, "")}`
-    : "";
-
-  const connectsCount = currentMember?.followersCount ?? 0;
-  const followingCount = currentMember?.followingCount ?? 0;
-  const memberBio =
-    currentMember?.bio?.trim() || (user as any)?.bio?.trim() || "";
-  const joinedDate = formatJoinedDate(user?.createdAt || currentMember?.joinedDate);
-  const location =
-    currentMember?.location?.trim() || (user as any)?.location?.trim() || "";
-
-  const hasMetadata = Boolean(
-    department ||
-    displayAcademicYear ||
-    location ||
-    joinedDate
-  );
-
-  // Palette matching design system
+  // Palette matching design system (Pure White Light Theme / Deep Zinc Dark Theme)
   const bgColor = isDark ? "#09090b" : "#ffffff";
   const cardBg = isDark ? "#18181b" : "#ffffff";
   const cardBorder = isDark ? "#27272a" : "#e2e8f0";
@@ -514,24 +794,29 @@ export default function ProfileScreen() {
   const dividerColor = isDark ? "#27272a" : "#f1f5f9";
   const iconMuted = isDark ? "#a1a1aa" : "#475569";
 
-  const bannerUri =
-    localBanner || user?.coverImage || currentMember?.banner || null;
-
   // Render Twitter-style Reflection Feed Card
-  const renderPostCard = (item: CommunityPost) => {
+  const renderPostCard = (item: CommunityPost, isOwnPost = false) => {
     const isCurrentUser =
+      isOwnPost ||
       (user?.id && item.authorId === user.id) ||
-      (user?.fullName && item.authorName === user.fullName);
+      (user?.fullName && item.authorName === user.fullName) ||
+      item.authorId === "user-unknown";
 
     const displayName =
-      item.authorName && item.authorName !== "Unknown Member"
+      item.authorName &&
+      item.authorName !== "Unknown Member" &&
+      item.authorName !== "Fellowship Member"
         ? item.authorName
-        : isCurrentUser && user?.fullName
-        ? user.fullName
+        : isCurrentUser
+        ? fullNameDisplay
+        : item.authorName && item.authorName !== "Unknown Member"
+        ? item.authorName
         : "Fellowship Member";
 
     const displayHandle =
-      item.authorHandle && item.authorHandle !== "@unknown" && item.authorHandle !== "@fellow"
+      item.authorHandle &&
+      item.authorHandle !== "@unknown" &&
+      item.authorHandle !== "@fellow"
         ? item.authorHandle
         : isCurrentUser && systemHandle
         ? systemHandle
@@ -555,7 +840,7 @@ export default function ProfileScreen() {
         <View style={styles.postCardRow}>
           <ProfileLink
             user={{
-              id: item.authorId || user?.id || "me",
+              id: isCurrentUser ? user?.id || "me" : item.authorId || "me",
               name: displayName,
               username: displayHandle,
               avatarUrl: displayAvatar,
@@ -592,6 +877,25 @@ export default function ProfileScreen() {
                   · {item.timestamp}
                 </Text>
               ) : null}
+
+              {isCurrentUser && (
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setDeletePostId(item.id);
+                  }}
+                  hitSlop={8}
+                  style={styles.postDeleteBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete Reflection"
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={14}
+                    color={textTertiary}
+                  />
+                </Pressable>
+              )}
             </View>
 
             <Pressable
@@ -606,7 +910,10 @@ export default function ProfileScreen() {
               <Pressable
                 onPress={() =>
                   setLightboxImage({
-                    uri: typeof item.image === "string" ? item.image : item.image?.uri,
+                    uri:
+                      typeof item.image === "string"
+                        ? item.image
+                        : item.image?.uri,
                     caption: item.content,
                     author: displayName,
                   })
@@ -643,12 +950,7 @@ export default function ProfileScreen() {
               </Pressable>
 
               <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
-                    () => {}
-                  );
-                  toggleLike(item.id);
-                }}
+                onPress={() => handleToggleLike(item)}
                 hitSlop={6}
                 style={styles.postActionBtn}
               >
@@ -668,12 +970,7 @@ export default function ProfileScreen() {
               </Pressable>
 
               <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
-                    () => {}
-                  );
-                  toggleBookmark(item.id);
-                }}
+                onPress={() => handleToggleBookmark(item)}
                 hitSlop={6}
                 style={styles.postActionBtn}
               >
@@ -709,6 +1006,17 @@ export default function ProfileScreen() {
 
   // Tab Contents
   const renderPostsTab = () => {
+    if (isInitialPostsLoading && authorPosts.length === 0) {
+      return (
+        <View style={styles.loadingStateWrap}>
+          <ActivityIndicator size="small" color={PRIMARY} />
+          <Text style={[styles.loadingStateText, { color: textSecondary }]}>
+            Loading reflections...
+          </Text>
+        </View>
+      );
+    }
+
     if (authorPosts.length === 0) {
       return (
         <View
@@ -742,7 +1050,11 @@ export default function ProfileScreen() {
         </View>
       );
     }
-    return <View style={styles.postsList}>{authorPosts.map(renderPostCard)}</View>;
+    return (
+      <View style={styles.postsList}>
+        {authorPosts.map((post) => renderPostCard(post, true))}
+      </View>
+    );
   };
 
   const renderMediaTab = () => {
@@ -788,7 +1100,7 @@ export default function ProfileScreen() {
                     ? post.image
                     : post.image?.uri,
                 caption: post.content,
-                author: post.authorName,
+                author: fullNameDisplay,
               })
             }
             style={[
@@ -812,7 +1124,7 @@ export default function ProfileScreen() {
             />
             <View style={styles.mediaLikesBadge}>
               <Ionicons name="heart" size={11} color="#ffffff" />
-              <Text style={styles.mediaLikesText}>{post.likesCount}</Text>
+              <Text style={styles.mediaLikesText}>{post.likesCount ?? 0}</Text>
             </View>
           </TouchableOpacity>
         ))}
@@ -820,14 +1132,26 @@ export default function ProfileScreen() {
     );
   };
 
-  const renderMinistryTab = () => {
-    const matchingTeam = teams.find(
+  const matchingTeam = useMemo(() => {
+    if (!teamName) return undefined;
+    return teams.find(
       (t) =>
-        (teamName && t.name.toLowerCase() === teamName.toLowerCase()) ||
+        t.name.toLowerCase() === teamName.toLowerCase() ||
         t.id === teamName ||
         (t as any)._id === teamName
     );
+  }, [teams, teamName]);
 
+  const handleNavigateTeam = useCallback(() => {
+    Haptics.selectionAsync().catch(() => {});
+    if (matchingTeam?.id) {
+      router.push(`/teams/${matchingTeam.id}` as any);
+    } else {
+      router.push("/teams" as any);
+    }
+  }, [matchingTeam, router]);
+
+  const renderMinistryTab = () => {
     return (
       <View style={styles.ministryTabWrap}>
         {userMinistries.length > 0 ? (
@@ -899,10 +1223,7 @@ export default function ProfileScreen() {
                 </Text>
               </View>
               <Pressable
-                onPress={() => {
-                  Haptics.selectionAsync().catch(() => {});
-                  router.push("/teams" as any);
-                }}
+                onPress={handleNavigateTeam}
                 style={styles.teamActionBadge}
               >
                 <Text style={styles.teamActionText}>View Team</Text>
@@ -1012,7 +1333,7 @@ export default function ProfileScreen() {
                   key={prog.id || index}
                   onPress={() => {
                     Haptics.selectionAsync().catch(() => {});
-                    router.push(`/programs/${prog.id}` as any);
+                    router.push("/programs" as any);
                   }}
                   style={[
                     styles.scheduleRow,
@@ -1081,7 +1402,11 @@ export default function ProfileScreen() {
         </View>
       );
     }
-    return <View style={styles.postsList}>{likedPosts.map(renderPostCard)}</View>;
+    return (
+      <View style={styles.postsList}>
+        {likedPosts.map((post) => renderPostCard(post, false))}
+      </View>
+    );
   };
 
   const renderAccountTab = () => {
@@ -1361,7 +1686,7 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* Cover Hero Banner with Doom Color Fallback & Edit Cover Button */}
+        {/* Cover Hero Banner with Solid Placeholder Fallback & Edit Cover Button */}
         <View style={styles.bannerWrap}>
           {bannerUri ? (
             <ExpoImage
@@ -1445,7 +1770,7 @@ export default function ProfileScreen() {
                 <LongPressAvatar
                   size={80}
                   uri={avatarUri}
-                  name={user?.fullName || "Member"}
+                  name={fullNameDisplay}
                   imageStyle={styles.avatarImage}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -1473,7 +1798,7 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
 
-          {/* Action Buttons: Share, Edit Profile (Exact match to pill design) */}
+          {/* Action Buttons: Share, Edit Profile */}
           <View style={styles.topActionBtnsGroup}>
             <Pressable
               onPress={handleShareApp}
@@ -1543,7 +1868,7 @@ export default function ProfileScreen() {
               style={[styles.displayName, { color: textPrimary }]}
               numberOfLines={1}
             >
-              {user?.fullName || "Fellowship Member"}
+              {fullNameDisplay}
             </Text>
             <Ionicons
               name="checkmark-circle"
@@ -1594,10 +1919,7 @@ export default function ProfileScreen() {
           {isAssignedTeam ? (
             <View style={styles.badgesWrap}>
               <Pressable
-                onPress={() => {
-                  Haptics.selectionAsync().catch(() => {});
-                  router.push("/teams" as any);
-                }}
+                onPress={handleNavigateTeam}
                 style={[
                   styles.badgePill,
                   {
@@ -1692,9 +2014,9 @@ export default function ProfileScreen() {
                 router.push({
                   pathname: "/community/user/connections",
                   params: {
-                    id: user?.id,
+                    id: user?.id || socialProfile?.id,
                     initialTab: "following",
-                    name: user?.fullName,
+                    name: fullNameDisplay,
                   },
                 } as any);
               }}
@@ -1714,9 +2036,9 @@ export default function ProfileScreen() {
                 router.push({
                   pathname: "/community/user/connections",
                   params: {
-                    id: user?.id,
+                    id: user?.id || socialProfile?.id,
                     initialTab: "followers",
-                    name: user?.fullName,
+                    name: fullNameDisplay,
                   },
                 } as any);
               }}
@@ -1974,14 +2296,14 @@ export default function ProfileScreen() {
                   </TouchableOpacity>
 
                   {/* View Full Photo (Avatar or Cover Banner) */}
-                  {((imageSheetTarget === "avatar" && Boolean(user?.profileImage)) ||
+                  {((imageSheetTarget === "avatar" && Boolean(avatarUri)) ||
                     (imageSheetTarget === "banner" && Boolean(bannerUri))) && (
                     <TouchableOpacity
                       activeOpacity={0.7}
                       onPress={() => {
                         const targetImg =
                           imageSheetTarget === "avatar"
-                            ? user?.profileImage
+                            ? avatarUri
                             : bannerUri;
                         setImageSheetTarget(null);
                         if (targetImg) {
@@ -1992,9 +2314,9 @@ export default function ProfileScreen() {
                                 : (targetImg as any)?.uri,
                             caption:
                               imageSheetTarget === "avatar"
-                                ? user?.fullName || "Profile Photo"
+                                ? fullNameDisplay
                                 : "Fellowship Profile Banner",
-                            author: user?.fullName,
+                            author: fullNameDisplay,
                           });
                         }
                       }}
@@ -2086,6 +2408,25 @@ export default function ProfileScreen() {
       <StreakModal
         visible={streakModalVisible}
         onClose={() => setStreakModalVisible(false)}
+      />
+
+      {/* Delete Reflection Confirmation Modal */}
+      <ConfirmModal
+        visible={Boolean(deletePostId)}
+        onClose={() => setDeletePostId(null)}
+        isDark={isDark}
+        icon="trash-outline"
+        iconColor="#ef4444"
+        title="Delete Reflection"
+        description="Are you sure you want to permanently delete this reflection?"
+        buttons={[
+          {
+            label: "Delete",
+            onPress: handleConfirmDeletePost,
+            variant: "danger",
+          },
+        ]}
+        cancelButton={{ label: "Cancel" }}
       />
 
       {/* Sign Out Confirmation Modal */}
@@ -2418,6 +2759,16 @@ const styles = StyleSheet.create({
   tabBodyWrap: {
     paddingTop: 8,
   },
+  loadingStateWrap: {
+    paddingVertical: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  loadingStateText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
   postsList: {
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -2465,6 +2816,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 2,
     flexShrink: 0,
+  },
+  postDeleteBtn: {
+    marginLeft: "auto",
+    paddingLeft: 8,
+    paddingVertical: 2,
   },
   postContentText: {
     fontSize: 14,

@@ -373,13 +373,14 @@ export default function MarketplaceScreen() {
   }, []);
 
   const handleAddToCart = useCallback(
-    (product: Product, quantity: number = 1) => {
-      addToCart(product, quantity);
+    (product: Product, quantity: number = 1, size?: string) => {
+      addToCart(product, quantity, size);
       const displayName = product.name || product.title || "Product";
+      const sizeText = size ? ` (Size ${size})` : "";
       setInfoModal({
         visible: true,
         title: "Added to Cart",
-        message: `${displayName} has been added to your cart.`,
+        message: `${displayName}${sizeText} has been added to your cart.`,
         type: "success",
       });
     },
@@ -650,8 +651,8 @@ export default function MarketplaceScreen() {
         isDark={isDark}
         product={selectedProduct}
         onAddToCart={handleAddToCart}
-        onBuyNow={(product, quantity) => {
-          handleAddToCart(product, quantity);
+        onBuyNow={(product, quantity, size) => {
+          handleAddToCart(product, quantity, size);
           setCartVisible(true);
         }}
       />

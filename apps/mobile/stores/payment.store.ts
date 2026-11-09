@@ -1,3 +1,5 @@
+import { givingKeys } from "@/queries/giving.queries";
+import { queryClient } from "@/queries/queryClient";
 import api from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
@@ -50,6 +52,7 @@ export const usePaymentStore = create<PaymentState>()(
               .reduce((sum, g) => sum + (g.amount || 0), 0);
 
             set({ myGivings: givings, totalGivingsAmount: total });
+            queryClient.setQueryData(givingKeys.myGivings(), givings);
           }
         } catch (error) {
           console.error("Failed to fetch givings", error);
@@ -61,6 +64,10 @@ export const usePaymentStore = create<PaymentState>()(
     {
       name: "payment-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      // Keep server data out of persisted client state; only persist in-flight txRef
+      partialize: (state) => ({
+        txRef: state.txRef,
+      }),
     },
   ),
 );

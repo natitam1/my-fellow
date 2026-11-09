@@ -18,15 +18,37 @@ export interface Product {
 export interface CartItem {
   product: Product;
   quantity: number;
+  size?: string;
 }
 
 export interface OrderItem {
   productId: string;
   quantity: number;
+  size?: string;
   price?: number;
   unitPrice?: string | number;
   product?: Product;
 }
+
+export const APPAREL_SIZES = ["S", "M", "L", "XL", "XXL"] as const;
+export type ApparelSize = (typeof APPAREL_SIZES)[number];
+
+export const isApparelProduct = (product?: Product | null): boolean => {
+  if (!product?.category) return false;
+  const cat = product.category.toLowerCase().trim();
+  return (
+    cat === "t-shirt" ||
+    cat === "t-shirts" ||
+    cat === "tshirt" ||
+    cat === "tshirts" ||
+    cat === "shirt" ||
+    cat === "hoodie" ||
+    cat === "hoodies" ||
+    cat === "hoddy" ||
+    cat === "sweatshirt" ||
+    cat === "apparel"
+  );
+};
 
 export interface OrderBuyer {
   fullName?: string;

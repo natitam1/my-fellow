@@ -1,9 +1,12 @@
 import { AppBottomSheet } from "@/components/AppBottomSheet";
 import { PRIMARY } from "@/constants/colors";
 import {
+  APPAREL_SIZES,
+  ApparelSize,
   Product,
   getProductImage,
   getProductPrice,
+  isApparelProduct,
 } from "@/types/marketplace.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -22,8 +25,8 @@ interface ProductBottomSheetProps {
   onClose: () => void;
   isDark: boolean;
   product: Product | null;
-  onAddToCart: (product: Product, quantity: number) => void;
-  onBuyNow: (product: Product, quantity: number) => void;
+  onAddToCart: (product: Product, quantity: number, size?: string) => void;
+  onBuyNow: (product: Product, quantity: number, size?: string) => void;
 }
 
 export const ProductBottomSheet = ({
@@ -35,6 +38,7 @@ export const ProductBottomSheet = ({
   onBuyNow,
 }: ProductBottomSheetProps) => {
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState<ApparelSize>("L");
 
   const textColor = isDark ? "#FAFAFA" : "#18181B";
   const subTextColor = isDark ? "#A1A1AA" : "#71717A";
@@ -45,6 +49,7 @@ export const ProductBottomSheet = ({
   useEffect(() => {
     if (visible) {
       setQuantity(1);
+      setSelectedSize("L");
     }
   }, [visible]);
 
@@ -53,6 +58,8 @@ export const ProductBottomSheet = ({
 
   if (!product) return null;
 
+  const isApparel = isApparelProduct(product);
+  const chosenSize = isApparel ? selectedSize : undefined;
   const imageUri = getProductImage(product);
   const unitPrice = getProductPrice(product);
   const totalPrice = unitPrice * quantity;
@@ -99,6 +106,54 @@ export const ProductBottomSheet = ({
             <Ionicons name="close" size={18} color={subTextColor} />
           </TouchableOpacity>
         </View>
+
+        {/* Apparel Size Selector */}
+        {isApparel && (
+          <View
+            style={[styles.quantitySection, { borderBottomColor: borderColor }]}
+          >
+            <Text style={[styles.sectionLabel, { color: subTextColor }]}>
+              SELECT SIZE
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {APPAREL_SIZES.map((size) => {
+                const isSelected = selectedSize === size;
+                return (
+                  <TouchableOpacity
+                    key={size}
+                    onPress={() => {
+                      if (Platform.OS !== "web") {
+                        Haptics.selectionAsync().catch(() => {});
+                      }
+                      setSelectedSize(size);
+                    }}
+                    activeOpacity={0.75}
+                    style={{
+                      flex: 1,
+                      height: 38,
+                      borderRadius: 11,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: isSelected ? PRIMARY : cardBg,
+                      borderWidth: 1,
+                      borderColor: isSelected ? PRIMARY : borderColor,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: "800",
+                        color: isSelected ? "#FFFFFF" : textColor,
+                      }}
+                    >
+                      {size}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* Quantity Controller */}
         <View
@@ -168,7 +223,7 @@ export const ProductBottomSheet = ({
                   () => {},
                 );
               }
-              onAddToCart(product, quantity);
+              onAddToCart(product, quantity, chosenSize);
               onClose();
             }}
             activeOpacity={0.7}
@@ -197,7 +252,7 @@ export const ProductBottomSheet = ({
                   () => {},
                 );
               }
-              onBuyNow(product, quantity);
+              onBuyNow(product, quantity, chosenSize);
               onClose();
             }}
             activeOpacity={0.8}

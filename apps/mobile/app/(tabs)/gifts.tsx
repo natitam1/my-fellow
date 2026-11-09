@@ -5,15 +5,22 @@ import { ReasonModal } from "@/components/Modals/ReasonModal";
 import { GivingCelebrationModal } from "@/components/Modals/GivingCelebrationModal";
 import { API_URL } from "@/constants/api";
 import { useTheme } from "@/context/ThemeContext";
-import api from "@/services/api";
+import {
+  useInitJamiPaymentMutation,
+  useMyGivingsQuery,
+  useVerifyJamiPaymentMutation,
+} from "@/queries/giving.queries";
+import { useProductsInfiniteQuery } from "@/queries/marketplace.queries";
 import { useMarketplaceStore } from "@/stores/marketplace.store";
 import { usePaymentStore } from "@/stores/payment.store";
 import { useUserStore } from "@/stores/user.store";
+import { getProductImage, getProductPrice } from "@/types/marketplace.types";
 import { donationSchema } from "@/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 import * as Linking from "expo-linking";
 import { useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -22,7 +29,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
-  LayoutAnimation,
   Platform,
   Pressable,
   RefreshControl,
@@ -80,17 +86,26 @@ const Gifts = () => {
   const cartCount = getCartCount();
 
   const { user } = useUserStore();
-  const { txRef, setTxRef, totalGivingsAmount, fetchMyGivings } =
-    usePaymentStore();
+  const { txRef, setTxRef } = usePaymentStore();
+  const {
+    totalGivingsAmount,
+    refetch: refetchMyGivings,
+  } = useMyGivingsQuery();
+  const {
+    products: featuredProducts,
+    refetch: refetchFeaturedProducts,
+  } = useProductsInfiniteQuery("All", 6);
+  const initJamiMutation = useInitJamiPaymentMutation();
+  const verifyJamiMutation = useVerifyJamiPaymentMutation();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await fetchMyGivings();
+      await Promise.all([refetchMyGivings(), refetchFeaturedProducts()]);
     } finally {
       setRefreshing(false);
     }
-  }, [fetchMyGivings]);
+  }, [refetchMyGivings, refetchFeaturedProducts]);
 
   const showInfoModal = (
     title: string,
@@ -99,10 +114,6 @@ const Gifts = () => {
   ) => {
     setInfoModal({ visible: true, title, message, type });
   };
-
-  useEffect(() => {
-    fetchMyGivings();
-  }, []);
 
   const {
     control,
@@ -163,9 +174,9 @@ const Gifts = () => {
     setLoading(true);
 
     try {
-      const response = await api.get(`/payments/jami/verify/${ref}`);
-      const data = response.data.data || response.data;
-      const status = data?.status || response.data.status;
+      const verifyResult = await verifyJamiMutation.mutateAsync(ref);
+      const data = verifyResult.data;
+      const status = verifyResult.status;
 
       if (status === "success" || status === "completed") {
         const confirmedAmount =
@@ -179,7 +190,7 @@ const Gifts = () => {
           txRef: ref,
         });
         setCelebrationVisible(true);
-        fetchMyGivings();
+        refetchMyGivings();
         setTxRef(null);
         return;
       }
@@ -260,20 +271,9 @@ const Gifts = () => {
         returnUrl: `${API_URL}/payments/success`,
       };
 
-      const response = await api.post("/payments/jami/init", payload);
-      const checkout_url =
-        response.data.data?.checkout_url ||
-        response.data.data?.checkoutUrl ||
-        response.data.checkout_url;
-      const sessionOrRef =
-        response.data.data?.sessionId ||
-        response.data.sessionId ||
-        response.data.data?.tx_ref ||
-        response.data.tx_ref;
-
-      if (!checkout_url) {
-        throw new Error("Invalid checkout URL received from server");
-      }
+      const initRes = await initJamiMutation.mutateAsync(payload);
+      const checkout_url = initRes.checkoutUrl;
+      const sessionOrRef = initRes.sessionOrRef;
 
       setTxRef(sessionOrRef);
 
@@ -731,7 +731,7 @@ const Gifts = () => {
             <View
               style={{
                 marginHorizontal: 16,
-                marginBottom: 40,
+                marginBottom: featuredProducts.length > 0 ? 20 : 40,
                 borderRadius: 20,
                 borderWidth: 1,
                 borderColor: isDark ? "#27272a" : "#e4e4e7",
@@ -799,6 +799,112 @@ const Gifts = () => {
                 )}
               </Pressable>
             </View>
+
+            {/* Live Featured Store Preview Strip */}
+            {featuredProducts.length > 0 && (
+              <View style={{ marginBottom: 40 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingHorizontal: 20,
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "800",
+                      letterSpacing: 1,
+                      textTransform: "uppercase",
+                      color: isDark ? "#a1a1aa" : "#71717a",
+                    }}
+                  >
+                    Featured Store Items
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => router.push("/marketplace" as any)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: "700",
+                        color: PRIMARY,
+                      }}
+                    >
+                      See All
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{
+                    paddingHorizontal: 16,
+                    gap: 12,
+                  }}
+                >
+                  {featuredProducts.slice(0, 6).map((item) => {
+                    const imgUri = getProductImage(item);
+                    const itemPrice = getProductPrice(item);
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          router.push(`/marketplace/${item.id}` as any)
+                        }
+                        style={{
+                          width: 148,
+                          borderRadius: 18,
+                          borderWidth: 1,
+                          borderColor: isDark ? "#27272a" : "#e4e4e7",
+                          backgroundColor: isDark ? "#18181b" : "#ffffff",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <Image
+                          source={{ uri: imgUri }}
+                          style={{
+                            width: "100%",
+                            height: 124,
+                            backgroundColor: isDark ? "#27272a" : "#f4f4f5",
+                          }}
+                          contentFit="cover"
+                          transition={200}
+                          cachePolicy="memory-disk"
+                        />
+                        <View style={{ padding: 10 }}>
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              fontSize: 13,
+                              fontWeight: "700",
+                              color: isDark ? "#fafafa" : "#18181b",
+                              marginBottom: 2,
+                            }}
+                          >
+                            {item.title || item.name}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 12.5,
+                              fontWeight: "800",
+                              color: PRIMARY,
+                            }}
+                          >
+                            {itemPrice.toFixed(0)} ETB
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
           </ScrollView>
         </View>
       <InfoModal

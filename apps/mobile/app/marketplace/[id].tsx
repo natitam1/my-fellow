@@ -7,7 +7,13 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useProductDetailQuery } from "@/queries/marketplace.queries";
 import { useMarketplaceStore } from "@/stores/marketplace.store";
 import { useUserStore } from "@/stores/user.store";
-import { getProductImages, getProductPrice } from "@/types/marketplace.types";
+import {
+  APPAREL_SIZES,
+  ApparelSize,
+  getProductImages,
+  getProductPrice,
+  isApparelProduct,
+} from "@/types/marketplace.types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -128,6 +134,7 @@ export default function ProductDetailScreen() {
   const cartCount = getCartCount();
 
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState<ApparelSize>("L");
   const [infoModal, setInfoModal] = useState<{
     visible: boolean;
     title: string;
@@ -140,6 +147,8 @@ export default function ProductDetailScreen() {
   const price = product ? getProductPrice(product) : 0;
   const displayName = product?.name || product?.title || "Product";
   const isOutOfStock = product?.stock === 0;
+  const isApparel = isApparelProduct(product);
+  const chosenSize = isApparel ? selectedSize : undefined;
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleAddToCart = () => {
@@ -147,11 +156,11 @@ export default function ProductDetailScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
-    addToCart(product, quantity);
+    addToCart(product, quantity, chosenSize);
     setInfoModal({
       visible: true,
       title: "Added to Cart",
-      message: `${quantity}× ${displayName} added to your cart.`,
+      message: `${quantity}× ${displayName}${chosenSize ? ` (Size ${chosenSize})` : ""} added to your cart.`,
       type: "success",
     });
   };
@@ -161,7 +170,7 @@ export default function ProductDetailScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     }
-    addToCart(product, quantity);
+    addToCart(product, quantity, chosenSize);
     setCartVisible(true);
   };
 
@@ -357,6 +366,69 @@ export default function ProductDetailScreen() {
               >
                 {product.description || product.shortDescription}
               </Text>
+            </View>
+          )}
+
+          {/* Apparel Size Selector */}
+          {isApparel && (
+            <View style={{ marginBottom: 24 }}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: isDark ? "#e4e4e7" : "#27272a" },
+                ]}
+              >
+                Select Size
+              </Text>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                {APPAREL_SIZES.map((size) => {
+                  const isSelected = selectedSize === size;
+                  return (
+                    <TouchableOpacity
+                      key={size}
+                      onPress={() => {
+                        if (Platform.OS !== "web") {
+                          Haptics.selectionAsync().catch(() => {});
+                        }
+                        setSelectedSize(size);
+                      }}
+                      activeOpacity={0.8}
+                      style={{
+                        flex: 1,
+                        height: 44,
+                        borderRadius: 14,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: isSelected
+                          ? "#ff6719"
+                          : isDark
+                            ? "#27272a"
+                            : "#f4f4f5",
+                        borderWidth: 1,
+                        borderColor: isSelected
+                          ? "#ff6719"
+                          : isDark
+                            ? "#3f3f46"
+                            : "#e4e4e7",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "800",
+                          color: isSelected
+                            ? "#ffffff"
+                            : isDark
+                              ? "#fafafa"
+                              : "#18181b",
+                        }}
+                      >
+                        {size}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           )}
 

@@ -83,9 +83,9 @@ type MarketplaceState = {
   deleteProduct: (id: string) => Promise<boolean>;
 
   // Cart actions
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (product: Product, quantity?: number, size?: string) => void;
+  removeFromCart: (productId: string, size?: string) => void;
+  updateQuantity: (productId: string, quantity: number, size?: string) => void;
   clearCart: () => void;
   setCartVisible: (visible: boolean) => void;
   getCartTotal: () => number;
@@ -319,10 +319,12 @@ export const useMarketplaceStore = create<MarketplaceState>()(
         get().fetchProducts(true);
       },
 
-      addToCart: (product: Product, quantity = 1) => {
+      addToCart: (product: Product, quantity = 1, size?: string) => {
         const { cartItems } = get();
         const existingItemIndex = cartItems.findIndex(
-          (item) => item.product.id === product.id,
+          (item) =>
+            item.product.id === product.id &&
+            (item.size || undefined) === (size || undefined),
         );
 
         if (existingItemIndex > -1) {
@@ -330,27 +332,39 @@ export const useMarketplaceStore = create<MarketplaceState>()(
           updatedItems[existingItemIndex].quantity += quantity;
           set({ cartItems: updatedItems });
         } else {
-          set({ cartItems: [...cartItems, { product, quantity }] });
+          set({
+            cartItems: [
+              ...cartItems,
+              size ? { product, quantity, size } : { product, quantity },
+            ],
+          });
         }
       },
 
-      removeFromCart: (productId: string) => {
+      removeFromCart: (productId: string, size?: string) => {
         set({
           cartItems: get().cartItems.filter(
-            (item) => item.product.id !== productId,
+            (item) =>
+              !(
+                item.product.id === productId &&
+                (size === undefined || (item.size || undefined) === size)
+              ),
           ),
         });
       },
 
-      updateQuantity: (productId: string, quantity: number) => {
+      updateQuantity: (productId: string, quantity: number, size?: string) => {
         if (quantity <= 0) {
-          get().removeFromCart(productId);
+          get().removeFromCart(productId, size);
           return;
         }
 
         set({
           cartItems: get().cartItems.map((item) =>
-            item.product.id === productId ? { ...item, quantity } : item,
+            item.product.id === productId &&
+            (size === undefined || (item.size || undefined) === size)
+              ? { ...item, quantity }
+              : item,
           ),
         });
       },

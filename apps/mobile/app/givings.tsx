@@ -1,22 +1,22 @@
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { PRIMARY } from "@/constants/colors";
 import { useTheme } from "@/context/ThemeContext";
-import { GivingRecord, usePaymentStore } from "@/stores/payment.store";
+import { useMyGivingsQuery } from "@/queries/giving.queries";
+import { GivingRecord } from "@/stores/payment.store";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const GivingItem = ({
   item,
@@ -96,14 +96,15 @@ const GivingItem = ({
 const GivingsScreen = () => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const router = useRouter();
-  const { top } = useSafeAreaInsets();
-  const { myGivings, totalGivingsAmount, isLoadingGivings, fetchMyGivings } =
-    usePaymentStore();
-
-  useEffect(() => {
-    fetchMyGivings();
-  }, []);
+  const {
+    myGivings,
+    totalGivingsAmount,
+    isLoadingGivings,
+    isBackgroundRefetching,
+    isError,
+    errorMessage,
+    refetch: fetchMyGivings,
+  } = useMyGivingsQuery();
 
   return (
     <View
@@ -166,34 +167,70 @@ const GivingsScreen = () => {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={isLoadingGivings}
-              onRefresh={fetchMyGivings}
+              refreshing={isBackgroundRefetching}
+              onRefresh={() => {
+                fetchMyGivings();
+              }}
               tintColor={PRIMARY}
               colors={[PRIMARY]}
             />
           }
           ListEmptyComponent={
-            <View className="py-20 items-center justify-center">
-              <View
-                className={`w-20 h-20 rounded-[28px] items-center justify-center mb-6 ${isDark ? "bg-zinc-900" : "bg-gray-50"}`}
-              >
+            isError ? (
+              <View className="py-20 items-center justify-center px-6">
                 <Ionicons
-                  name="receipt-outline"
-                  size={40}
-                  color={isDark ? "#333" : "#ddd"}
+                  name="cloud-offline-outline"
+                  size={44}
+                  color="#ef4444"
                 />
+                <Text
+                  className={`text-base font-bold mt-4 ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
+                >
+                  Could not load givings
+                </Text>
+                <Text
+                  className={`text-xs mt-1 text-center ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                >
+                  {errorMessage || "Please check your connection and try again."}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => fetchMyGivings()}
+                  style={{
+                    marginTop: 16,
+                    paddingHorizontal: 20,
+                    paddingVertical: 10,
+                    borderRadius: 20,
+                    backgroundColor: PRIMARY,
+                  }}
+                >
+                  <Text style={{ color: "#ffffff", fontWeight: "700", fontSize: 13 }}>
+                    Retry
+                  </Text>
+                </TouchableOpacity>
               </View>
-              <Text
-                className={`text-base font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-              >
-                No history found
-              </Text>
-              <Text
-                className={`text-xs mt-2 ${isDark ? "text-zinc-600" : "text-zinc-300"}`}
-              >
-                Your donations will appear here
-              </Text>
-            </View>
+            ) : (
+              <View className="py-20 items-center justify-center">
+                <View
+                  className={`w-20 h-20 rounded-[28px] items-center justify-center mb-6 ${isDark ? "bg-zinc-900" : "bg-gray-50"}`}
+                >
+                  <Ionicons
+                    name="receipt-outline"
+                    size={40}
+                    color={isDark ? "#333" : "#ddd"}
+                  />
+                </View>
+                <Text
+                  className={`text-base font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                >
+                  No history found
+                </Text>
+                <Text
+                  className={`text-xs mt-2 ${isDark ? "text-zinc-600" : "text-zinc-300"}`}
+                >
+                  Your donations will appear here
+                </Text>
+              </View>
+            )
           }
         />
       )}

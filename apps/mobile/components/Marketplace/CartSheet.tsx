@@ -1,5 +1,10 @@
 import { AppBottomSheet } from "@/components/AppBottomSheet";
+import { API_URL } from "@/constants/api";
 import { PRIMARY } from "@/constants/colors";
+import {
+  useInitJamiPaymentMutation,
+  useVerifyJamiPaymentMutation,
+} from "@/queries/giving.queries";
 import { usePlaceOrderMutation } from "@/queries/marketplace.queries";
 import { useMarketplaceStore } from "@/stores/marketplace.store";
 import { useUserStore } from "@/stores/user.store";
@@ -7,12 +12,13 @@ import { getProductImage, getProductPrice, Order } from "@/types/marketplace.typ
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
   FlatList,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -38,10 +44,17 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
     getCartTotal,
   } = useMarketplaceStore();
   const placeOrderMutation = usePlaceOrderMutation();
-  const placingOrder = placeOrderMutation.isPending;
+  const initJamiMutation = useInitJamiPaymentMutation();
+  const verifyJamiMutation = useVerifyJamiPaymentMutation();
+  const placingOrder =
+    placeOrderMutation.isPending ||
+    initJamiMutation.isPending ||
+    verifyJamiMutation.isPending;
 
   // "cart" (step 1) -> "confirm" (step 2) -> "success" (step 3)
   const [step, setStep] = useState<"cart" | "confirm" | "success">("cart");
+  const [paymentMethod, setPaymentMethod] = useState<"pickup" | "jami">("pickup");
+  const [paidOnline, setPaidOnline] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -49,6 +62,8 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
 
   const handleDismiss = () => {
     setStep("cart");
+    setPaymentMethod("pickup");
+    setPaidOnline(false);
     setErrorMessage(null);
     onClose();
   };
@@ -75,8 +90,62 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
         productId: item.product.id,
         quantity: item.quantity,
       }));
+      const orderTotal = total;
       const order = await placeOrderMutation.mutateAsync(itemsPayload);
       if (order) {
+        if (paymentMethod === "jami" && orderTotal > 0) {
+          try {
+            const initRes = await initJamiMutation.mutateAsync({
+              amount: orderTotal,
+              email: user?.email?.trim() || "206413681+natitam1@users.noreply.github.com",
+              phone: user?.phoneNumber,
+              reason: `Fellowship Store Order #${order.id.slice(-6).toUpperCase()}`,
+              returnUrl: `${API_URL}/payments/success`,
+            });
+
+            let launchUrl = initRes.checkoutUrl;
+            const donorPhone = user?.phoneNumber;
+            if (launchUrl && donorPhone && !launchUrl.includes("phone=")) {
+              const rawDigits = donorPhone.replace(/\D/g, "");
+              const localFormat = rawDigits.startsWith("251")
+                ? "0" + rawDigits.slice(3)
+                : rawDigits.startsWith("0")
+                  ? rawDigits
+                  : "0" + rawDigits;
+              const intlFormat = rawDigits.startsWith("0")
+                ? "251" + rawDigits.slice(1)
+                : rawDigits.startsWith("251")
+                  ? rawDigits
+                  : "251" + rawDigits;
+              const sep = launchUrl.includes("?") ? "&" : "?";
+              launchUrl = `${launchUrl}${sep}phone=${encodeURIComponent(localFormat)}&phoneNumber=${encodeURIComponent(localFormat)}&customer_phone=${encodeURIComponent(intlFormat)}&msisdn=${encodeURIComponent(localFormat)}`;
+            }
+
+            const authResult = await WebBrowser.openAuthSessionAsync(
+              launchUrl,
+              "my-fellow://payment-status",
+            );
+
+            const refToVerify =
+              authResult.type === "success"
+                ? (typeof Linking.parse(authResult.url).queryParams?.sessionId === "string" &&
+                    (Linking.parse(authResult.url).queryParams?.sessionId as string)) ||
+                  initRes.sessionOrRef
+                : initRes.sessionOrRef;
+
+            if (refToVerify) {
+              const verifyRes = await verifyJamiMutation.mutateAsync(refToVerify);
+              if (
+                verifyRes.status === "success" ||
+                verifyRes.status === "completed"
+              ) {
+                setPaidOnline(true);
+              }
+            }
+          } catch {
+            // Order is already placed; member can still pay on pickup if online payment wasn't completed
+          }
+        }
         clearCart();
         setPlacedOrder(order);
         setStep("success");
@@ -161,7 +230,9 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
               <>
                 <FlatList
                   data={cartItems}
-                  keyExtractor={(item) => item.product.id}
+                  keyExtractor={(item, idx) =>
+                    `${item.product.id}-${item.size || "default"}-${idx}`
+                  }
                   showsVerticalScrollIndicator={false}
                   style={styles.cartList}
                   contentContainerStyle={{ paddingBottom: 16 }}
@@ -194,9 +265,39 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
                           >
                             {item.product.title || item.product.name}
                           </Text>
-                          <Text style={styles.itemUnitPrice}>
-                            {(price * item.quantity).toFixed(2)} ETB
-                          </Text>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <Text style={styles.itemUnitPrice}>
+                              {(price * item.quantity).toFixed(2)} ETB
+                            </Text>
+                            {item.size && (
+                              <View
+                                style={{
+                                  paddingHorizontal: 6,
+                                  paddingVertical: 1.5,
+                                  borderRadius: 6,
+                                  backgroundColor: isDark
+                                    ? "#3F3F46"
+                                    : "#E2E8F0",
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: "800",
+                                    color: textColor,
+                                  }}
+                                >
+                                  Size {item.size}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
                         </View>
 
                         <View style={styles.qtyControlRow}>
@@ -205,6 +306,7 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
                               updateQuantity(
                                 item.product.id,
                                 item.quantity - 1,
+                                item.size,
                               )
                             }
                             style={[
@@ -234,6 +336,7 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
                               updateQuantity(
                                 item.product.id,
                                 item.quantity + 1,
+                                item.size,
                               )
                             }
                             style={[
@@ -246,7 +349,9 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
                         </View>
 
                         <TouchableOpacity
-                          onPress={() => removeFromCart(item.product.id)}
+                          onPress={() =>
+                            removeFromCart(item.product.id, item.size)
+                          }
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           style={styles.trashBtn}
                         >
@@ -356,15 +461,19 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
               >
                 ITEMS ({cartItems.length})
               </Text>
-              {cartItems.map((item) => {
+              {cartItems.map((item, idx) => {
                 const itemPrice = getProductPrice(item.product);
                 return (
-                  <View key={item.product.id} style={styles.orderItemSummaryRow}>
+                  <View
+                    key={`${item.product.id}-${item.size || "default"}-${idx}`}
+                    style={styles.orderItemSummaryRow}
+                  >
                     <Text
                       numberOfLines={1}
                       style={[styles.orderItemName, { color: textColor }]}
                     >
                       {item.quantity}× {item.product.title || item.product.name}
+                      {item.size ? ` (Size ${item.size})` : ""}
                     </Text>
                     <Text
                       style={[styles.orderItemTotal, { color: textColor }]}
@@ -404,6 +513,111 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
               </View>
             </View>
 
+            {/* Payment Method Selector */}
+            <View
+              style={[
+                styles.summaryCard,
+                { backgroundColor: cardBg, borderColor },
+              ]}
+            >
+              <Text
+                style={[styles.summaryCardHeader, { color: subTextColor }]}
+              >
+                PAYMENT OPTION
+              </Text>
+              <View style={{ gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setPaymentMethod("pickup")}
+                  activeOpacity={0.8}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    padding: 12,
+                    borderRadius: 12,
+                    borderWidth: 1.5,
+                    borderColor:
+                      paymentMethod === "pickup" ? PRIMARY : borderColor,
+                    backgroundColor:
+                      paymentMethod === "pickup"
+                        ? isDark
+                          ? "rgba(255, 103, 25, 0.1)"
+                          : "#FFF7ED"
+                        : "transparent",
+                    gap: 10,
+                  }}
+                >
+                  <Ionicons
+                    name={
+                      paymentMethod === "pickup"
+                        ? "radio-button-on"
+                        : "radio-button-off"
+                    }
+                    size={20}
+                    color={paymentMethod === "pickup" ? PRIMARY : subTextColor}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: "700",
+                        color: textColor,
+                      }}
+                    >
+                      Pay on Campus Pickup
+                    </Text>
+                    <Text style={{ fontSize: 11.5, color: subTextColor }}>
+                      Pay cash or transfer when picking up at 4 Kilo Fellowship
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setPaymentMethod("jami")}
+                  activeOpacity={0.8}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    padding: 12,
+                    borderRadius: 12,
+                    borderWidth: 1.5,
+                    borderColor:
+                      paymentMethod === "jami" ? PRIMARY : borderColor,
+                    backgroundColor:
+                      paymentMethod === "jami"
+                        ? isDark
+                          ? "rgba(255, 103, 25, 0.1)"
+                          : "#FFF7ED"
+                        : "transparent",
+                    gap: 10,
+                  }}
+                >
+                  <Ionicons
+                    name={
+                      paymentMethod === "jami"
+                        ? "radio-button-on"
+                        : "radio-button-off"
+                    }
+                    size={20}
+                    color={paymentMethod === "jami" ? PRIMARY : subTextColor}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: "700",
+                        color: textColor,
+                      }}
+                    >
+                      Pay Online Now (Telebirr / CBE Birr)
+                    </Text>
+                    <Text style={{ fontSize: 11.5, color: subTextColor }}>
+                      Instant online payment powered by Jami
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {errorMessage && (
               <View style={styles.errorBanner}>
                 <Ionicons name="alert-circle" size={18} color="#EF4444" />
@@ -421,7 +635,11 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
               ]}
             >
               <Text style={styles.primaryActionBtnText}>
-                {placingOrder ? "Placing Order..." : `Confirm & Place Order`}
+                {placingOrder
+                  ? "Processing..."
+                  : paymentMethod === "jami"
+                    ? `Place Order & Pay ${total.toFixed(0)} ETB`
+                    : "Confirm & Place Order"}
               </Text>
               {!placingOrder && (
                 <Ionicons
@@ -446,8 +664,9 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
             </Text>
 
             <Text style={[styles.successSubtitle, { color: subTextColor }]}>
-              Your fellowship merchandise order has been recorded. Our ministry
-              team will have it prepared for you.
+              {paidOnline
+                ? "Your payment is confirmed and your fellowship merchandise order is being prepared for pickup!"
+                : "Your fellowship merchandise order has been recorded. Our ministry team will have it prepared for you."}
             </Text>
 
             {placedOrder && (
