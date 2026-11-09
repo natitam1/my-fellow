@@ -6,7 +6,11 @@ import { InfoModal } from "@/components/Modals/InfoModal";
 import { PRIMARY } from "@/constants";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { useMarketplaceStore } from "@/stores/marketplace.store";
+import {
+  useAdminOrdersQuery,
+  useMyOrdersInfiniteQuery,
+  useUpdateOrderStatusMutation,
+} from "@/queries/marketplace.queries";
 import { useUserStore } from "@/stores/user.store";
 import { Order, getProductImage, getProductPrice } from "@/types/marketplace.types";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,7 +19,7 @@ import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   FlatList,
   Platform,
@@ -87,20 +91,29 @@ export default function OrdersScreen() {
   const { user } = useUserStore();
   const isAdmin = useIsAdmin();
 
-  const {
-    orders,
-    ordersLoading,
-    fetchMyOrders,
-    loadMoreOrders,
-    adminOrders,
-    adminOrdersLoading,
-    fetchAdminOrders,
-    updateOrderStatus,
-  } = useMarketplaceStore();
-
   const [activeTab, setActiveTab] = useState<"my" | "admin">(
     isAdmin ? "admin" : "my",
   );
+
+  const {
+    orders,
+    isLoading: ordersLoading,
+    isBackgroundRefetching: myOrdersRefetching,
+    hasNextPage: ordersHasMore,
+    isFetchingNextPage: ordersFetchingNextPage,
+    fetchNextPage: fetchNextOrdersPage,
+    refetch: refetchMyOrders,
+  } = useMyOrdersInfiniteQuery(20, Boolean(user));
+
+  const {
+    adminOrders,
+    isLoading: adminOrdersLoading,
+    isBackgroundRefetching: adminOrdersRefetching,
+    refetch: refetchAdminOrders,
+  } = useAdminOrdersQuery(Boolean(user && isAdmin));
+
+  const updateOrderStatusMutation = useUpdateOrderStatusMutation();
+
   const [selectedOrderForStatus, setSelectedOrderForStatus] =
     useState<Order | null>(null);
   const [selectedNewStatus, setSelectedNewStatus] =
@@ -113,15 +126,11 @@ export default function OrdersScreen() {
     type: "success" | "error" | "info";
   }>({ visible: false, title: "", message: "", type: "info" });
 
-  useEffect(() => {
-    if (user) {
-      if (activeTab === "my") {
-        fetchMyOrders(true);
-      } else if (isAdmin) {
-        fetchAdminOrders();
-      }
+  const loadMoreOrders = () => {
+    if (ordersHasMore && !ordersFetchingNextPage) {
+      fetchNextOrdersPage();
     }
-  }, [user, activeTab, isAdmin]);
+  };
 
   const handleOpenStatusSheet = (order: Order) => {
     setSelectedOrderForStatus(order);
@@ -141,7 +150,10 @@ export default function OrdersScreen() {
     if (!selectedOrderForStatus || !selectedNewStatus) return;
     try {
       setStatusUpdating(true);
-      await updateOrderStatus(selectedOrderForStatus.id, selectedNewStatus);
+      await updateOrderStatusMutation.mutateAsync({
+        id: selectedOrderForStatus.id,
+        status: selectedNewStatus,
+      });
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
           () => {},
@@ -224,6 +236,10 @@ export default function OrdersScreen() {
   const currentList = activeTab === "admin" && isAdmin ? adminOrders : orders;
   const currentLoading =
     activeTab === "admin" && isAdmin ? adminOrdersLoading : ordersLoading;
+  const currentRefreshing =
+    activeTab === "admin" && isAdmin
+      ? adminOrdersRefetching
+      : myOrdersRefetching;
 
   return (
     <View style={{ flex: 1, backgroundColor: isDark ? "#121214" : "#F8FAFC" }}>
@@ -388,12 +404,12 @@ export default function OrdersScreen() {
           }
           refreshControl={
             <RefreshControl
-              refreshing={currentLoading}
+              refreshing={currentRefreshing}
               onRefresh={() => {
                 if (activeTab === "admin" && isAdmin) {
-                  fetchAdminOrders();
+                  refetchAdminOrders();
                 } else {
-                  fetchMyOrders(true);
+                  refetchMyOrders();
                 }
               }}
               colors={[PRIMARY]}

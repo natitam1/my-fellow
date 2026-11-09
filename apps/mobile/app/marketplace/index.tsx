@@ -8,13 +8,14 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { PRIMARY } from "@/constants/colors";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useProductsInfiniteQuery } from "@/queries/marketplace.queries";
 import { useMarketplaceStore } from "@/stores/marketplace.store";
 import { Product } from "@/types/marketplace.types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -56,6 +57,9 @@ interface ProductGridSceneProps {
   products: Product[];
   loading: boolean;
   refreshing: boolean;
+  isFetchingNextPage: boolean;
+  isError: boolean;
+  errorMessage: string | null;
   hasMore: boolean;
   isDark: boolean;
   bottomInset: number;
@@ -71,6 +75,9 @@ const ProductGridScene = React.memo(function ProductGridScene({
   products,
   loading,
   refreshing,
+  isFetchingNextPage,
+  isError,
+  errorMessage,
   hasMore,
   isDark,
   bottomInset,
@@ -157,7 +164,7 @@ const ProductGridScene = React.memo(function ProductGridScene({
   }
 
   const renderFooter = () => {
-    if (!hasMore || !loading || refreshing) return null;
+    if (!hasMore || !isFetchingNextPage) return null;
     return (
       <View style={{ paddingVertical: 20, alignItems: "center" }}>
         <ActivityIndicator size="small" color={PRIMARY} />
@@ -167,6 +174,59 @@ const ProductGridScene = React.memo(function ProductGridScene({
 
   const renderEmpty = () => {
     if (loading) return null;
+    if (isError) {
+      return (
+        <View
+          style={{
+            alignItems: "center",
+            justifyContent: "center",
+            paddingTop: 80,
+            paddingHorizontal: 32,
+          }}
+        >
+          <Ionicons
+            name="cloud-offline-outline"
+            size={56}
+            color={isDark ? "#ef4444" : "#dc2626"}
+          />
+          <Text
+            style={{
+              marginTop: 14,
+              fontSize: 16,
+              fontWeight: "700",
+              color: isDark ? "#f4f4f5" : "#18181b",
+            }}
+          >
+            Could not load products
+          </Text>
+          <Text
+            style={{
+              marginTop: 6,
+              fontSize: 13,
+              color: isDark ? "#a1a1aa" : "#71717a",
+              textAlign: "center",
+              paddingHorizontal: 16,
+            }}
+          >
+            {errorMessage || "Please check your connection and try again."}
+          </Text>
+          <TouchableOpacity
+            onPress={onRefresh}
+            style={{
+              marginTop: 16,
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              borderRadius: 20,
+              backgroundColor: PRIMARY,
+            }}
+          >
+            <Text style={{ color: "#ffffff", fontWeight: "700", fontSize: 13 }}>
+              Retry
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     return (
       <View
         style={{
@@ -269,33 +329,43 @@ export default function MarketplaceScreen() {
   }>({ visible: false, title: "", message: "", type: "info" });
 
   const {
-    products,
-    loading,
-    refreshing,
-    hasMore,
-    fetchProducts,
-    loadMore,
     addToCart,
     selectedCategory,
     setSelectedCategory,
   } = useMarketplaceStore();
+
+  const {
+    products,
+    isLoading: loading,
+    isBackgroundRefetching: refreshing,
+    isFetchingNextPage,
+    isError,
+    errorMessage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useProductsInfiniteQuery("All", 20);
+
+  const hasMore = Boolean(hasNextPage);
 
   const initialIndex = useMemo(() => {
     const idx = STORE_ROUTES.findIndex(
       (r) => r.key.toLowerCase() === selectedCategory?.toLowerCase(),
     );
     return idx >= 0 ? idx : 0;
-  }, []);
+  }, [selectedCategory]);
 
   const [tabIndex, setTabIndex] = useState(initialIndex);
 
-  useEffect(() => {
-    fetchProducts(true);
-  }, []);
-
   const handleRefresh = useCallback(() => {
-    fetchProducts(true);
-  }, [fetchProducts]);
+    refetch();
+  }, [refetch]);
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleOpenProductSheet = useCallback((product: Product) => {
     setSelectedProduct(product);
@@ -343,11 +413,14 @@ export default function MarketplaceScreen() {
           products={products}
           loading={loading}
           refreshing={refreshing}
+          isFetchingNextPage={isFetchingNextPage}
+          isError={isError}
+          errorMessage={errorMessage}
           hasMore={hasMore}
           isDark={isDark}
           bottomInset={bottom}
           onRefresh={handleRefresh}
-          onLoadMore={loadMore}
+          onLoadMore={handleLoadMore}
           onProductPress={handleProductPress}
           onBuyPress={handleOpenProductSheet}
         />
@@ -357,11 +430,14 @@ export default function MarketplaceScreen() {
       products,
       loading,
       refreshing,
+      isFetchingNextPage,
+      isError,
+      errorMessage,
       hasMore,
       isDark,
       bottom,
       handleRefresh,
-      loadMore,
+      handleLoadMore,
       handleProductPress,
       handleOpenProductSheet,
     ],

@@ -4,8 +4,51 @@ import type { File as ExpoFileType } from "expo-file-system";
 import * as SecureStore from "expo-secure-store";
 
 /**
- * Normalizes legacy React Native `{ uri, name, type }` FormData file entries
- * into Expo SDK 58 WinterCG-compatible parts with a `.bytes()` reader backed by `expo-file-system`.
+ * Decodes a base64 string into a Uint8Array without external dependencies.
+ */
+function decodeBase64ToBytes(base64: string): Uint8Array {
+  const clean = base64.replace(/^data:[^;]+;base64,/, "").replace(/\s/g, "");
+  if (typeof globalThis.atob === "function") {
+    const binary = globalThis.atob(clean);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const lookup = new Uint8Array(256);
+  for (let i = 0; i < chars.length; i++) {
+    lookup[chars.charCodeAt(i)] = i;
+  }
+  let bufferLength = clean.length * 0.75;
+  if (clean[clean.length - 1] === "=") {
+    bufferLength--;
+    if (clean[clean.length - 2] === "=") {
+      bufferLength--;
+    }
+  }
+  const bytes = new Uint8Array(bufferLength);
+  let p = 0;
+  for (let i = 0; i < clean.length; i += 4) {
+    const encoded1 = lookup[clean.charCodeAt(i)];
+    const encoded2 = lookup[clean.charCodeAt(i + 1)];
+    const encoded3 = lookup[clean.charCodeAt(i + 2)];
+    const encoded4 = lookup[clean.charCodeAt(i + 3)];
+    bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+    if (p < bufferLength) bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+    if (p < bufferLength) bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+  }
+  return bytes;
+}
+
+/**
+ * Normalizes FormData file entries for Expo SDK 58's WinterCG `fetch` (`expo/fetch`) + `expo-file-system` `File`.
+ * - If `entry` is already an `expo-file-system` `File` (or implements `.bytes()`), preserves it and wraps `.bytes()` with
+ *   safe fallback for Expo Go Android percent-encoded cache paths (`%40` / `%2540`) and optional `base64`.
+ * - If `entry` is a React Native `{ uri, name, type, base64? }` descriptor, converts it into an Expo SDK 58
+ *   `File`-backed part with `.bytes()`.
  */
 export function prepareFormDataForExpoFetch(formData: FormData): FormData {
   const parts = (formData as any)?._parts;
@@ -18,10 +61,13 @@ export function prepareFormDataForExpoFetch(formData: FormData): FormData {
         entry &&
         typeof entry === "object" &&
         "uri" in entry &&
-        typeof entry.uri === "string" &&
-        typeof entry.bytes !== "function"
+        typeof entry.uri === "string"
       ) {
         const uri: string = entry.uri;
+        const base64Data: string | undefined =
+          typeof entry.base64 === "string" && entry.base64.length > 0
+            ? entry.base64
+            : undefined;
         const fallbackName = uri.split("/").pop() || "upload.jpg";
         const name =
           typeof entry.name === "string" && entry.name.trim().length > 0
@@ -32,17 +78,43 @@ export function prepareFormDataForExpoFetch(formData: FormData): FormData {
             ? entry.type.trim()
             : "image/jpeg";
 
+        const existingBytesFn =
+          typeof entry.bytes === "function" ? entry.bytes.bind(entry) : null;
+
         pair[1] = {
           uri,
           name,
           type,
           bytes: async (): Promise<Uint8Array> => {
+            if (base64Data) {
+              return decodeBase64ToBytes(base64Data);
+            }
+            if (existingBytesFn) {
+              try {
+                return await existingBytesFn();
+              } catch {
+                // Fall through to File candidate resolution below
+              }
+            }
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             const { File } = require("expo-file-system") as {
               File: new (fileUri: string) => ExpoFileType;
             };
-            const expoFile = new File(uri);
-            return await expoFile.bytes();
+            const candidateUris = [
+              uri,
+              uri.replace(/%(?!25)/g, "%25"),
+              decodeURIComponent(uri),
+            ];
+            let lastErr: unknown;
+            for (const candidate of candidateUris) {
+              try {
+                const expoFile = new File(candidate);
+                return await expoFile.bytes();
+              } catch (err) {
+                lastErr = err;
+              }
+            }
+            throw lastErr;
           },
         };
       }

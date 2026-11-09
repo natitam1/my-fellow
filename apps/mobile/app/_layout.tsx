@@ -1,7 +1,12 @@
 import { AuthProvider } from "@/context/AuthContext";
 import { useTheme, ThemeProvider } from "@/context/ThemeContext";
+import {
+  queryClient,
+  setupReactQueryAppStateListener,
+} from "@/queries/queryClient";
 import { useAppStore } from "@/stores/app.store";
 import { Ionicons } from "@expo/vector-icons";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -237,6 +242,10 @@ export default function RootLayout() {
   }, [error]);
 
   useEffect(() => {
+    setupReactQueryAppStateListener();
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = useAppStore.persist.onFinishHydration(() => {
       setHasHydrated(true);
     });
@@ -260,26 +269,28 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <ThemeProvider>
-          <NativeDialogProvider>
-            <NativeConfirmationProvider>
-              <RootNavigator />
-              <AvatarPreviewHost />
-              <Toast
-                position="bottom"
-                bottomOffset={40}
-                config={{
-                  success: (props: any) => renderCustomToast(props, "success"),
-                  error: (props: any) => renderCustomToast(props, "error"),
-                  warning: (props: any) => renderCustomToast(props, "warning"),
-                  info: (props: any) => renderCustomToast(props, "info"),
-                }}
-              />
-            </NativeConfirmationProvider>
-          </NativeDialogProvider>
-        </ThemeProvider>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ThemeProvider>
+            <NativeDialogProvider>
+              <NativeConfirmationProvider>
+                <RootNavigator />
+                <AvatarPreviewHost />
+                <Toast
+                  position="bottom"
+                  bottomOffset={40}
+                  config={{
+                    success: (props: any) => renderCustomToast(props, "success"),
+                    error: (props: any) => renderCustomToast(props, "error"),
+                    warning: (props: any) => renderCustomToast(props, "warning"),
+                    info: (props: any) => renderCustomToast(props, "info"),
+                  }}
+                />
+              </NativeConfirmationProvider>
+            </NativeDialogProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
   );
 }

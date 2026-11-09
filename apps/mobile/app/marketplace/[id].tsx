@@ -4,6 +4,7 @@ import { InfoModal } from "@/components/Modals/InfoModal";
 import { NativeBackButton } from "@/components/ui/NativeBackButton";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useProductDetailQuery } from "@/queries/marketplace.queries";
 import { useMarketplaceStore } from "@/stores/marketplace.store";
 import { useUserStore } from "@/stores/user.store";
 import { getProductImages, getProductPrice } from "@/types/marketplace.types";
@@ -112,10 +113,12 @@ export default function ProductDetailScreen() {
 
   const { user } = useUserStore();
   const {
-    currentProduct: product,
-    loading,
-    error,
-    fetchProductById,
+    product,
+    isLoading: loading,
+    errorMessage: error,
+    refetch: refetchProduct,
+  } = useProductDetailQuery(id);
+  const {
     addToCart,
     cartVisible,
     setCartVisible,
@@ -131,10 +134,6 @@ export default function ProductDetailScreen() {
     message: string;
     type: "success" | "error" | "info";
   }>({ visible: false, title: "", message: "", type: "info" });
-
-  useEffect(() => {
-    if (id) fetchProductById(id);
-  }, [id]);
 
   // Derived values
   const images = product ? getProductImages(product) : [PLACEHOLDER_IMAGE];

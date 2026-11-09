@@ -1,4 +1,9 @@
 import {
+  marketplaceKeys,
+  normalizeProduct,
+} from "@/queries/marketplace.queries";
+import { queryClient } from "@/queries/queryClient";
+import {
   createProductApi,
   deleteProductApi,
   fetchAllOrdersAdminApi,
@@ -24,12 +29,10 @@ const normalizeAndDedupeProducts = (items: Product[]): Product[] => {
   const result: Product[] = [];
   for (const item of items) {
     if (!item || typeof item !== "object") continue;
-    const rawId = item.id || (item as any)._id;
-    if (!rawId) continue;
-    const id = String(rawId);
-    if (seen.has(id)) continue;
-    seen.add(id);
-    result.push(item.id === id ? item : { ...item, id });
+    const normalized = normalizeProduct(item);
+    if (!normalized.id || seen.has(normalized.id)) continue;
+    seen.add(normalized.id);
+    result.push(normalized);
   }
   return result;
 };
@@ -234,14 +237,18 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       ) => {
         const res = await createProductApi(data);
         if (res.data) {
-          const created = {
-            ...res.data,
-            id: String(res.data.id || (res.data as any)._id),
-          };
+          const created = normalizeProduct(res.data);
           set((state) => ({
             products: normalizeAndDedupeProducts([created, ...state.products]),
             productsLastFetched: Date.now(),
           }));
+          queryClient.setQueryData(
+            marketplaceKeys.productDetail(created.id),
+            created,
+          );
+          queryClient.invalidateQueries({
+            queryKey: marketplaceKeys.products(),
+          });
           return created;
         }
         throw new Error(res.message || "Failed to create product");
@@ -253,10 +260,10 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       ) => {
         const res = await updateProductApi(id, data);
         if (res.data) {
-          const updated = {
+          const updated = normalizeProduct({
             ...res.data,
             id: String(res.data.id || (res.data as any)._id || id),
-          };
+          });
           set((state) => ({
             products: normalizeAndDedupeProducts(
               state.products.map((p) =>
@@ -270,6 +277,13 @@ export const useMarketplaceStore = create<MarketplaceState>()(
                 : state.currentProduct,
             productsLastFetched: Date.now(),
           }));
+          queryClient.setQueryData(
+            marketplaceKeys.productDetail(updated.id),
+            updated,
+          );
+          queryClient.invalidateQueries({
+            queryKey: marketplaceKeys.products(),
+          });
           return updated;
         }
         throw new Error(res.message || "Failed to update product");
@@ -283,6 +297,12 @@ export const useMarketplaceStore = create<MarketplaceState>()(
               (p) => p.id !== id && (p as any)._id !== id,
             ),
           }));
+          queryClient.removeQueries({
+            queryKey: marketplaceKeys.productDetail(id),
+          });
+          queryClient.invalidateQueries({
+            queryKey: marketplaceKeys.products(),
+          });
           return true;
         }
         return false;
@@ -464,13 +484,15 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       name: "marketplace-storage",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
+        // Keep server data out of persisted client state; only persist client cart & category preference
         cartItems: state.cartItems,
-        products: normalizeAndDedupeProducts(state.products),
-        productsLastFetched: state.productsLastFetched,
+        selectedCategory: state.selectedCategory,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state && Array.isArray(state.products)) {
-          state.products = normalizeAndDedupeProducts(state.products);
+        if (state) {
+          state.products = [];
+          state.orders = [];
+          state.adminOrders = [];
         }
       },
     },

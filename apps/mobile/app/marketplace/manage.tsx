@@ -8,7 +8,12 @@ import { PRIMARY } from "@/constants/colors";
 import { useTheme } from "@/context/ThemeContext";
 import { useConfirmUnsavedChanges } from "@/hooks/useConfirmUnsavedChanges";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { useMarketplaceStore } from "@/stores/marketplace.store";
+import {
+  useCreateProductMutation,
+  useDeleteProductMutation,
+  useProductDetailQuery,
+  useUpdateProductMutation,
+} from "@/queries/marketplace.queries";
 import { Product } from "@/types/marketplace.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -41,6 +46,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 interface ImageItem {
   uri: string;
   isLocal: boolean;
+  base64?: string | null;
+  mimeType?: string | null;
+  fileName?: string | null;
 }
 
 interface CategoryOption {
@@ -199,15 +207,15 @@ export default function ManageProductScreen() {
   const isAdmin = useIsAdmin();
 
   const {
-    products,
-    createProduct,
-    updateProduct,
-    deleteProduct,
-    fetchProductById,
-    fetchProducts,
-  } = useMarketplaceStore();
+    product: queriedProduct,
+    isLoading: isLoadingProduct,
+  } = useProductDetailQuery(isEditing ? id : undefined);
+  const createProductMutation = useCreateProductMutation();
+  const updateProductMutation = useUpdateProductMutation();
+  const deleteProductMutation = useDeleteProductMutation();
 
-  const [loadingInitial, setLoadingInitial] = useState<boolean>(isEditing);
+  const [populatedId, setPopulatedId] = useState<string | null>(null);
+  const loadingInitial = isEditing && isLoadingProduct && !queriedProduct;
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState<boolean>(false);
@@ -250,26 +258,11 @@ export default function ManageProductScreen() {
   }>({ visible: false, title: "", message: "", type: "info" });
 
   useEffect(() => {
-    if (!isEditing || !id) {
-      setLoadingInitial(false);
-      return;
+    if (isEditing && id && queriedProduct && populatedId !== id) {
+      populateForm(queriedProduct);
+      setPopulatedId(id);
     }
-
-    const existing = products.find(
-      (p) => p.id === id || (p as any)._id === id,
-    );
-    if (existing) {
-      populateForm(existing);
-      setLoadingInitial(false);
-    } else {
-      fetchProductById(id)
-        .then(() => {
-          const current = useMarketplaceStore.getState().currentProduct;
-          if (current) populateForm(current);
-        })
-        .finally(() => setLoadingInitial(false));
-    }
-  }, [id, isEditing, products]);
+  }, [id, isEditing, queriedProduct, populatedId]);
 
   const populateForm = (item: Product) => {
     setTitle(item.title || item.name || "");
@@ -324,12 +317,16 @@ export default function ManageProductScreen() {
         allowsMultipleSelection: true,
         selectionLimit: 4 - images.length,
         quality: 0.85,
+        base64: true,
       });
 
       if (!result.canceled && result.assets) {
         const newImgs: ImageItem[] = result.assets.map((a) => ({
           uri: a.uri,
           isLocal: true,
+          base64: a.base64 ?? null,
+          mimeType: a.mimeType ?? null,
+          fileName: a.fileName ?? null,
         }));
         setImages([...images, ...newImgs].slice(0, 4));
         if (Platform.OS !== "web") {
@@ -372,12 +369,20 @@ export default function ManageProductScreen() {
 
       const result = await ImagePicker.launchCameraAsync({
         quality: 0.85,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
         setImages([
           ...images,
-          { uri: result.assets[0].uri, isLocal: true },
+          {
+            uri: asset.uri,
+            isLocal: true,
+            base64: asset.base64 ?? null,
+            mimeType: asset.mimeType ?? null,
+            fileName: asset.fileName ?? null,
+          },
         ].slice(0, 4));
         if (Platform.OS !== "web") {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -466,25 +471,29 @@ export default function ManageProductScreen() {
           .filter((i) => i.isLocal)
           .forEach((img, idx) => {
             const fileUri = img.uri;
-            let filename =
-              fileUri.split("/").pop() || `product_${Date.now()}_${idx}.jpg`;
-            const extMatch = /\.(\w+)$/.exec(filename);
+            const rawName =
+              img.fileName ||
+              fileUri.split("/").pop() ||
+              `product_${Date.now()}_${idx}.jpg`;
+            const extMatch = /\.(\w+)$/.exec(rawName);
             const ext = extMatch ? extMatch[1].toLowerCase() : "jpg";
             const fileType =
-              ext === "png"
+              img.mimeType ||
+              (ext === "png"
                 ? "image/png"
                 : ext === "webp"
                 ? "image/webp"
                 : ext === "gif"
                 ? "image/gif"
-                : "image/jpeg";
-            const safeName = filename.includes(".")
-              ? filename
-              : `${filename}.${ext}`;
+                : "image/jpeg");
+            const safeName = rawName.includes(".")
+              ? rawName
+              : `${rawName}.${ext}`;
             formData.append("images", {
               uri: fileUri,
               name: safeName,
               type: fileType,
+              base64: img.base64 ?? undefined,
             } as any);
           });
 
@@ -501,9 +510,9 @@ export default function ManageProductScreen() {
       }
 
       if (isEditing && id) {
-        await updateProduct(id, payload);
+        await updateProductMutation.mutateAsync({ id, payload });
       } else {
-        await createProduct(payload);
+        await createProductMutation.mutateAsync(payload);
       }
 
       if (Platform.OS !== "web") {
@@ -546,7 +555,7 @@ export default function ManageProductScreen() {
     if (!id) return;
     try {
       setDeleting(true);
-      await deleteProduct(id);
+      await deleteProductMutation.mutateAsync(id);
       setDeleteModalVisible(false);
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(

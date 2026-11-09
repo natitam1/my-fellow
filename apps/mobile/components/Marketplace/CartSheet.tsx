@@ -1,5 +1,6 @@
 import { AppBottomSheet } from "@/components/AppBottomSheet";
 import { PRIMARY } from "@/constants/colors";
+import { usePlaceOrderMutation } from "@/queries/marketplace.queries";
 import { useMarketplaceStore } from "@/stores/marketplace.store";
 import { useUserStore } from "@/stores/user.store";
 import { getProductImage, getProductPrice, Order } from "@/types/marketplace.types";
@@ -35,9 +36,9 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
     removeFromCart,
     clearCart,
     getCartTotal,
-    placeOrder,
-    placingOrder,
   } = useMarketplaceStore();
+  const placeOrderMutation = usePlaceOrderMutation();
+  const placingOrder = placeOrderMutation.isPending;
 
   // "cart" (step 1) -> "confirm" (step 2) -> "success" (step 3)
   const [step, setStep] = useState<"cart" | "confirm" | "success">("cart");
@@ -70,8 +71,13 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       }
-      const order = await placeOrder();
+      const itemsPayload = cartItems.map((item) => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+      }));
+      const order = await placeOrderMutation.mutateAsync(itemsPayload);
       if (order) {
+        clearCart();
         setPlacedOrder(order);
         setStep("success");
         if (Platform.OS !== "web") {
