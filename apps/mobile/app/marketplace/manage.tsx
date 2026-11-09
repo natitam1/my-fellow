@@ -530,7 +530,11 @@ export default function ManageProductScreen() {
 
       setInfoModal({
         visible: true,
-        title: isForbidden ? "Permission Required" : "Could Not Save",
+        title: isForbidden
+          ? "Permission Required"
+          : isEditing
+          ? "Update Failed"
+          : "Create Failed",
         message: clientMessage,
         type: "info",
       });
@@ -575,8 +579,9 @@ export default function ManageProductScreen() {
     return <AdminGuardFallback title="Manage Fellowship Product" />;
   }
 
-  const selectedCategoryOption =
-    PRODUCT_CATEGORIES.find((c) => c.key === category) || PRODUCT_CATEGORIES[0];
+  const selectedCategoryOption = category
+    ? PRODUCT_CATEGORIES.find((c) => c.key === category)
+    : null;
 
   const textColor = isDark ? "#ffffff" : "#0f172a";
   const subTextColor = isDark ? "#a1a1aa" : "#64748b";
@@ -634,12 +639,12 @@ export default function ManageProductScreen() {
                     styles.uploadPlaceholderContainer,
                     {
                       borderColor: isDark ? "#3f3f46" : "#cbd5e1",
-                      backgroundColor: isDark ? "#18181b" : "#f8fafc",
+                      backgroundColor: isDark ? "#18181b" : "#f1f5f9",
                     },
                   ]}
                 >
                   <Pressable
-                    onPress={() => setPhotoSheetVisible(true)}
+                    onPress={handlePickFromGallery}
                     android_ripple={{
                       color: rippleColor,
                       borderless: false,
@@ -648,13 +653,13 @@ export default function ManageProductScreen() {
                     style={styles.uploadPlaceholderInner}
                   >
                     <View style={styles.uploadIconCircle}>
-                      <Ionicons name="cloud-upload-outline" size={26} color={PRIMARY} />
+                      <Ionicons name="image-outline" size={28} color={PRIMARY} />
                     </View>
                     <Text style={[styles.uploadTitle, { color: textColor }]}>
-                      Tap to upload product photos
+                      Upload Product Photos
                     </Text>
                     <Text style={[styles.uploadSubtitle, { color: subTextColor }]}>
-                      Select up to 4 images (first image will be the product cover)
+                      Select up to 4 high-resolution images • Tap to browse gallery
                     </Text>
                   </Pressable>
                 </View>
@@ -777,71 +782,87 @@ export default function ManageProductScreen() {
               />
             </View>
 
-            {/* Category Selector (Native Bottom Sheet trigger) */}
+            {/* Category Selector with Native Chips matching events/manage.tsx */}
             <View style={styles.section}>
-              <Text style={[styles.label, { color: textColor }]}>
-                Category <Text style={styles.required}>*</Text>
-              </Text>
-              <View
-                style={[
-                  styles.categorySelectorWrap,
-                  {
-                    backgroundColor: cardBg,
-                    borderColor: borderColor,
-                  },
-                ]}
-              >
-                <Pressable
-                  onPress={() => {
-                    if (Platform.OS !== "web") {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
-                        () => {},
-                      );
-                    }
-                    setCategorySheetVisible(true);
-                  }}
-                  android_ripple={{
-                    color: rippleColor,
-                    borderless: false,
-                    foreground: true,
-                  }}
-                  style={styles.categorySelectorInner}
-                >
-                  <View style={styles.categorySelectorLeft}>
-                    <Ionicons
-                      name={
-                        selectedCategoryOption
-                          ? selectedCategoryOption.icon
-                          : "grid-outline"
-                      }
-                      size={20}
-                      color={selectedCategoryOption ? PRIMARY : subTextColor}
-                    />
-                    <Text
-                      numberOfLines={1}
+              <View style={styles.sectionHeaderRow}>
+                <Text style={[styles.label, { color: textColor }]}>
+                  Category <Text style={styles.required}>*</Text>
+                </Text>
+                {category ? (
+                  <Text
+                    style={[
+                      styles.charCount,
+                      { color: PRIMARY, fontWeight: "600" },
+                    ]}
+                  >
+                    {PRODUCT_CATEGORIES.find((c) => c.key === category)?.label || category}
+                  </Text>
+                ) : null}
+              </View>
+
+              <View style={styles.chipsRow}>
+                {PRODUCT_CATEGORIES.map((cat) => {
+                  const isSelected = category === cat.key;
+                  return (
+                    <View
+                      key={cat.key}
                       style={[
-                        styles.categorySelectorText,
-                        {
-                          color: selectedCategoryOption
-                            ? textColor
-                            : isDark
-                              ? "#52525b"
-                              : "#94a3b8",
-                          fontWeight: selectedCategoryOption ? "600" : "500",
-                        },
+                        styles.ctaChipWrap,
+                        isSelected
+                          ? { backgroundColor: PRIMARY, borderColor: PRIMARY }
+                          : {
+                              backgroundColor: cardBg,
+                              borderColor: borderColor,
+                            },
                       ]}
                     >
-                      {selectedCategoryOption
-                        ? selectedCategoryOption.label
-                        : "Select category..."}
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name="chevron-down"
-                    size={18}
-                    color={subTextColor}
-                  />
-                </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          if (Platform.OS !== "web") {
+                            Haptics.impactAsync(
+                              Haptics.ImpactFeedbackStyle.Light,
+                            ).catch(() => {});
+                          }
+                          setCategory(cat.key);
+                        }}
+                        android_ripple={{
+                          color: rippleColor,
+                          borderless: false,
+                          foreground: true,
+                        }}
+                        style={styles.ctaChipInner}
+                      >
+                        <View style={styles.chipContent}>
+                          <Ionicons
+                            name={cat.icon}
+                            size={16}
+                            color={
+                              isSelected
+                                ? "#ffffff"
+                                : isDark
+                                  ? "#d4d4d8"
+                                  : "#475569"
+                            }
+                          />
+                          <Text
+                            style={[
+                              styles.ctaChipText,
+                              {
+                                color: isSelected
+                                  ? "#ffffff"
+                                  : isDark
+                                    ? "#d4d4d8"
+                                    : "#475569",
+                              },
+                            ]}
+                          >
+                            {cat.label}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    </View>
+                  );
+                })}
               </View>
             </View>
 
@@ -1255,10 +1276,10 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   uploadIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(255, 103, 25, 0.12)",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(30, 64, 175, 0.1)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
@@ -1304,7 +1325,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255, 103, 25, 0.12)",
+    backgroundColor: "rgba(30, 64, 175, 0.1)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
@@ -1312,6 +1333,29 @@ const styles = StyleSheet.create({
   addPhotoText: {
     fontSize: 11,
     fontWeight: "700",
+  },
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  ctaChipWrap: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+    overflow: "hidden",
+  },
+  ctaChipInner: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  ctaChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  chipContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   removePhotoBadge: {
     position: "absolute",
@@ -1342,10 +1386,10 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   input: {
-    height: 50,
+    height: 52,
     borderRadius: 14,
     borderWidth: 1.5,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     fontSize: 15,
     fontWeight: "500",
   },
