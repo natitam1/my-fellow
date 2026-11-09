@@ -44,4 +44,5 @@ export { WhoToFollowSection } from "./WhoToFollow";
 export { ReminderSheet, type ReminderSheetProps } from "./ReminderSheet";
 export { NotifyMeButton, type NotifyMeButtonProps } from "./NotifyMeButton";
 export { NativeColorPicker, type NativeColorPickerProps } from "./NativeColorPicker";
+export { PostAsSelector, type PostAsSelectorProps } from "./Actor/PostAsSelector";
 export * from "./Admin";

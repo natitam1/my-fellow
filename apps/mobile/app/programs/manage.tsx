@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -25,6 +25,8 @@ import { PRIMARY } from "@/constants";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useProgramsStore } from "@/stores/programs.store";
+import { useUserStore } from "@/stores/user.store";
+import { authService } from "@/services/authService";
 import { Program } from "@/types";
 
 const DAY_OPTIONS = [
@@ -56,6 +58,27 @@ export default function ManageProgramScreen() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const isAdmin = useIsAdmin();
+  const [checkingRole, setCheckingRole] = useState<boolean>(!isAdmin);
+
+  const syncUserRole = useCallback(async () => {
+    try {
+      setCheckingRole(true);
+      const freshUser = await authService.getCurrentUser();
+      if (freshUser) {
+        useUserStore.getState().setUser(freshUser);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setCheckingRole(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      syncUserRole();
+    }
+  }, [isAdmin, syncUserRole]);
 
   const { programs, createProgram, updateProgram, deleteProgram } =
     useProgramsStore();
@@ -215,11 +238,12 @@ export default function ManageProgramScreen() {
         );
 
         const filename = imageUri.split("/").pop() || "program_image.jpg";
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : "image/jpeg";
+        const cleanName = filename.split("?")[0] || "program_image.jpg";
+        const match = /\.(\w+)$/.exec(cleanName);
+        const type = match ? `image/${match[1].toLowerCase()}` : "image/jpeg";
         formData.append("image", {
           uri: imageUri,
-          name: filename,
+          name: cleanName,
           type,
         } as any);
 
@@ -262,14 +286,33 @@ export default function ManageProgramScreen() {
         (err?.message?.includes("Network") ||
           err?.code === "ECONNABORTED" ||
           err?.code === "ERR_NETWORK");
+
+      let errorMsg = "Could not save program.";
+      if (err?.response?.data?.message) {
+        errorMsg = err.response.data.message;
+        if (err.response.data.errors) {
+          const fieldErrors = Object.entries(err.response.data.errors)
+            .filter(([key]) => key !== "_errors")
+            .map(([field, errObj]: [string, any]) => {
+              const msgs = errObj?._errors?.join(", ");
+              return msgs ? `${field}: ${msgs}` : null;
+            })
+            .filter(Boolean)
+            .join("\n");
+          if (fieldErrors) {
+            errorMsg = `${errorMsg}:\n${fieldErrors}`;
+          }
+        }
+      } else if (err?.message) {
+        errorMsg = err.message;
+      }
+
       setInfoModal({
         visible: true,
         title: isOffline ? "Connection Issue" : "Save Failed",
         message: isOffline
           ? "Network connection issue. Please check your internet connection and try again. Your form inputs have been preserved."
-          : err?.response?.data?.message ||
-            err?.message ||
-            "Could not save program.",
+          : errorMsg,
         type: "error",
       });
     } finally {
@@ -316,6 +359,31 @@ export default function ManageProgramScreen() {
     }
   };
 
+  if (checkingRole) {
+    return (
+      <View
+        style={[
+          styles.screen,
+          styles.centerBox,
+          { backgroundColor: isDark ? "#0A0A0A" : "#ffffff" },
+        ]}
+      >
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <ActivityIndicator size="large" color={PRIMARY} />
+        <Text
+          style={{
+            marginTop: 16,
+            fontSize: 15,
+            fontWeight: "500",
+            color: isDark ? "#a1a1aa" : "#64748b",
+          }}
+        >
+          Verifying permissions...
+        </Text>
+      </View>
+    );
+  }
+
   if (!isAdmin) {
     return (
       <View
@@ -349,6 +417,20 @@ export default function ManageProgramScreen() {
             You must be signed in with an authorized fellowship administrator
             account to manage programs.
           </Text>
+          <Pressable
+            onPress={syncUserRole}
+            style={{
+              marginTop: 20,
+              paddingVertical: 12,
+              paddingHorizontal: 24,
+              backgroundColor: PRIMARY,
+              borderRadius: 12,
+            }}
+          >
+            <Text style={{ color: "#ffffff", fontWeight: "600", fontSize: 15 }}>
+              Check Permissions
+            </Text>
+          </Pressable>
         </View>
       </View>
     );

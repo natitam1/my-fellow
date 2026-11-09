@@ -22,6 +22,7 @@ import {
   FlatList,
   Image,
   Platform,
+  Pressable,
   RefreshControl,
   Share,
   StyleSheet,
@@ -345,7 +346,7 @@ export default function CommunityScreen() {
               avatarUrl: item.authorAvatar,
               team: item.authorTeam,
             }}
-            size={42}
+            size={40}
           />
         </View>
 
@@ -422,21 +423,34 @@ export default function CommunityScreen() {
             </ProfileLink>
 
             {/* Vertical Three-dots Menu Trigger (matching Twitter/X screenshot) */}
-            <TouchableOpacity
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Post options"
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
                 setActivePostForSheet(item);
                 setSheetVisible(true);
               }}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              style={styles.tweetMoreBtn}
+              hitSlop={8}
+              android_ripple={{
+                color: isDark ? "rgba(255, 255, 255, 0.16)" : "rgba(0, 0, 0, 0.10)",
+                borderless: true,
+                radius: 16,
+              }}
+              style={({ pressed }) => [
+                styles.tweetMoreBtn,
+                {
+                  opacity: pressed ? (Platform.OS === "ios" ? 0.6 : 0.85) : 1,
+                  transform: Platform.OS === "ios" && pressed ? [{ scale: 0.94 }] : undefined,
+                },
+              ]}
             >
               <Ionicons
                 name="ellipsis-vertical"
                 size={16}
                 color={mutedColor}
               />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {/* Body Content -> Navigates to Post Details */}
@@ -963,16 +977,16 @@ const styles = StyleSheet.create({
   },
   skeletonCard: {
     flexDirection: "row",
-    gap: 12,
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   skeletonAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
   },
   skeletonBody: {
     flex: 1,
@@ -1039,12 +1053,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   tweetAvatarWrap: {
-    marginRight: 12,
+    marginRight: 10,
   },
   tweetAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#e2e8f0",
   },
   tweetBodyCol: {
@@ -1102,8 +1116,11 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   tweetMoreBtn: {
-    paddingLeft: 6,
-    paddingVertical: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
     flexShrink: 0,
   },
   tweetContentWrap: {

@@ -1,13 +1,20 @@
 export type DevotionType = "text" | "voice";
 
+export type DevotionActorType = "official" | "team" | "user";
+
 export interface Devotion {
   _id: string;
   title: string;
   author: string;
   authorId?: string;
+  authorActorId?: string;
   authorAvatar?: string;
   authorRole?: string;
   authorUsername?: string;
+  authorHandle?: string;
+  actorType?: DevotionActorType;
+  actorId?: string;
+  teamId?: string;
   date: string;
   type: DevotionType;
   image: string;
@@ -38,4 +45,5 @@ export interface DevotionResponse {
 export interface SingleDevotionResponse {
   success: boolean;
   data: Devotion;
+  message?: string;
 }

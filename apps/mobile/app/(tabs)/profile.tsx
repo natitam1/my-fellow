@@ -4,7 +4,6 @@ import { ConfirmModal } from "@/components/Modals/ConfirmModal";
 import { StreakModal } from "@/components/StreakModal";
 import { LongPressAvatar, closeAvatarPreview } from "@/components/avatar-preview";
 import { ProfileLink } from "@/components/profile/ProfileLink";
-import { getPrefilledAvatar } from "@/utils/avatar";
 import { PRIMARY } from "@/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -16,11 +15,11 @@ import {
   CommunityPost,
   useCommunityStore,
 } from "@/stores/community.store";
-import { useDevotionsStore } from "@/stores/devotions.store";
 import { useProgramsStore } from "@/stores/programs.store";
 import { useStreakStore } from "@/stores/streak.store";
 import { useTeamsStore } from "@/stores/teams.store";
 import { useUserStore } from "@/stores/user.store";
+import { getPrefilledAvatar } from "@/utils/avatar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
@@ -46,17 +45,24 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { TabBar, TabView } from "react-native-tab-view";
 import Toast from "react-native-toast-message";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-const TAB_ROUTES = [
-  { key: "posts", title: "Reflections" },
-  { key: "media", title: "Media" },
-  { key: "ministry", title: "Ministry" },
-  { key: "likes", title: "Likes" },
-  { key: "account", title: "Account" },
+type ProfileTabKey = "posts" | "media" | "ministry" | "likes" | "account";
+
+interface ProfileTabItem {
+  key: ProfileTabKey;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
+
+const PROFILE_TABS: ProfileTabItem[] = [
+  { key: "posts", label: "Reflections", icon: "chatbubble-ellipses-outline" },
+  { key: "media", label: "Media", icon: "images-outline" },
+  { key: "ministry", label: "Ministry", icon: "flame-outline" },
+  { key: "likes", label: "Likes", icon: "heart-outline" },
+  { key: "account", label: "Account", icon: "person-circle-outline" },
 ];
 
 function formatEthiopianPhone(phone?: string) {
@@ -106,8 +112,8 @@ export default function ProfileScreen() {
   const { user, setUser } = useUserStore();
   const router = useRouter();
 
-  // Tab View state (react-native-tab-view)
-  const [tabIndex, setTabIndex] = useState(0);
+  // Active Tab state
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>("posts");
 
   // Modals state
   const [signOutConfirm, setSignOutConfirm] = useState(false);
@@ -135,11 +141,7 @@ export default function ProfileScreen() {
   const currentStreak = useStreakStore((s) => s.currentStreak);
   const syncServerStreak = useStreakStore((s) => s.syncServerStreak);
 
-  // Devotions Store
-  const readDevotions = useDevotionsStore((s) => s.readDevotions);
-  const readCount = readDevotions.length;
-
-  // Programs Store (Weekly Campus Gatherings)
+  // Programs Store (Campus Gatherings)
   const programs = useProgramsStore((s) => s.programs);
   const loadPrograms = useProgramsStore((s) => s.loadPrograms);
 
@@ -263,7 +265,6 @@ export default function ProfileScreen() {
         }
       }
 
-      // Senior engineer aspect ratio standard: 1:1 for Avatar, 3:1 for Banner
       const aspect: [number, number] = target === "avatar" ? [1, 1] : [3, 1];
       const launchFn =
         source === "camera"
@@ -285,7 +286,6 @@ export default function ProfileScreen() {
       setIsUploading(true);
 
       if (target === "avatar") {
-        // Optimistic preview
         if (user) {
           setUser({ ...user, profileImage: pickedUri });
         }
@@ -307,7 +307,6 @@ export default function ProfileScreen() {
           });
         }
       } else {
-        // Banner update
         setLocalBanner(pickedUri);
         try {
           const uploaded = await socialApi.uploadMediaFile(pickedUri, "cover");
@@ -436,20 +435,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleTelegramPress = () => {
-    const handle =
-      user?.telegramUserName || currentMember?.telegramUsername;
-    if (!handle) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    const clean = handle.replace(/^@/, "");
-    const url = `https://t.me/${clean}`;
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) Linking.openURL(url);
-      })
-      .catch(() => {});
-  };
-
   const handleThemeChange = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     toggleTheme();
@@ -491,8 +476,6 @@ export default function ProfileScreen() {
       : academicYear
     : "";
 
-  const formattedPhone = formatEthiopianPhone(user?.phoneNumber) || "";
-
   const systemHandle = user?.username
     ? `@${user.username.replace(/^@/, "")}`
     : currentMember?.handle
@@ -504,12 +487,6 @@ export default function ProfileScreen() {
     : user?.fullName
     ? `@${user.fullName.toLowerCase().replace(/[^a-z0-9_]/g, "")}`
     : "";
-
-  const telegramHandle = user?.telegramUserName
-    ? `@${user.telegramUserName.replace(/^@/, "")}`
-    : currentMember?.telegramUsername
-    ? `@${currentMember.telegramUsername.replace(/^@/, "")}`
-    : undefined;
 
   const connectsCount = currentMember?.followersCount ?? 0;
   const followingCount = currentMember?.followingCount ?? 0;
@@ -542,6 +519,28 @@ export default function ProfileScreen() {
 
   // Render Twitter-style Reflection Feed Card
   const renderPostCard = (item: CommunityPost) => {
+    const isCurrentUser =
+      (user?.id && item.authorId === user.id) ||
+      (user?.fullName && item.authorName === user.fullName);
+
+    const displayName =
+      item.authorName && item.authorName !== "Unknown Member"
+        ? item.authorName
+        : isCurrentUser && user?.fullName
+        ? user.fullName
+        : "Fellowship Member";
+
+    const displayHandle =
+      item.authorHandle && item.authorHandle !== "@unknown" && item.authorHandle !== "@fellow"
+        ? item.authorHandle
+        : isCurrentUser && systemHandle
+        ? systemHandle
+        : "";
+
+    const displayAvatar =
+      item.authorAvatar ||
+      (isCurrentUser ? avatarUri : getPrefilledAvatar(item.authorId || item.id));
+
     return (
       <View
         key={item.id}
@@ -557,9 +556,9 @@ export default function ProfileScreen() {
           <ProfileLink
             user={{
               id: item.authorId || user?.id || "me",
-              name: item.authorName,
-              username: item.authorHandle,
-              avatarUrl: item.authorAvatar || user?.profileImage,
+              name: displayName,
+              username: displayHandle,
+              avatarUrl: displayAvatar,
               team: item.authorTeam || teamName,
             }}
             size={40}
@@ -572,7 +571,7 @@ export default function ProfileScreen() {
                 style={[styles.postAuthorName, { color: textPrimary }]}
                 numberOfLines={1}
               >
-                {item.authorName}
+                {displayName}
               </Text>
               <Ionicons
                 name="checkmark-circle"
@@ -580,12 +579,12 @@ export default function ProfileScreen() {
                 color={PRIMARY}
                 style={{ marginLeft: 3, flexShrink: 0 }}
               />
-              {item.authorHandle ? (
+              {displayHandle ? (
                 <Text
                   style={[styles.postHandleText, { color: textSecondary }]}
                   numberOfLines={1}
                 >
-                  {item.authorHandle}
+                  {displayHandle}
                 </Text>
               ) : null}
               {item.timestamp ? (
@@ -609,7 +608,7 @@ export default function ProfileScreen() {
                   setLightboxImage({
                     uri: typeof item.image === "string" ? item.image : item.image?.uri,
                     caption: item.content,
-                    author: item.authorName,
+                    author: displayName,
                   })
                 }
                 style={styles.postImageWrap}
@@ -689,7 +688,7 @@ export default function ProfileScreen() {
                 onPress={() => {
                   Haptics.selectionAsync().catch(() => {});
                   Share.share({
-                    message: `"${item.content}" — ${item.authorName} on 4 Kilo Fellowship`,
+                    message: `"${item.content}" — ${displayName} on 4 Kilo Fellowship`,
                   });
                 }}
                 hitSlop={6}
@@ -708,7 +707,7 @@ export default function ProfileScreen() {
     );
   };
 
-  // Pager Tab Views
+  // Tab Contents
   const renderPostsTab = () => {
     if (authorPosts.length === 0) {
       return (
@@ -1315,8 +1314,8 @@ export default function ProfileScreen() {
     );
   };
 
-  const renderScene = ({ route }: { route: { key: string } }) => {
-    switch (route.key) {
+  const renderTabContent = () => {
+    switch (activeTab) {
       case "posts":
         return renderPostsTab();
       case "media":
@@ -1331,41 +1330,6 @@ export default function ProfileScreen() {
         return null;
     }
   };
-
-  const renderTabBar = (props: any) => (
-    <TabBar
-      {...props}
-      scrollEnabled
-      tabStyle={styles.tabBarItem}
-      indicatorStyle={{
-        backgroundColor: PRIMARY,
-        height: 3,
-        borderRadius: 1.5,
-      }}
-      style={[
-        styles.tabBarStyle,
-        {
-          backgroundColor: cardBg,
-          borderBottomColor: cardBorder,
-          borderTopColor: cardBorder,
-        },
-      ]}
-      renderLabel={({ route, focused }: { route: any; focused: boolean }) => (
-        <Text
-          style={[
-            styles.tabBarLabel,
-            {
-              color: focused ? PRIMARY : textTertiary,
-              fontWeight: focused ? "800" : "600",
-            },
-          ]}
-        >
-          {route.title}
-        </Text>
-      )}
-      pressColor={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"}
-    />
-  );
 
   return (
     <View style={[styles.screen, { backgroundColor: bgColor }]}>
@@ -1386,7 +1350,7 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + 110 },
+          { paddingBottom: insets.bottom + 100 },
         ]}
         refreshControl={
           <RefreshControl
@@ -1407,7 +1371,6 @@ export default function ProfileScreen() {
               transition={200}
             />
           ) : (
-            /* Solid Doom Color showing nothing has been selected */
             <View
               style={[
                 styles.bannerEmptyDoom,
@@ -1510,7 +1473,7 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
 
-          {/* Action Buttons: Share, Edit Profile (High-contrast Native Buttons) */}
+          {/* Action Buttons: Share, Edit Profile (Exact match to pill design) */}
           <View style={styles.topActionBtnsGroup}>
             <Pressable
               onPress={handleShareApp}
@@ -1532,7 +1495,7 @@ export default function ProfileScreen() {
               <Text
                 style={[
                   styles.secondaryPillText,
-                  { color: isDark ? "#ffffff" : "#0f172a" },
+                  { color: isDark ? "#ffffff" : "#000000" },
                 ]}
               >
                 Share
@@ -1628,8 +1591,8 @@ export default function ProfileScreen() {
           </View>
 
           {/* Status Badges Strip: Team (Dynamic) */}
-          <View style={styles.badgesWrap}>
-            {isAssignedTeam ? (
+          {isAssignedTeam ? (
+            <View style={styles.badgesWrap}>
               <Pressable
                 onPress={() => {
                   Haptics.selectionAsync().catch(() => {});
@@ -1650,8 +1613,8 @@ export default function ProfileScreen() {
                   {teamName}
                 </Text>
               </Pressable>
-            ) : null}
-          </View>
+            </View>
+          ) : null}
 
           {/* Bio (Dynamic - never hardcoded) */}
           {memberBio ? (
@@ -1667,7 +1630,7 @@ export default function ProfileScreen() {
               style={({ pressed }) => [
                 styles.bioPlaceholderBtn,
                 {
-                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f1f5f9",
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc",
                   borderColor: isDark ? "#27272a" : "#e2e8f0",
                   opacity: pressed ? 0.75 : 1,
                 },
@@ -1721,7 +1684,7 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {/* Twitter Social & Devotional Stats Row */}
+          {/* Social Stats Row: Following, Followers, Reflections */}
           <View style={[styles.statsStripRow, { borderTopColor: cardBorder }]}>
             <Pressable
               onPress={() => {
@@ -1768,7 +1731,10 @@ export default function ProfileScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => setTabIndex(0)}
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setActiveTab("posts");
+              }}
               style={styles.statCounterItem}
             >
               <Text style={[styles.statBold, { color: textPrimary }]}>
@@ -1781,22 +1747,77 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Swipeable Native Pager TabView Powered by react-native-tab-view and react-native-pager-view */}
-        <TabView
-          navigationState={{ index: tabIndex, routes: TAB_ROUTES }}
-          renderScene={renderScene}
-          onIndexChange={(index) => {
-            Haptics.selectionAsync().catch(() => {});
-            setTabIndex(index);
-          }}
-          initialLayout={{ width: SCREEN_WIDTH }}
-          renderTabBar={renderTabBar}
-          style={{ minHeight: Math.max(SCREEN_HEIGHT - insets.top - 120, 650) }}
-        />
+        {/* Profile Tabs Sub-Navigation Bar */}
+        <View
+          style={[
+            styles.tabsBarWrap,
+            {
+              backgroundColor: cardBg,
+              borderBottomColor: cardBorder,
+              borderTopColor: cardBorder,
+            },
+          ]}
+        >
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabsScroll}
+          >
+            {PROFILE_TABS.map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <Pressable
+                  key={tab.key}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setActiveTab(tab.key);
+                  }}
+                  style={[
+                    styles.tabButton,
+                    isActive && styles.tabButtonActive,
+                  ]}
+                >
+                  <View style={styles.tabContentRow}>
+                    <Ionicons
+                      name={tab.icon}
+                      size={16}
+                      color={isActive ? PRIMARY : textTertiary}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={[
+                        styles.tabLabelText,
+                        {
+                          color: isActive ? textPrimary : textTertiary,
+                          fontWeight: isActive ? "800" : "600",
+                        },
+                      ]}
+                    >
+                      {tab.label}
+                    </Text>
+                  </View>
+                  {isActive && (
+                    <View
+                      style={[
+                        styles.activeTabIndicator,
+                        { backgroundColor: PRIMARY },
+                      ]}
+                    />
+                  )}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Tab Content Body */}
+        <View style={styles.tabBodyWrap}>
+          {renderTabContent()}
+        </View>
       </ScrollView>
 
       {/* Floating Action Button (Twitter style: Write Reflection) */}
-      {tabIndex === 0 && (
+      {activeTab === "posts" && (
         <Pressable
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
@@ -2231,8 +2252,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 20,
-    height: 38,
-    borderRadius: 19,
+    height: 40,
+    borderRadius: 9999,
     borderWidth: 1.5,
     overflow: "hidden",
   },
@@ -2246,8 +2267,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 22,
-    height: 38,
-    borderRadius: 19,
+    height: 40,
+    borderRadius: 9999,
     borderWidth: 1.5,
     overflow: "hidden",
   },
@@ -2298,12 +2319,6 @@ const styles = StyleSheet.create({
     paddingVertical: 3.5,
     borderRadius: 9999,
     borderWidth: 1,
-  },
-  greenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#10b981",
   },
   badgePillText: {
     fontSize: 11,
@@ -2369,24 +2384,43 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
-  tabBarStyle: {
+  tabsBarWrap: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderTopWidth: StyleSheet.hairlineWidth,
-    elevation: 0,
-    shadowOpacity: 0,
+    marginTop: 4,
   },
-  tabBarItem: {
-    width: "auto",
-    minWidth: 78,
-    paddingHorizontal: 12,
+  tabsScroll: {
+    flexDirection: "row",
+    paddingHorizontal: 8,
   },
-  tabBarLabel: {
-    fontSize: 13,
-    textTransform: "capitalize",
+  tabButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    position: "relative",
+    alignItems: "center",
+  },
+  tabButtonActive: {},
+  tabContentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tabLabelText: {
+    fontSize: 14,
+  },
+  activeTabIndicator: {
+    position: "absolute",
+    bottom: 0,
+    left: 14,
+    right: 14,
+    height: 3,
+    borderRadius: 1.5,
+  },
+  tabBodyWrap: {
+    paddingTop: 8,
   },
   postsList: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 8,
     gap: 12,
   },
   postCard: {

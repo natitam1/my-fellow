@@ -35,6 +35,7 @@ export interface PostableActor {
   bio?: string | null;
   isVerified: boolean;
   teamId?: string | null;
+  isDefault?: boolean;
 }
 
 export interface ApiPost {

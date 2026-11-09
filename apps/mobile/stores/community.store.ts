@@ -38,6 +38,9 @@ export interface MemberProfile {
   followingCount: number;
   postsCount: number;
   isFollowing?: boolean;
+  isVerified?: boolean;
+  isActor?: boolean;
+  actorType?: "user" | "team" | "official";
   telegramUsername?: string;
   location?: string;
   joinedDate?: string;
@@ -136,22 +139,260 @@ export const DEFAULT_SUGGESTED_MEMBERS: SuggestedMember[] = [
 ];
 
 export const INITIAL_MEMBERS: Record<string, MemberProfile> = {
-  "user-fellowship": {
-    id: "user-fellowship",
-    fullName: "4 Kilo Fellowship",
-    handle: "@4kilo_fellowship",
+  fellow: {
+    id: "fellow",
+    fullName: "Fellow",
+    handle: "@fellow",
     avatar: require("@/assets/images/app-icon.png"),
     banner:
       "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80",
-    team: "Executive Ministry",
+    team: "Official Fellowship",
     department: "Campus Ministry Leadership",
     academicYear: "AAU ECSF",
-    bio: "Official digital home of Addis Ababa University 4 Kilo Christian Students Fellowship. 'Rooted & Built Up in Him.' Col 2:7 ✝️",
+    bio: "Official account of 4 Kilo Christian Students Fellowship (AAU ECSF). Rooted & Built Up in Him. Col 2:7 ✝️",
     streakDays: 142,
     followersCount: 1240,
     followingCount: 38,
     postsCount: 56,
     isFollowing: true,
+    isVerified: true,
+    isActor: true,
+    actorType: "official",
+    telegramUsername: "ECSF4KILO",
+  },
+  "@fellow": {
+    id: "fellow",
+    fullName: "Fellow",
+    handle: "@fellow",
+    avatar: require("@/assets/images/app-icon.png"),
+    banner:
+      "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80",
+    team: "Official Fellowship",
+    department: "Campus Ministry Leadership",
+    academicYear: "AAU ECSF",
+    bio: "Official account of 4 Kilo Christian Students Fellowship (AAU ECSF). Rooted & Built Up in Him. Col 2:7 ✝️",
+    streakDays: 142,
+    followersCount: 1240,
+    followingCount: 38,
+    postsCount: 56,
+    isFollowing: true,
+    isVerified: true,
+    isActor: true,
+    actorType: "official",
+    telegramUsername: "ECSF4KILO",
+  },
+  worship: {
+    id: "worship",
+    fullName: "Worship Team",
+    handle: "@worship",
+    avatar:
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+    team: "Worship Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Acoustic teams, praise, and leading fellowship worship.",
+    streakDays: 45,
+    followersCount: 890,
+    followingCount: 12,
+    postsCount: 34,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+    telegramUsername: "worship_4kilo",
+  },
+  "@worship": {
+    id: "worship",
+    fullName: "Worship Team",
+    handle: "@worship",
+    avatar:
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+    team: "Worship Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Acoustic teams, praise, and leading fellowship worship.",
+    streakDays: 45,
+    followersCount: 890,
+    followingCount: 12,
+    postsCount: 34,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+    telegramUsername: "worship_4kilo",
+  },
+  biblestudy: {
+    id: "biblestudy",
+    fullName: "Bible Study Team",
+    handle: "@biblestudy",
+    avatar:
+      "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80",
+    team: "Bible Study Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Deep scripture study, weekly cell groups & discipleship.",
+    streakDays: 52,
+    followersCount: 780,
+    followingCount: 12,
+    postsCount: 29,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+    telegramUsername: "biblestudy_4kilo",
+  },
+  "@biblestudy": {
+    id: "biblestudy",
+    fullName: "Bible Study Team",
+    handle: "@biblestudy",
+    avatar:
+      "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80",
+    team: "Bible Study Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Deep scripture study, weekly cell groups & discipleship.",
+    streakDays: 52,
+    followersCount: 780,
+    followingCount: 12,
+    postsCount: 29,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+    telegramUsername: "biblestudy_4kilo",
+  },
+  evangelism: {
+    id: "evangelism",
+    fullName: "Evangelism Team",
+    handle: "@evangelism",
+    avatar:
+      "https://images.unsplash.com/photo-1519491050282-cf00c82424b4?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1519491050282-cf00c82424b4?auto=format&fit=crop&w=1200&q=80",
+    team: "Evangelism Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Sharing the Gospel across campus and university outreach.",
+    streakDays: 38,
+    followersCount: 650,
+    followingCount: 12,
+    postsCount: 22,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+  },
+  prayer: {
+    id: "prayer",
+    fullName: "Prayer Team",
+    handle: "@prayer",
+    avatar:
+      "https://images.unsplash.com/photo-1544717302-de2939b7ef71?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1544717302-de2939b7ef71?auto=format&fit=crop&w=1200&q=80",
+    team: "Prayer Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Intercession, morning prayers, and fellowship fasting nights.",
+    streakDays: 60,
+    followersCount: 720,
+    followingCount: 12,
+    postsCount: 31,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+  },
+  i4u: {
+    id: "i4u",
+    fullName: "I4U Team",
+    handle: "@i4u",
+    avatar:
+      "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80",
+    team: "I4U Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Care, encouragement, mutual support, and student welfare.",
+    streakDays: 31,
+    followersCount: 540,
+    followingCount: 12,
+    postsCount: 18,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+  },
+  media: {
+    id: "media",
+    fullName: "Media & Literature",
+    handle: "@media",
+    avatar:
+      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+    team: "Media & Literature",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Media, literature, publications, and fellowship media.",
+    streakDays: 40,
+    followersCount: 610,
+    followingCount: 12,
+    postsCount: 26,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+  },
+  freshman: {
+    id: "freshman",
+    fullName: "Freshman Ministry",
+    handle: "@freshman",
+    avatar:
+      "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80",
+    team: "Freshman Ministry",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Welcoming and guiding new campus students in faith and life.",
+    streakDays: 45,
+    followersCount: 520,
+    followingCount: 12,
+    postsCount: 27,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+  },
+  "user-fellowship": {
+    id: "user-fellowship",
+    fullName: "Fellow",
+    handle: "@fellow",
+    avatar: require("@/assets/images/app-icon.png"),
+    banner:
+      "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80",
+    team: "Official Fellowship",
+    department: "Campus Ministry Leadership",
+    academicYear: "AAU ECSF",
+    bio: "Official account of 4 Kilo Christian Students Fellowship (AAU ECSF). Rooted & Built Up in Him. Col 2:7 ✝️",
+    streakDays: 142,
+    followersCount: 1240,
+    followingCount: 38,
+    postsCount: 56,
+    isFollowing: true,
+    isVerified: true,
+    isActor: true,
+    actorType: "official",
     telegramUsername: "ECSF4KILO",
   },
   "user-worship": {
@@ -557,6 +798,119 @@ export function apiProfileToMemberProfile(p: ProfileDetail): MemberProfile {
             avatars: mutualAvatars,
           }
         : undefined,
+    isVerified: Boolean(p.isVerified),
+  };
+}
+
+/**
+ * Check if a given identifier is a canonical actor handle or ID
+ */
+export function isActorIdOrHandle(idOrHandle?: string | null): boolean {
+  if (!idOrHandle) return false;
+  const clean = idOrHandle.replace(/^@/, "").toLowerCase();
+  const known = [
+    "fellow",
+    "4kilofellowship",
+    "4kilo_fellowship",
+    "user-fellowship",
+    "worship",
+    "biblestudy",
+    "evangelism",
+    "i4u",
+    "media",
+    "prayer",
+    "freshman",
+    "fellowship_ministry",
+  ];
+  return known.includes(clean);
+}
+
+/**
+ * Adapter from PostableActor to UI MemberProfile
+ */
+export function actorToMemberProfile(
+  actor: PostableActor & {
+    followerCount?: number;
+    followersCount?: number;
+    followingCount?: number;
+    postCount?: number;
+    postsCount?: number;
+    isFollowing?: boolean;
+  },
+): MemberProfile {
+  const isOfficial =
+    actor.type === "official" || actor.handle.toLowerCase() === "fellow";
+  const cleanHandle = actor.handle.replace(/^@/, "");
+  const handleWithAt = `@${cleanHandle}`;
+
+  let displayName = actor.displayName;
+  if (isOfficial) {
+    displayName = "Fellow";
+  } else if (
+    !displayName.toLowerCase().includes("team") &&
+    !displayName.toLowerCase().includes("ministry")
+  ) {
+    displayName = `${displayName} Team`;
+  }
+
+  const avatar = isOfficial
+    ? require("@/assets/images/app-icon.png")
+    : actor.avatarUrl ||
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80";
+
+  const banner = isOfficial
+    ? "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80"
+    : actor.avatarUrl ||
+      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80";
+
+  const followersCount =
+    actor.followerCount ??
+    actor.followersCount ??
+    (isOfficial ? 1240 : 890);
+
+  const followingCount =
+    actor.followingCount ?? (isOfficial ? 38 : 12);
+
+  const postsCount =
+    actor.postCount ?? actor.postsCount ?? (isOfficial ? 56 : 0);
+
+  // For the official @fellow account, initial state is Following
+  const isFollowing =
+    actor.isFollowing !== undefined
+      ? Boolean(actor.isFollowing)
+      : isOfficial
+      ? true
+      : false;
+
+  return {
+    id: actor.id || cleanHandle,
+    fullName: displayName,
+    handle: handleWithAt,
+    avatar,
+    banner,
+    team: isOfficial
+      ? "Official Fellowship"
+      : actor.teamId
+      ? `${actor.teamId} Team`
+      : displayName,
+    department: isOfficial
+      ? "Campus Ministry Leadership"
+      : "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio:
+      actor.bio ||
+      (isOfficial
+        ? "Official account of 4 Kilo Christian Students Fellowship (AAU ECSF)..."
+        : `${displayName} of 4 Kilo Christian Students Fellowship.`),
+    streakDays: isOfficial ? 142 : 45,
+    followersCount,
+    followingCount,
+    postsCount,
+    isFollowing,
+    isVerified: true,
+    isActor: true,
+    actorType: actor.type || (isOfficial ? "official" : "team"),
+    telegramUsername: isOfficial ? "ECSF4KILO" : `${cleanHandle}_4kilo`,
   };
 }
 
@@ -648,6 +1002,9 @@ interface CommunityStore {
   ) => Promise<void>;
   fetchUserProfile: (
     idOrUsername: string,
+  ) => Promise<MemberProfile | undefined>;
+  fetchActorProfile: (
+    idOrHandle: string,
   ) => Promise<MemberProfile | undefined>;
   fetchPostThread: (
     postId: string,
@@ -1012,25 +1369,38 @@ export const useCommunityStore = create<CommunityStore>()(
       },
 
       toggleFollowMember: async (memberId: string, seed?: Partial<MemberProfile>) => {
-        const target: MemberProfile = get().members[memberId] || {
-          id: memberId,
-          fullName: seed?.fullName || "Fellowship Member",
-          handle: seed?.handle || "@fellowship_member",
-          avatar: seed?.avatar || null,
-          banner: seed?.banner || null,
-          team: seed?.team || "",
-          department: seed?.department || "",
-          academicYear: seed?.academicYear || "",
-          bio: seed?.bio || "",
-          streakDays: seed?.streakDays ?? 0,
-          followersCount: seed?.followersCount ?? 0,
-          followingCount: seed?.followingCount ?? 0,
-          postsCount: seed?.postsCount ?? 0,
-          isFollowing: !!seed?.isFollowing,
-          location: seed?.location,
-          joinedDate: seed?.joinedDate,
-          mutualFollowers: seed?.mutualFollowers,
-        };
+        const cleanId = memberId.replace(/^@/, "").toLowerCase();
+        const target: MemberProfile =
+          get().members[memberId] ||
+          get().members[cleanId] ||
+          get().members[`@${cleanId}`] || {
+            id: memberId,
+            fullName: seed?.fullName || "Fellowship Member",
+            handle: seed?.handle || `@${cleanId || "fellowship_member"}`,
+            avatar: seed?.avatar || null,
+            banner: seed?.banner || null,
+            team: seed?.team || "",
+            department: seed?.department || "",
+            academicYear: seed?.academicYear || "",
+            bio: seed?.bio || "",
+            streakDays: seed?.streakDays ?? 0,
+            followersCount: seed?.followersCount ?? 0,
+            followingCount: seed?.followingCount ?? 0,
+            postsCount: seed?.postsCount ?? 0,
+            isFollowing: !!seed?.isFollowing,
+            isVerified: seed?.isVerified,
+            isActor: seed?.isActor,
+            actorType: seed?.actorType,
+            location: seed?.location,
+            joinedDate: seed?.joinedDate,
+            mutualFollowers: seed?.mutualFollowers,
+          };
+
+        const isActor =
+          isActorIdOrHandle(cleanId) ||
+          Boolean(target.isActor) ||
+          cleanId === "fellow" ||
+          target.handle.toLowerCase().includes("fellow");
 
         const prevIsFollowing = !!target.isFollowing;
         const prevFollowersCount = target.followersCount;
@@ -1039,34 +1409,53 @@ export const useCommunityStore = create<CommunityStore>()(
           ? prevFollowersCount + 1
           : Math.max(0, prevFollowersCount - 1);
 
-        // Optimistic update in members
+        const updated: MemberProfile = {
+          ...target,
+          isFollowing: nextIsFollowing,
+          followersCount: nextFollowersCount,
+        };
+
+        // Optimistic update in members (sync all alias keys)
         set((state) => ({
           members: {
             ...state.members,
-            [memberId]: {
-              ...target,
-              isFollowing: nextIsFollowing,
-              followersCount: nextFollowersCount,
-            },
+            [memberId]: updated,
+            [target.id]: updated,
+            [cleanId]: updated,
+            [target.handle]: updated,
+            [`@${cleanId}`]: updated,
           },
         }));
 
         try {
-          if (nextIsFollowing) {
-            await socialApi.followUser(memberId);
+          if (isActor) {
+            if (nextIsFollowing) {
+              await socialApi.followActor(cleanId);
+            } else {
+              await socialApi.unfollowActor(cleanId);
+            }
           } else {
-            await socialApi.unfollowUser(memberId);
+            if (nextIsFollowing) {
+              await socialApi.followUser(memberId);
+            } else {
+              await socialApi.unfollowUser(memberId);
+            }
           }
         } catch {
           // Rollback on error
+          const rolledBack: MemberProfile = {
+            ...target,
+            isFollowing: prevIsFollowing,
+            followersCount: prevFollowersCount,
+          };
           set((state) => ({
             members: {
               ...state.members,
-              [memberId]: {
-                ...target,
-                isFollowing: prevIsFollowing,
-                followersCount: prevFollowersCount,
-              },
+              [memberId]: rolledBack,
+              [target.id]: rolledBack,
+              [cleanId]: rolledBack,
+              [target.handle]: rolledBack,
+              [`@${cleanId}`]: rolledBack,
             },
           }));
         }
@@ -1294,7 +1683,36 @@ export const useCommunityStore = create<CommunityStore>()(
         }
       },
 
+      fetchActorProfile: async (idOrHandle: string) => {
+        const clean = idOrHandle.replace(/^@/, "").toLowerCase();
+        try {
+          const actor = await socialApi.getActor(idOrHandle);
+          const member = actorToMemberProfile(actor);
+          set((state) => ({
+            members: {
+              ...state.members,
+              [member.id]: member,
+              [idOrHandle]: member,
+              [clean]: member,
+              [member.handle]: member,
+              [`@${clean}`]: member,
+            },
+          }));
+          return member;
+        } catch {
+          return (
+            get().members[idOrHandle] ||
+            get().members[clean] ||
+            get().members[`@${clean}`]
+          );
+        }
+      },
+
       fetchUserProfile: async (idOrUsername) => {
+        const clean = idOrUsername.replace(/^@/, "").toLowerCase();
+        if (isActorIdOrHandle(clean)) {
+          return get().fetchActorProfile(idOrUsername);
+        }
         try {
           const profile = await socialApi.getUserProfile(idOrUsername);
           const member = apiProfileToMemberProfile(profile);
@@ -1303,11 +1721,36 @@ export const useCommunityStore = create<CommunityStore>()(
               ...state.members,
               [member.id]: member,
               [idOrUsername]: member,
+              [clean]: member,
+              [member.handle]: member,
+              [`@${clean}`]: member,
             },
           }));
           return member;
         } catch {
-          return get().members[idOrUsername];
+          // If profile endpoint returns 404, fallback to actor lookup
+          try {
+            const actor = await socialApi.getActor(idOrUsername);
+            if (actor) {
+              const member = actorToMemberProfile(actor);
+              set((state) => ({
+                members: {
+                  ...state.members,
+                  [member.id]: member,
+                  [idOrUsername]: member,
+                  [clean]: member,
+                  [member.handle]: member,
+                  [`@${clean}`]: member,
+                },
+              }));
+              return member;
+            }
+          } catch {}
+          return (
+            get().members[idOrUsername] ||
+            get().members[clean] ||
+            get().members[`@${clean}`]
+          );
         }
       },
 

@@ -21,6 +21,8 @@ import {
   type ReminderTarget,
 } from "@/notifications";
 import { useProgramsStore } from "@/stores/programs.store";
+import { useUserStore } from "@/stores/user.store";
+import { authService } from "@/services/authService";
 import { Program } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -343,6 +345,12 @@ export default function WeeklyPrograms() {
 
   useEffect(() => {
     loadPrograms();
+    authService
+      .getCurrentUser()
+      .then((fresh) => {
+        if (fresh) useUserStore.getState().setUser(fresh);
+      })
+      .catch(() => {});
   }, [loadPrograms]);
 
   // Keep the bell icons in sync with what is actually scheduled on the device
@@ -366,6 +374,12 @@ export default function WeeklyPrograms() {
 
   const onRefresh = useCallback(() => {
     loadPrograms(true);
+    authService
+      .getCurrentUser()
+      .then((fresh) => {
+        if (fresh) useUserStore.getState().setUser(fresh);
+      })
+      .catch(() => {});
   }, [loadPrograms]);
 
   const parseProgramDate = (dayStr: string, timeStr: string): Date => {

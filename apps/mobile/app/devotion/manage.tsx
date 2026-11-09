@@ -30,11 +30,16 @@ import { AdminGuardFallback } from "@/components/Admin/AdminGuardFallback";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { ConfirmModal } from "@/components/Modals/ConfirmModal";
 import { InfoModal } from "@/components/Modals/InfoModal";
+import { PostAsSelector } from "@/components/Actor/PostAsSelector";
 import { PRIMARY } from "@/constants";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { devotionWriterService } from "@/services/devotionWriterService";
+import { socialApi } from "@/services/socialApi";
 import { useDevotionsStore } from "@/stores/devotions.store";
+import { useUserStore } from "@/stores/user.store";
 import { Devotion, DevotionType } from "@/types/devotion.types";
+import { PostableActor } from "@/types/social.types";
 
 const DEVOTION_TYPES: { type: DevotionType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { type: "text", label: "Text Article", icon: "document-text-outline" },
@@ -49,6 +54,22 @@ export default function ManageDevotionScreen() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const isAdmin = useIsAdmin();
+  const user = useUserStore((s) => s.user);
+
+  const [isApprovedWriter, setIsApprovedWriter] = useState<boolean>(false);
+
+  useEffect(() => {
+    devotionWriterService
+      .getMyApplication()
+      .then((res) => {
+        if (res?.status === "approved") {
+          setIsApprovedWriter(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const canAuthor = isAdmin || isApprovedWriter;
 
   const {
     devotionsList,
@@ -68,7 +89,56 @@ export default function ManageDevotionScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLocalImage, setIsLocalImage] = useState<boolean>(false);
   const [title, setTitle] = useState<string>("");
-  const [author, setAuthor] = useState<string>("");
+
+  // Postable Actors / Persona Attribution
+  const [actors, setActors] = useState<PostableActor[]>([]);
+  const [loadingActors, setLoadingActors] = useState<boolean>(true);
+  const [selectedActor, setSelectedActor] = useState<PostableActor | null>(null);
+  const targetActorIdRef = useRef<string | null>(null);
+  const targetAuthorNameRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingActors(true);
+    socialApi
+      .getPostableActors()
+      .then((list) => {
+        if (!isMounted) return;
+        const validList = Array.isArray(list) ? list : [];
+        setActors(validList);
+
+        if (validList.length > 0) {
+          setSelectedActor((prev) => {
+            if (isEditing) {
+              const targetId = targetActorIdRef.current;
+              const targetName = targetAuthorNameRef.current;
+              const match = validList.find(
+                (a) =>
+                  (targetId && a.id === targetId) ||
+                  (targetName &&
+                    a.displayName.toLowerCase() === targetName.toLowerCase()),
+              );
+              return match || prev || validList[0];
+            } else {
+              const defaultActor =
+                validList.find((a) => a.isDefault === true) || validList[0];
+              return prev || defaultActor;
+            }
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn("[ManageDevotion] Failed to fetch postable actors:", err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingActors(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isEditing]);
+
   const [date, setDate] = useState<string>(
     new Date().toISOString().split("T")[0],
   );
@@ -124,7 +194,20 @@ export default function ManageDevotionScreen() {
 
   const populateForm = (item: Devotion) => {
     setTitle(item.title || "");
-    setAuthor(item.author || "");
+    targetActorIdRef.current = item.authorActorId || item.authorId || null;
+    targetAuthorNameRef.current = item.author || null;
+
+    if (actors.length > 0) {
+      const match = actors.find(
+        (a) =>
+          (targetActorIdRef.current && a.id === targetActorIdRef.current) ||
+          (targetAuthorNameRef.current &&
+            a.displayName.toLowerCase() === targetAuthorNameRef.current.toLowerCase()),
+      );
+      if (match) {
+        setSelectedActor(match);
+      }
+    }
     setDate(item.date || new Date().toISOString().split("T")[0]);
     setType(item.type === "voice" ? "voice" : "text");
     setTags(Array.isArray(item.tags) ? item.tags.join(", ") : "");
@@ -279,17 +362,14 @@ export default function ManageDevotionScreen() {
     if (!title.trim() || title.trim().length < 3) {
       return "Devotion title must be at least 3 characters.";
     }
-    if (!author.trim() || author.trim().length < 2) {
-      return "Author name is required.";
-    }
-    if (!imageUri) {
-      return "Please select a cover image for the devotion.";
+    if (!selectedActor && actors.length > 0) {
+      return "Please select an author persona to publish under.";
     }
     if (type === "text" && (!content.trim() || content.trim().length < 10)) {
       return "Devotion content must be at least 10 characters.";
     }
     if (type === "voice") {
-      if (!mediaUri) {
+      if (!mediaUri && !isEditing) {
         return "Please record or attach an audio file for the voice devotion.";
       }
       if (!caption.trim() && !content.trim()) {
@@ -321,13 +401,58 @@ export default function ManageDevotionScreen() {
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
 
-      const hasLocalFiles = isLocalImage || isLocalMedia;
+      const resolvedImage =
+        imageUri ||
+        "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80";
+
+      const isLocalCover = Boolean(
+        resolvedImage &&
+          (isLocalImage ||
+            resolvedImage.startsWith("file://") ||
+            resolvedImage.startsWith("content://")),
+      );
+      const isLocalAudio = Boolean(
+        mediaUri &&
+          (isLocalMedia ||
+            mediaUri.startsWith("file://") ||
+            mediaUri.startsWith("content://")),
+      );
+
+      const hasLocalFiles = isLocalCover || isLocalAudio;
+
+      const authorName = selectedActor?.displayName || "4 Kilo Fellowship";
+      const authorActorId =
+        selectedActor && selectedActor.id !== "me"
+          ? selectedActor.id
+          : undefined;
+      const actorType = selectedActor?.type;
+      const authorHandle = selectedActor?.handle;
+      const authorAvatar = selectedActor?.avatarUrl || undefined;
+      const authorRole =
+        selectedActor?.type === "official"
+          ? "OFFICIAL"
+          : selectedActor?.type === "team"
+            ? "TEAM"
+            : "WRITER";
 
       let payload: any;
       if (hasLocalFiles) {
         const formData = new FormData();
         formData.append("title", title.trim());
-        formData.append("author", author.trim());
+        formData.append("author", authorName);
+        if (authorActorId) {
+          formData.append("authorActorId", authorActorId);
+        }
+        if (actorType) {
+          formData.append("actorType", actorType);
+        }
+        if (authorHandle) {
+          formData.append("authorHandle", authorHandle);
+        }
+        if (authorAvatar) {
+          formData.append("authorAvatar", authorAvatar);
+        }
+        formData.append("authorRole", authorRole);
         formData.append("date", date);
         formData.append("type", type);
         formData.append("tags", JSON.stringify(parsedTags));
@@ -341,23 +466,23 @@ export default function ManageDevotionScreen() {
           formData.append("caption", voiceCaption);
           formData.append("content", voiceCaption);
           if (duration.trim()) formData.append("duration", duration.trim());
-          if (!isLocalMedia && mediaUri) formData.append("audioUrl", mediaUri);
+          if (!isLocalAudio && mediaUri) formData.append("audioUrl", mediaUri);
         }
 
-        if (isLocalImage && imageUri) {
-          const filename = imageUri.split("/").pop() || "devotion_cover.jpg";
+        if (isLocalCover) {
+          const filename = resolvedImage.split("/").pop() || "devotion_cover.jpg";
           const match = /\.(\w+)$/.exec(filename);
           const fileType = match ? `image/${match[1]}` : "image/jpeg";
           formData.append("image", {
-            uri: imageUri,
+            uri: resolvedImage,
             name: filename,
             type: fileType,
           } as any);
-        } else if (imageUri) {
-          formData.append("image", imageUri);
+        } else if (resolvedImage) {
+          formData.append("image", resolvedImage);
         }
 
-        if (isLocalMedia && mediaUri) {
+        if (isLocalAudio && mediaUri) {
           const filename =
             mediaName ||
             mediaUri.split("/").pop() ||
@@ -374,12 +499,17 @@ export default function ManageDevotionScreen() {
         const voiceCaption = type === "voice" ? (caption.trim() || content.trim()) : undefined;
         payload = {
           title: title.trim(),
-          author: author.trim(),
+          author: authorName,
+          authorActorId,
+          actorType,
+          authorHandle,
+          authorAvatar,
+          authorRole,
           date,
           type,
           tags: parsedTags,
           featured,
-          image: imageUri || "",
+          image: resolvedImage,
           content: type === "text" ? content.trim() : voiceCaption,
           duration: duration.trim() || undefined,
           caption: voiceCaption,
@@ -466,8 +596,8 @@ export default function ManageDevotionScreen() {
     }
   };
 
-  if (!isAdmin) {
-    return <AdminGuardFallback title="Manage Devotion" />;
+  if (!canAuthor) {
+    return <AdminGuardFallback title="Author Access Required" />;
   }
 
   if (loadingInitial) {
@@ -606,6 +736,14 @@ export default function ManageDevotionScreen() {
             </View>
           </View>
 
+          {/* Persona Selector (Post As...) */}
+          <PostAsSelector
+            selectedActor={selectedActor}
+            onSelectActor={setSelectedActor}
+            actors={actors}
+            loading={loadingActors}
+          />
+
           {/* Title */}
           <View style={styles.section}>
             <Text
@@ -627,32 +765,6 @@ export default function ManageDevotionScreen() {
                 styles.input,
                 isDark ? styles.inputDark : styles.inputLight,
                 focusedField === "title" && styles.inputFocused,
-                isDark ? styles.textLight : styles.textDark,
-              ]}
-            />
-          </View>
-
-          {/* Author */}
-          <View style={styles.section}>
-            <Text
-              style={[
-                styles.label,
-                isDark ? styles.textLight : styles.textDark,
-              ]}
-            >
-              Author / Preacher <Text style={styles.required}>*</Text>
-            </Text>
-            <TextInput
-              value={author}
-              onChangeText={setAuthor}
-              placeholder="e.g., Pastor Daniel / 4 Kilo Devotion Team"
-              placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
-              onFocus={() => setFocusedField("author")}
-              onBlur={() => setFocusedField(null)}
-              style={[
-                styles.input,
-                isDark ? styles.inputDark : styles.inputLight,
-                focusedField === "author" && styles.inputFocused,
                 isDark ? styles.textLight : styles.textDark,
               ]}
             />

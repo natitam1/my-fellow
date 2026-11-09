@@ -1,6 +1,11 @@
 import SignInPromptModal from "@/components/SignInPromptModal";
 import { NativeBackButton, Placeholder } from "@/components";
 import { PRIMARY } from "@/constants";
+import { OFFLINE_DEVOTIONS } from "@/constants/offlineDevotions";
+import {
+  getBundledOfflineAudio,
+  resolveDevotionAudioSource,
+} from "@/constants/offlineAudio";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -8,9 +13,18 @@ import { devotionsService } from "@/services/devotionsService";
 import { useDevotionsStore } from "@/stores/devotions.store";
 import { useStreakStore } from "@/stores/streak.store";
 import { Devotion } from "@/types/devotion.types";
+import {
+  navigateToDevotionAuthor,
+  resolveDevotionActor,
+} from "@/utils/devotionActor";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import {
+  AudioSource,
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
+} from "expo-audio";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
@@ -18,9 +32,7 @@ import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   GestureResponderEvent,
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -42,19 +54,39 @@ const DevotionDetail = () => {
   const { markAsRead, savedDevotions, cacheDevotion, getCachedDevotion } =
     useDevotionsStore();
 
-  const [devotion, setDevotion] = useState<Devotion | null>(null);
-  const [allDevotions, setAllDevotions] = useState<Devotion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState<number | string>(0);
-  const [viewsCount, setViewsCount] = useState<number | string>(0);
+  const cachedDevotion = useMemo(() => getCachedDevotion(id), [id, getCachedDevotion]);
+
+  const [devotion, setDevotion] = useState<Devotion | null>(cachedDevotion || null);
+  const [allDevotions, setAllDevotions] = useState<Devotion[]>(() => {
+    const list = useDevotionsStore.getState().devotionsList;
+    return list && list.length > 0 ? list : OFFLINE_DEVOTIONS;
+  });
+  const [loading, setLoading] = useState<boolean>(!cachedDevotion);
+  const [isLiked, setIsLiked] = useState<boolean>(cachedDevotion?.isLiked || false);
+  const [likesCount, setLikesCount] = useState<number | string>(
+    cachedDevotion?.likesFormatted || cachedDevotion?.likes || 0,
+  );
+  const [viewsCount, setViewsCount] = useState<number | string>(
+    cachedDevotion?.viewsFormatted || cachedDevotion?.views || 0,
+  );
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [progressBarWidth, setProgressBarWidth] = useState(1);
-  const { authState } = useAuth();
 
-  const cachedDevotion = useMemo(() => getCachedDevotion(id), [id]);
+  // Synchronously compute initial audio source from bundled assets or devotion audioUrl
+  const initialAudioSource = useMemo<AudioSource>(() => {
+    const bundled = getBundledOfflineAudio(
+      cachedDevotion?._id,
+      cachedDevotion?.title,
+    );
+    if (bundled) return bundled;
+    return cachedDevotion?.audioUrl || null;
+  }, [cachedDevotion?._id, cachedDevotion?.title, cachedDevotion?.audioUrl]);
+
+  const [audioSource, setAudioSource] = useState<AudioSource>(initialAudioSource);
+  const { authState } = useAuth();
+  const actor = useMemo(() => resolveDevotionActor(devotion), [devotion]);
 
   useEffect(() => {
     if (cachedDevotion) {
@@ -66,6 +98,20 @@ const DevotionDetail = () => {
     }
   }, [cachedDevotion]);
 
+  // Resolve best offline/local audio source (downloaded file > bundled asset > remote)
+  useEffect(() => {
+    if (!devotion?._id || devotion.type !== "voice") return;
+    let isMounted = true;
+    resolveDevotionAudioSource(devotion).then((resolved) => {
+      if (isMounted && resolved) {
+        setAudioSource(resolved);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [devotion?._id, devotion?.title, devotion?.type, devotion?.audioUrl]);
+
   // Configure Expo SDK 58 native audio session mode
   useEffect(() => {
     setAudioModeAsync({
@@ -75,7 +121,7 @@ const DevotionDetail = () => {
     }).catch((err) => console.log("Audio mode set error:", err));
   }, []);
 
-  const player = useAudioPlayer(devotion?.audioUrl || "");
+  const player = useAudioPlayer(audioSource);
   const status = useAudioPlayerStatus(player);
 
   useEffect(() => {
@@ -99,7 +145,7 @@ const DevotionDetail = () => {
       if (devotion && devotion.type === "voice") {
         player.setActiveForLockScreen(true, {
           title: devotion.title,
-          artist: devotion.author,
+          artist: actor.displayName,
           albumTitle: "4 Kilo Fellowship Devotions",
           artworkUrl: devotion.image,
         });
@@ -144,12 +190,14 @@ const DevotionDetail = () => {
           }
         }
 
-        const allResponse = await devotionsService.getDevotions();
-        if (allResponse.success) {
-          setAllDevotions(allResponse.data);
-        }
+        try {
+          const allResponse = await devotionsService.getDevotions();
+          if (allResponse.success && Array.isArray(allResponse.data)) {
+            setAllDevotions(allResponse.data);
+          }
+        } catch {}
       } catch (error) {
-        console.error("Error loading devotion:", error);
+        console.log("Device offline or error loading devotion details:", error);
       } finally {
         setLoading(false);
       }
@@ -215,6 +263,7 @@ const DevotionDetail = () => {
           );
           await downloadResumable.downloadAsync();
         }
+        setAudioSource(mediaFile);
         completedFiles++;
         setDownloadProgress((completedFiles / totalFiles) * 100);
       }
@@ -260,7 +309,7 @@ const DevotionDetail = () => {
     if (!devotion) return;
     try {
       await Share.share({
-        message: `Devotion: ${devotion.title}\nBy ${devotion.author}\n\nRead more in My Fellow app!`,
+        message: `Devotion: ${devotion.title}\nBy ${actor.displayName}\n\nRead more in My Fellow app!`,
         url: devotion.image,
       });
     } catch (error) {
@@ -286,38 +335,7 @@ const DevotionDetail = () => {
   const handleAuthorPress = () => {
     if (!devotion) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-
-    const authorLower = devotion.author.toLowerCase();
-    const isOfficial =
-      !devotion.authorId ||
-      authorLower.includes("fellowship") ||
-      authorLower.includes("4 kilo") ||
-      authorLower.includes("official") ||
-      !devotion.authorRole ||
-      devotion.authorRole.includes("Official") ||
-      devotion.authorRole.includes("Ministry");
-
-    const targetAuthorId = isOfficial
-      ? "user-fellowship"
-      : devotion.authorId || "user-fellowship";
-    const targetName = isOfficial ? "4 Kilo Fellowship" : devotion.author;
-    const targetHandle = isOfficial ? "@4kilo_fellowship" : (devotion.authorUsername || "4kilo_fellowship");
-    const targetAvatar =
-      devotion.authorAvatar ||
-      "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=400&q=80";
-    const targetRole = isOfficial ? "Executive Ministry" : (devotion.authorRole || "Executive Ministry");
-
-    router.push({
-      pathname: `/community/user/${targetAuthorId}`,
-      params: {
-        id: targetAuthorId,
-        name: targetName,
-        username: targetHandle,
-        avatar: targetAvatar,
-        team: targetRole,
-        department: "Campus Ministry Leadership",
-      },
-    });
+    navigateToDevotionAuthor(devotion, router);
   };
 
   if (loading && !devotion) {
@@ -458,10 +476,12 @@ const DevotionDetail = () => {
         contentContainerStyle={{ paddingTop: top + 52 }}
       >
         <View className="w-full h-[280px]">
-          <Image
+          <ExpoImage
             source={{ uri: devotion.image }}
             className="w-full h-full"
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
           />
         </View>
 
@@ -481,7 +501,7 @@ const DevotionDetail = () => {
           >
             {/* Author Profile */}
             <TouchableOpacity
-              activeOpacity={1}
+              activeOpacity={0.8}
               onPress={handleAuthorPress}
               className="flex-row items-center flex-1 mr-4"
             >
@@ -490,14 +510,18 @@ const DevotionDetail = () => {
                   isDark ? "bg-[#1f1f23]" : "bg-gray-100"
                 }`}
               >
-                {devotion.authorAvatar ? (
+                {actor.avatarUrl ? (
                   <ExpoImage
-                    source={{ uri: devotion.authorAvatar }}
+                    source={{ uri: actor.avatarUrl }}
                     style={{ width: "100%", height: "100%" }}
                     contentFit="cover"
                   />
                 ) : (
-                  <Ionicons name="person" size={18} color={PRIMARY} />
+                  <Ionicons
+                    name={actor.type === "team" ? "people" : "person"}
+                    size={18}
+                    color={PRIMARY}
+                  />
                 )}
               </View>
 
@@ -509,21 +533,44 @@ const DevotionDetail = () => {
                     }`}
                     numberOfLines={1}
                   >
-                    {devotion.author || "4 Kilo Fellowship"}
+                    {actor.displayName}
                   </Text>
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={15}
-                    color="#0284c7"
-                    style={{ marginLeft: 4 }}
-                  />
+                  {actor.isVerified && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={15}
+                      color="#0284c7"
+                      style={{ marginLeft: 4 }}
+                    />
+                  )}
+                  {actor.badgeText && (
+                    <View
+                      className={`ml-1.5 px-1.5 py-0.5 rounded-md ${
+                        actor.type === "team"
+                          ? "bg-emerald-500/15"
+                          : isDark
+                          ? "bg-primary/20"
+                          : "bg-primary/10"
+                      }`}
+                    >
+                      <Text
+                        className={`text-[10px] font-bold tracking-wider ${
+                          actor.type === "team"
+                            ? "text-emerald-500"
+                            : "text-primary"
+                        }`}
+                      >
+                        {actor.badgeText}
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 <Text
                   className={`text-[12px] font-medium mt-0.5 ${
                     isDark ? "text-gray-400" : "text-gray-500"
                   }`}
                 >
-                  Official Fellowship
+                  {actor.role}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -810,10 +857,12 @@ const DevotionDetail = () => {
                           isDark ? "border-[#1a1a1a] bg-[#141414]" : "border-gray-100 bg-gray-50"
                         }`}
                       >
-                        <Image
+                        <ExpoImage
                           source={{ uri: item.image }}
                           className="w-full h-full"
-                          resizeMode="cover"
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                          transition={200}
                         />
                       </View>
                       <Text
@@ -829,7 +878,7 @@ const DevotionDetail = () => {
                           isDark ? "text-gray-500" : "text-gray-400"
                         }`}
                       >
-                        {item.author}
+                        {resolveDevotionActor(item).displayName}
                       </Text>
                     </Pressable>
                   </View>

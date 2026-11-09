@@ -9,8 +9,10 @@ import { useAfterTransition } from "@/hooks/useAfterTransition";
 import { ProfileSeed, useProfile } from "@/hooks/useProfile";
 import { socialApi } from "@/services/socialApi";
 import {
+  actorToMemberProfile,
   apiPostToCommunityPost,
   CommunityPost,
+  isActorIdOrHandle,
   useCommunityStore,
 } from "@/stores/community.store";
 import { useProgramsStore } from "@/stores/programs.store";
@@ -96,27 +98,83 @@ export default function MemberProfileScreen() {
     const memberId = params.id;
     if (memberId) {
       loadPrograms().catch(() => {});
-      fetchUserProfile(memberId);
 
-      socialApi
-        .getUserPosts(memberId)
-        .then((res) => {
-          if (Array.isArray(res)) {
-            const mapped = res.map(apiPostToCommunityPost);
-            setFetchedAuthorPosts(mapped);
-            if (mapped.length > 0) {
-              useCommunityStore.setState((state) => {
-                const map = new Map<string, CommunityPost>();
-                for (const p of state.posts) map.set(p.id, p);
-                for (const p of mapped) {
-                  if (!map.has(p.id)) map.set(p.id, p);
-                }
-                return { posts: Array.from(map.values()) };
-              });
+      const cleanParam = memberId.replace(/^@/, "").toLowerCase();
+      const isActor =
+        isActorIdOrHandle(cleanParam) ||
+        isActorIdOrHandle(memberId) ||
+        Boolean(currentMember.isActor) ||
+        (params as any).isActor === "true" ||
+        (params as any).actorType !== undefined;
+
+      if (isActor) {
+        // Fetch actor details
+        socialApi
+          .getActor(cleanParam)
+          .then((actor) => {
+            if (actor) {
+              const member = actorToMemberProfile(actor);
+              updateMemberProfile(member.id, member);
+              updateMemberProfile(memberId, member);
+              updateMemberProfile(cleanParam, member);
+              updateMemberProfile(`@${cleanParam}`, member);
             }
-          }
-        })
-        .catch(() => {});
+          })
+          .catch(() => {});
+
+        // Fetch actor posts
+        socialApi
+          .getActorPosts(cleanParam)
+          .then((feed) => {
+            if (feed && Array.isArray(feed.items)) {
+              const mapped = feed.items.map(apiPostToCommunityPost);
+              setFetchedAuthorPosts(mapped);
+              if (mapped.length > 0) {
+                useCommunityStore.setState((state) => {
+                  const map = new Map<string, CommunityPost>();
+                  for (const p of state.posts) map.set(p.id, p);
+                  for (const p of mapped) {
+                    if (!map.has(p.id)) map.set(p.id, p);
+                  }
+                  return { posts: Array.from(map.values()) };
+                });
+              }
+            }
+          })
+          .catch(() => {
+            socialApi
+              .getUserPosts(cleanParam)
+              .then((res) => {
+                if (Array.isArray(res)) {
+                  const mapped = res.map(apiPostToCommunityPost);
+                  setFetchedAuthorPosts(mapped);
+                }
+              })
+              .catch(() => {});
+          });
+      } else {
+        fetchUserProfile(memberId);
+
+        socialApi
+          .getUserPosts(memberId)
+          .then((res) => {
+            if (Array.isArray(res)) {
+              const mapped = res.map(apiPostToCommunityPost);
+              setFetchedAuthorPosts(mapped);
+              if (mapped.length > 0) {
+                useCommunityStore.setState((state) => {
+                  const map = new Map<string, CommunityPost>();
+                  for (const p of state.posts) map.set(p.id, p);
+                  for (const p of mapped) {
+                    if (!map.has(p.id)) map.set(p.id, p);
+                  }
+                  return { posts: Array.from(map.values()) };
+                });
+              }
+            }
+          })
+          .catch(() => {});
+      }
 
       socialApi
         .getUserLikedPosts(memberId)
@@ -188,7 +246,7 @@ export default function MemberProfileScreen() {
         })
         .catch(() => {});
     }
-  }, [params.id, fetchUserProfile, updateMemberProfile]);
+  }, [params.id, fetchUserProfile, updateMemberProfile, currentMember.isActor]);
 
   // Scroll tracking for sticky header & dynamic status bar
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -226,10 +284,31 @@ export default function MemberProfileScreen() {
 
   const authorPosts = useMemo(() => {
     const merged = new Map<string, CommunityPost>();
+    const targetId = (currentMember.id || "").toLowerCase();
+    const targetHandle = (currentMember.handle || "").replace(/^@/, "").toLowerCase();
+
     for (const p of posts) {
+      const pAuthorId = (p.authorId || "").toLowerCase();
+      const pAuthorHandle = (p.authorHandle || "").replace(/^@/, "").toLowerCase();
+      const pActorId = (
+        (p as any).authorActorId ||
+        (p as any).authorActor?.id ||
+        ""
+      ).toLowerCase();
+      const pActorHandle = (
+        (p as any).authorActor?.handle || ""
+      ).replace(/^@/, "").toLowerCase();
+
       if (
-        p.authorId === currentMember.id ||
-        p.authorHandle.toLowerCase() === currentMember.handle.toLowerCase()
+        pAuthorId === targetId ||
+        pAuthorHandle === targetHandle ||
+        pActorId === targetId ||
+        pActorHandle === targetHandle ||
+        (targetHandle === "fellow" &&
+          (pActorHandle === "fellow" ||
+            pAuthorHandle === "fellow" ||
+            pAuthorId === "user-fellowship" ||
+            pAuthorId === "fellow"))
       ) {
         merged.set(p.id, p);
       }
@@ -731,7 +810,15 @@ export default function MemberProfileScreen() {
                 size={72}
                 uri={typeof currentMember.avatar === "string" ? currentMember.avatar : undefined}
                 name={currentMember.fullName}
-              />
+              >
+                {typeof currentMember.avatar !== "string" && currentMember.avatar ? (
+                  <ExpoImage
+                    source={currentMember.avatar}
+                    style={{ width: 72, height: 72, borderRadius: 36 }}
+                    contentFit="cover"
+                  />
+                ) : null}
+              </LongPressAvatar>
               <View style={[styles.onlineDot, { borderColor: bg }]} pointerEvents="none" />
             </View>
           </View>

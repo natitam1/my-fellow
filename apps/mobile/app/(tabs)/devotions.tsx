@@ -1,11 +1,13 @@
 import { MainTabHeader, Placeholder } from "@/components";
 import { DevotionWriterModal } from "@/components/DevotionWriterModal";
 import { PRIMARY } from "@/constants";
+import { OFFLINE_DEVOTIONS } from "@/constants/offlineDevotions";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { devotionsService } from "@/services/devotionsService";
 import { devotionWriterService, WriterRequest } from "@/services/devotionWriterService";
 import { useDevotionsStore } from "@/stores/devotions.store";
 import { Devotion } from "@/types/devotion.types";
+import { resolveDevotionActor, navigateToDevotionAuthor } from "@/utils/devotionActor";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import * as Haptics from "expo-haptics";
@@ -14,7 +16,6 @@ import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
-  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -101,10 +102,12 @@ const CompactArticleCard = React.memo<CompactArticleCardProps>(
           {/* Card Thumbnail Image with Screenshot-accurate Overlays */}
           <View style={[styles.compactImageWrapper, { height: imageHeight }]}>
             {item.image ? (
-              <Image
+              <ExpoImage
                 source={{ uri: item.image }}
                 style={styles.compactImage}
-                resizeMode="cover"
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={200}
               />
             ) : (
               <View style={styles.compactImagePlaceholder}>
@@ -127,7 +130,7 @@ const CompactArticleCard = React.memo<CompactArticleCardProps>(
               <View style={styles.compactVoiceBadge}>
                 <Ionicons name="musical-notes" size={11} color="#ffffff" />
                 <Text style={styles.compactVoiceText}>
-                  {item.duration || "Audio"}
+                  {formatDuration(item)}
                 </Text>
               </View>
             )}
@@ -198,6 +201,7 @@ interface MinimalDevotionCardProps {
 // Elegant editorial article-style card for fellowship devotions (memoized)
 const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
   ({ item, isSaved, isRead, onPress, onAuthorPress, onToggleSave, onShare }) => {
+    const actor = resolveDevotionActor(item);
     return (
       <View style={styles.articleCardOuter}>
         <Pressable
@@ -223,15 +227,15 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
               style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}
             >
               <View style={styles.authorAvatar}>
-                {item.authorAvatar ? (
+                {actor.avatarUrl ? (
                   <ExpoImage
-                    source={{ uri: item.authorAvatar }}
+                    source={{ uri: actor.avatarUrl }}
                     style={{ width: "100%", height: "100%", borderRadius: 14 }}
                     contentFit="cover"
                   />
                 ) : (
                   <Text style={styles.authorAvatarText}>
-                    {item.author?.charAt(0)?.toUpperCase() || "F"}
+                    {actor.displayName?.charAt(0)?.toUpperCase() || "F"}
                   </Text>
                 )}
               </View>
@@ -239,17 +243,36 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
               <View style={styles.authorMeta}>
                 <View style={styles.authorNameRow}>
                   <Text style={styles.authorName} numberOfLines={1}>
-                    {item.author || "4 Kilo Fellowship"}
+                    {actor.displayName}
                   </Text>
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={12}
-                    color={PRIMARY}
-                    style={{ marginLeft: 3, marginRight: 4 }}
-                  />
-                  <View style={styles.fellowBadge}>
-                    <Text style={styles.fellowBadgeText}>Official</Text>
-                  </View>
+                  {actor.isVerified && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={12}
+                      color={PRIMARY}
+                      style={{ marginLeft: 3, marginRight: 4 }}
+                    />
+                  )}
+                  {actor.badgeText && (
+                    <View
+                      style={[
+                        styles.fellowBadge,
+                        actor.type === "team" && {
+                          backgroundColor: "#eff6ff",
+                          borderColor: "#3b82f6",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.fellowBadgeText,
+                          actor.type === "team" && { color: "#3b82f6" },
+                        ]}
+                      >
+                        {actor.badgeText}
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 <View style={styles.metaSubRow}>
                   <Text style={styles.authorDate}>{formatDate(item.date)}</Text>
@@ -303,16 +326,18 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
           {/* Clean 16:9 Editorial Cover Image */}
           {item.image ? (
             <View style={styles.imageWrapper}>
-              <Image
+              <ExpoImage
                 source={{ uri: item.image }}
                 style={styles.cardImage}
-                resizeMode="cover"
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={200}
               />
               {item.type === "voice" && (
                 <View style={styles.typeBadge}>
                   <Ionicons name="musical-notes" size={12} color="#ffffff" />
                   <Text style={styles.typeBadgeText}>
-                    Voice & Caption · {item.duration || "Audio"}
+                    Voice & Caption · {formatDuration(item)}
                   </Text>
                 </View>
               )}
@@ -384,11 +409,39 @@ export default function Devotions() {
   const { width: viewportWidth } = useWindowDimensions();
   const [tabIndex, setTabIndex] = useState(0);
 
-  const [loading, setLoading] = useState(true);
+  const {
+    devotionsList,
+    setDevotionsList,
+    saveDevotion,
+    unsaveDevotion,
+    isDevotionSaved,
+    savedDevotions,
+    isDevotionRead,
+  } = useDevotionsStore();
+
+  const initialDevotions = useMemo(() => {
+    if (devotionsList && devotionsList.length > 0) return devotionsList;
+    return OFFLINE_DEVOTIONS;
+  }, [devotionsList]);
+
+  const [devotions, setDevotions] = useState<Devotion[]>(initialDevotions);
+  const [loading, setLoading] = useState(devotions.length === 0);
   const [refreshing, setRefreshing] = useState(false);
-  const [devotions, setDevotions] = useState<Devotion[]>([]);
   const [writerModalVisible, setWriterModalVisible] = useState(false);
   const [myWriterRequest, setMyWriterRequest] = useState<WriterRequest | null>(null);
+
+  // Sync devotions from store whenever devotionsList updates
+  useEffect(() => {
+    if (devotionsList && devotionsList.length > 0) {
+      setDevotions(devotionsList);
+    }
+  }, [devotionsList]);
+
+  const canCreateDevotion = Boolean(
+    __DEV__ ||
+    isAdmin ||
+    myWriterRequest?.status === "approved"
+  );
 
   // Responsive card sizing: shows ~1.7 cards on phones and ~3 on tablets
   const cardWidth = useMemo(() => {
@@ -404,38 +457,31 @@ export default function Devotions() {
     }).catch(() => {});
   }, []);
 
-  const {
-    saveDevotion,
-    unsaveDevotion,
-    isDevotionSaved,
-    savedDevotions,
-    isDevotionRead,
-  } = useDevotionsStore();
-
   const requestIdRef = useRef(0);
 
   const fetchDevotions = useCallback(async (isRefresh = false) => {
     const requestId = ++requestIdRef.current;
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (devotions.length === 0) setLoading(true);
 
     try {
       const response = await devotionsService.getDevotions();
       // Ignore responses that arrive after a newer request
       if (requestId !== requestIdRef.current) return;
-      if (response.success) {
+      if (response.success && Array.isArray(response.data) && response.data.length > 0) {
         setDevotions(response.data);
+        setDevotionsList(response.data);
       }
     } catch (error) {
       if (requestId !== requestIdRef.current) return;
-      console.error("Error fetching devotions:", error);
+      console.log("Error or offline fetching devotions; retaining offline devotions:", error);
     } finally {
       if (requestId === requestIdRef.current) {
         setLoading(false);
         setRefreshing(false);
       }
     }
-  }, []);
+  }, [devotions.length, setDevotionsList]);
 
   useEffect(() => {
     fetchDevotions();
@@ -478,38 +524,9 @@ export default function Devotions() {
   }, []);
 
   const handleAuthorPress = useCallback((item?: Devotion) => {
+    if (!item) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    const authorLower = (item?.author || "").toLowerCase();
-    const isOfficial =
-      !item?.authorId ||
-      authorLower.includes("fellowship") ||
-      authorLower.includes("4 kilo") ||
-      authorLower.includes("official") ||
-      !item?.authorRole ||
-      item.authorRole.includes("Official") ||
-      item.authorRole.includes("Ministry");
-
-    const targetAuthorId = isOfficial
-      ? "user-fellowship"
-      : item?.authorId || "user-fellowship";
-    const targetName = isOfficial ? "4 Kilo Fellowship" : item!.author;
-    const targetHandle = isOfficial ? "@4kilo_fellowship" : (item?.authorUsername || "4kilo_fellowship");
-    const targetAvatar =
-      item?.authorAvatar ||
-      "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=400&q=80";
-    const targetRole = isOfficial ? "Executive Ministry" : (item?.authorRole || "Executive Ministry");
-
-    router.push({
-      pathname: `/community/user/${targetAuthorId}`,
-      params: {
-        id: targetAuthorId,
-        name: targetName,
-        username: targetHandle,
-        avatar: targetAvatar,
-        team: targetRole,
-        department: "Campus Ministry Leadership",
-      },
-    });
+    navigateToDevotionAuthor(item, router);
   }, []);
 
   const latestDevotion = useMemo(() => (devotions.length > 0 ? devotions[0] : null), [devotions]);
@@ -639,10 +656,12 @@ export default function Devotions() {
                 {/* Clean Image with only LATEST badge on it */}
                 <View style={styles.heroImageContainer}>
                   {latestDevotion.image ? (
-                    <Image
+                    <ExpoImage
                       source={{ uri: latestDevotion.image }}
                       style={styles.heroImage}
-                      resizeMode="cover"
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
                     />
                   ) : (
                     <View style={styles.heroFallbackBg} />
@@ -762,7 +781,28 @@ export default function Devotions() {
             </View>
           )}
 
-          {/* 4. CTA: Apply to Write */}
+          {/* 4. ALL DEVOTIONS (Full Vertical Feed) */}
+          {devotions.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>All Devotions</Text>
+              </View>
+              {devotions.map((item: Devotion) => (
+                <MinimalDevotionCard
+                  key={`all-feed-${item._id}`}
+                  item={item}
+                  isSaved={isDevotionSaved(item._id)}
+                  isRead={isDevotionRead(item._id)}
+                  onPress={() => router.push(`/devotion/${item._id}`)}
+                  onAuthorPress={() => handleAuthorPress(item)}
+                  onToggleSave={() => handleToggleSave(item)}
+                  onShare={() => handleShare(item)}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* 5. CTA: Apply to Write */}
           <View style={styles.ctaContainer}>
             <View style={styles.ctaIconCircle}>
               <Ionicons name="create-outline" size={22} color={PRIMARY} />
@@ -926,8 +966,8 @@ export default function Devotions() {
         )}
       />
 
-      {/* Floating Action Button (+) — Admin Only for Devotion Creation (Like in Community Tab) */}
-      {isAdmin && (
+      {/* Floating Action Button (+) — Admin & Approved Writers for Devotion Creation */}
+      {canCreateDevotion && (
         <TouchableOpacity
           activeOpacity={0.88}
           onPress={() => {
@@ -940,7 +980,7 @@ export default function Devotions() {
             styles.fabBtn,
             {
               backgroundColor: PRIMARY,
-              bottom: Math.max(insets.bottom, 12) + 28,
+              bottom: 60 + Math.max(insets.bottom, 6) + 16,
             },
           ]}
         >
@@ -983,7 +1023,7 @@ const styles = StyleSheet.create({
         elevation: 6,
       },
     }),
-    zIndex: 50,
+    zIndex: 99,
   },
   // Tab Bar (native TabView indicator, finger-tracked by the pager)
   tabBar: {

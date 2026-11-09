@@ -1,12 +1,13 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "expo-router";
-import { Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { Platform, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { PRIMARY } from "@/constants/colors";
 import { USE_APPLE_ZOOM } from "@/lib/transitions";
 import { getPrefilledAvatar } from "@/utils/avatar";
 
@@ -72,17 +73,37 @@ export function ProfileLink({
     pressed.value = withTiming(0, { duration: 110 });
   };
 
+  const fallbackUrl = getPrefilledAvatar(
+    user.id || user.name || user.username || "fellow"
+  );
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [user.avatarUrl]);
+
   const resolvedAvatar =
-    user.avatarUrl && typeof user.avatarUrl === "string" && user.avatarUrl.trim() !== ""
+    !imgError &&
+    user.avatarUrl &&
+    typeof user.avatarUrl === "string" &&
+    user.avatarUrl.trim() !== ""
+      ? user.avatarUrl.trim()
+      : !imgError && typeof user.avatarUrl === "object" && user.avatarUrl !== null
       ? user.avatarUrl
-      : typeof user.avatarUrl === "object" && user.avatarUrl !== null
-      ? user.avatarUrl
-      : getPrefilledAvatar(user.id || user.name || user.username || "fellow");
+      : fallbackUrl;
 
   const avatarSource =
     typeof resolvedAvatar === "string"
       ? { uri: resolvedAvatar }
       : resolvedAvatar;
+
+  const initialLetter = (
+    user.name?.trim() ||
+    user.username?.replace(/^@/, "").trim() ||
+    "F"
+  )
+    .charAt(0)
+    .toUpperCase();
 
   const hitSlopPadding = Math.max(0, (44 - size) / 2);
 
@@ -115,15 +136,30 @@ export function ProfileLink({
           height: size,
           borderRadius: size / 2,
           overflow: "hidden",
-          backgroundColor: "#fed7aa",
+          backgroundColor: "#ffedd5",
+          alignItems: "center",
+          justifyContent: "center",
         }}
         collapsable={false}
       >
+        {/* Instant Letter Avatar Fallback - always present underneath or when network fails */}
+        <Text
+          style={{
+            fontSize: Math.round(size * 0.42),
+            fontWeight: "700",
+            color: PRIMARY,
+            position: "absolute",
+          }}
+        >
+          {initialLetter}
+        </Text>
+
         <Image
           source={avatarSource}
           placeholder={user.blurhash ? { blurhash: user.blurhash } : undefined}
           cachePolicy="memory-disk"
           contentFit="cover"
+          onError={() => setImgError(true)}
           style={{ width: size, height: size, borderRadius: size / 2 }}
           transition={150}
         />
@@ -157,12 +193,16 @@ export function ProfileLink({
       }}
     >
       <Pressable
-        hitSlop={{
-          top: hitSlopPadding,
-          bottom: hitSlopPadding,
-          left: hitSlopPadding,
-          right: hitSlopPadding,
-        }}
+        hitSlop={
+          showAvatar
+            ? {
+                top: hitSlopPadding,
+                bottom: hitSlopPadding,
+                left: hitSlopPadding,
+                right: hitSlopPadding,
+              }
+            : undefined
+        }
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={(e) => {

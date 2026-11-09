@@ -6,6 +6,7 @@ export const useIsAdmin = (): boolean => {
   const role = user.role?.toLowerCase()?.replace(/-/g, "_");
   return (
     role === "super_admin" ||
+    role === "superadmin" ||
     role === "admin" ||
     role === "leader" ||
     role === "team_leader" ||

@@ -1,5 +1,6 @@
 import { PRIMARY } from "@/constants";
 import { AppBottomSheet } from "@/components/AppBottomSheet";
+import { NativeBackButton } from "@/components/ui/NativeBackButton";
 import { useConfirmUnsavedChanges } from "@/hooks/useConfirmUnsavedChanges";
 import { useTheme } from "@/context/ThemeContext";
 import { useCommunityStore } from "@/stores/community.store";
@@ -11,10 +12,11 @@ import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -27,6 +29,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 const AUDIENCES = [
   { id: "everyone", label: "Everyone", description: "Anyone on 4 Kilo Fellowship" },
@@ -51,15 +54,8 @@ export default function ComposePostScreen() {
   const [hasLocation, setHasLocation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [hasPostedSuccessfully, setHasPostedSuccessfully] = useState(false);
+  const hasPostedRef = useRef(false);
   const inputRef = useRef<TextInputInstance | null>(null);
-
-  useEffect(() => {
-    fetchPostableActors().then((actors) => {
-      if (actors && actors.length > 0) {
-        setSelectedActor((prev) => prev || actors[0]);
-      }
-    });
-  }, [fetchPostableActors]);
 
   const textColor = isDark ? "#ffffff" : "#0f172a";
   const mutedColor = isDark ? "#94a3b8" : "#64748b";
@@ -69,6 +65,63 @@ export default function ComposePostScreen() {
   const userAvatar =
     user?.profileImage ||
     getPrefilledAvatar(user?.phoneNumber || user?.id);
+
+  const fullName = user?.fullName;
+  const telegramUserName = user?.telegramUserName;
+  const userPersonalActor: PostableActor = useMemo(
+    () => ({
+      id: "me",
+      type: "user",
+      displayName: fullName || "Personal Account",
+      handle: telegramUserName
+        ? telegramUserName.replace(/^@/, "")
+        : (fullName || "me").toLowerCase().replace(/\s+/g, ""),
+      avatarUrl: userAvatar,
+      bio: null,
+      isVerified: false,
+    }),
+    [fullName, telegramUserName, userAvatar],
+  );
+
+  const availableActors: PostableActor[] = useMemo(() => {
+    if (!postableActors || postableActors.length === 0) {
+      return [userPersonalActor];
+    }
+    const hasMe = postableActors.some((a) => a.id === "me" || a.type === "user");
+    if (!hasMe) {
+      return [userPersonalActor, ...postableActors];
+    }
+    return postableActors;
+  }, [postableActors, userPersonalActor]);
+
+  const activeActor = selectedActor || availableActors[0] || userPersonalActor;
+
+  useEffect(() => {
+    fetchPostableActors().then((actors) => {
+      if (actors && actors.length > 0) {
+        setSelectedActor((prev) => prev || actors[0]);
+      }
+    });
+  }, [fetchPostableActors]);
+
+  const charLimit = 500;
+  const charsLeft = charLimit - content.length;
+  const isOverLimit = charsLeft < 0;
+  const hasContent = (!!content.trim() || !!pickedImageUri) && !isOverLimit;
+
+  const hasUnsavedChanges =
+    !hasPostedRef.current &&
+    !hasPostedSuccessfully &&
+    !submitting &&
+    (content.trim().length > 0 || !!pickedImageUri);
+
+  const { bypassAndNavigate } = useConfirmUnsavedChanges(hasUnsavedChanges, {
+    title: "Discard draft?",
+    message: "You have an unsaved fellowship post that will be lost.",
+    discardLabel: "Discard",
+    continueLabel: "Keep Editing",
+    isBypassed: () => hasPostedRef.current,
+  });
 
   const handlePost = async () => {
     if (!content.trim() && !pickedImageUri) return;
@@ -86,13 +139,17 @@ export default function ComposePostScreen() {
         kind: "post",
         image: pickedImageUri ? { uri: pickedImageUri } : null,
         author: user,
-        authorActorId: selectedActor && selectedActor.id !== "me" ? selectedActor.id : undefined,
-        authorActor: selectedActor || undefined,
+        authorActorId: activeActor && activeActor.id !== "me" ? activeActor.id : undefined,
+        authorActor: activeActor || undefined,
       });
 
+      // Mark as posted in ref and state to permanently prevent discard modal
+      hasPostedRef.current = true;
+      setHasPostedSuccessfully(true);
       setContent("");
       setPickedImageUri(null);
-      setHasPostedSuccessfully(true);
+
+      Keyboard.dismiss();
 
       bypassAndNavigate(() => {
         router.back();
@@ -108,37 +165,28 @@ export default function ComposePostScreen() {
     }
   };
 
-  const showComingSoonToast = () => {
+  const showComingSoonToast = useCallback((featureName?: string) => {
     Haptics.selectionAsync().catch(() => {});
     if (Platform.OS === "android") {
       ToastAndroid.showWithGravity(
-        "Coming soon",
+        featureName ? `${featureName} coming soon` : "Coming soon",
         ToastAndroid.SHORT,
         ToastAndroid.BOTTOM,
       );
-    } else {
-      Alert.alert("Coming soon");
     }
-  };
+    Toast.show({
+      type: "info",
+      text1: "Coming Soon",
+      text2: featureName
+        ? `${featureName} will be available in a future update.`
+        : "This feature will be available in a future update.",
+      position: "bottom",
+      bottomOffset: 80,
+    });
+  }, []);
 
   const currentAudienceObj =
     AUDIENCES.find((a) => a.id === selectedAudience) || AUDIENCES[0];
-
-  const charLimit = 500;
-  const charsLeft = charLimit - content.length;
-  const isOverLimit = charsLeft < 0;
-  const hasContent = (!!content.trim() || !!pickedImageUri) && !isOverLimit;
-  const hasUnsavedChanges =
-    !hasPostedSuccessfully &&
-    !submitting &&
-    (content.trim().length > 0 || !!pickedImageUri);
-
-  const { bypassAndNavigate } = useConfirmUnsavedChanges(hasUnsavedChanges, {
-    title: "Discard draft?",
-    message: "You have an unsaved fellowship post that will be lost.",
-    discardLabel: "Discard",
-    continueLabel: "Keep Editing",
-  });
 
   const handleDismiss = () => {
     router.back();
@@ -148,20 +196,14 @@ export default function ComposePostScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Top Bar matching reference */}
+      {/* Top Bar with circular close button and action button */}
       <View style={[styles.topBar, { borderBottomColor: borderColor }]}>
-        <Pressable
+        <NativeBackButton
+          iconName="close"
+          iconSize={24}
           onPress={handleDismiss}
-          hitSlop={10}
-          android_ripple={{
-            color: isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)",
-            borderless: true,
-            radius: 20,
-          }}
-          style={styles.closeBtn}
-        >
-          <Ionicons name="close" size={24} color={textColor} />
-        </Pressable>
+          accessibilityLabel="Close compose screen"
+        />
 
         <Pressable
           onPress={handlePost}
@@ -192,7 +234,7 @@ export default function ComposePostScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.contentWrap}
       >
         <ScrollView
@@ -205,7 +247,7 @@ export default function ComposePostScreen() {
           {/* User Row + Actor Identity + Audience Picker */}
           <View style={styles.userRow}>
             <ExpoImage
-              source={{ uri: selectedActor?.avatarUrl || userAvatar }}
+              source={{ uri: activeActor?.avatarUrl || userAvatar }}
               style={styles.avatar}
               contentFit="cover"
               transition={200}
@@ -214,19 +256,19 @@ export default function ComposePostScreen() {
             <View style={styles.authorMetaCol}>
               <View style={styles.authorNameRow}>
                 <Text style={[styles.authorDisplayName, { color: textColor }]} numberOfLines={1}>
-                  {selectedActor && selectedActor.id !== "me"
-                    ? selectedActor.displayName
+                  {activeActor && activeActor.id !== "me"
+                    ? activeActor.displayName
                     : user?.fullName || "Personal Account"}
                 </Text>
-                {selectedActor?.isVerified && (
+                {activeActor?.isVerified && (
                   <Ionicons name="checkmark-circle" size={15} color={PRIMARY} style={styles.verifiedIcon} />
                 )}
-                {selectedActor?.type === "official" && (
+                {activeActor?.type === "official" && (
                   <View style={[styles.typeBadge, { backgroundColor: isDark ? "rgba(255, 103, 25, 0.2)" : "#fff7ed", borderColor: PRIMARY }]}>
                     <Text style={[styles.typeBadgeText, { color: PRIMARY }]}>OFFICIAL</Text>
                   </View>
                 )}
-                {selectedActor?.type === "team" && (
+                {activeActor?.type === "team" && (
                   <View style={[styles.typeBadge, { backgroundColor: isDark ? "rgba(59, 130, 246, 0.2)" : "#eff6ff", borderColor: "#3b82f6" }]}>
                     <Text style={[styles.typeBadgeText, { color: "#3b82f6" }]}>TEAM</Text>
                   </View>
@@ -234,42 +276,40 @@ export default function ComposePostScreen() {
               </View>
 
               <View style={styles.pillRow}>
-                {/* Switch Actor Pill (Matching the rounded capsule style of the audience pill) */}
-                {postableActors.length > 1 && (
-                  <Pressable
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                      setActorPickerVisible(true);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Switch author identity"
-                    android_ripple={{
-                      color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-                      borderless: false,
-                    }}
-                    style={({ pressed }) => [
-                      styles.actorPill,
-                      {
-                        borderColor: isDark ? "rgba(255, 255, 255, 0.14)" : "#e2e8f0",
-                        backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc",
-                        opacity: pressed ? (Platform.OS === "ios" ? 0.75 : 0.95) : 1,
-                      },
-                    ]}
-                  >
-                    <Ionicons name="swap-horizontal" size={12} color={mutedColor} />
-                    <Text style={[styles.actorPillText, { color: mutedColor }]}>
-                      Post as: {selectedActor && selectedActor.id !== "me" ? selectedActor.displayName : "Me"}
-                    </Text>
-                    <Ionicons name="chevron-down" size={12} color={mutedColor} />
-                  </Pressable>
-                )}
+                {/* Switch Actor Pill (Matching capsule styling) */}
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                    setActorPickerVisible(true);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Switch author identity"
+                  android_ripple={{
+                    color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+                    borderless: false,
+                  }}
+                  style={({ pressed }) => [
+                    styles.capsulePill,
+                    {
+                      borderColor: isDark ? "rgba(255, 255, 255, 0.14)" : "#e2e8f0",
+                      backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc",
+                      opacity: pressed ? (Platform.OS === "ios" ? 0.75 : 0.95) : 1,
+                    },
+                  ]}
+                >
+                  <Ionicons name="person-circle-outline" size={13} color={mutedColor} />
+                  <Text style={[styles.capsulePillText, { color: mutedColor }]} numberOfLines={1}>
+                    Post as: {activeActor.id !== "me" ? activeActor.displayName : "Me"}
+                  </Text>
+                  <Ionicons name="chevron-down" size={11} color={mutedColor} />
+                </Pressable>
 
-                {/* Audience Pill (Disabled, Static, No Ripple) */}
+                {/* Audience Pill (Disabled, Static capsule) */}
                 <View
                   accessibilityRole="text"
                   accessibilityLabel="Audience: Everyone"
                   style={[
-                    styles.audiencePill,
+                    styles.capsulePill,
                     {
                       borderColor: isDark ? "rgba(255, 255, 255, 0.14)" : "#e2e8f0",
                       backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc",
@@ -277,7 +317,7 @@ export default function ComposePostScreen() {
                   ]}
                 >
                   <Ionicons name="globe-outline" size={12} color={mutedColor} />
-                  <Text style={[styles.audienceText, { color: mutedColor }]}>
+                  <Text style={[styles.capsulePillText, { color: mutedColor }]}>
                     {currentAudienceObj.label}
                   </Text>
                 </View>
@@ -285,22 +325,18 @@ export default function ComposePostScreen() {
             </View>
           </View>
 
-          {/* Tappable Canvas focusing TextInput so keyboard doesn't dismiss */}
-          <Pressable
-            style={styles.textInputCanvas}
-            onPress={() => inputRef.current?.focus()}
-          >
-            <TextInput
-              ref={inputRef}
-              value={content}
-              onChangeText={setContent}
-              placeholder="What's happening in fellowship?"
-              placeholderTextColor={isDark ? "#71717a" : "#94a3b8"}
-              multiline
-              autoFocus
-              style={[styles.textInput, { color: textColor }]}
-            />
-          </Pressable>
+          {/* Direct TextInput with native focus handling */}
+          <TextInput
+            ref={inputRef}
+            value={content}
+            onChangeText={setContent}
+            placeholder="What's happening in fellowship?"
+            placeholderTextColor={isDark ? "#71717a" : "#94a3b8"}
+            multiline
+            autoFocus
+            scrollEnabled={false}
+            style={[styles.textInput, { color: textColor }]}
+          />
 
           {/* Attached Location Tag */}
           {hasLocation && (
@@ -340,11 +376,17 @@ export default function ComposePostScreen() {
               </Pressable>
             </View>
           )}
+
+          {/* Tappable Canvas spacer to focus TextInput when tapping below text */}
+          <Pressable
+            style={styles.canvasSpacer}
+            onPress={() => inputRef.current?.focus()}
+          />
         </ScrollView>
 
-        {/* Reply Permission Hint Row matching screenshot */}
+        {/* Reply Permission Hint Row */}
         <Pressable
-          onPress={showComingSoonToast}
+          onPress={() => showComingSoonToast("Reply settings")}
           accessibilityRole="button"
           accessibilityLabel="Reply permissions, coming soon"
           android_ripple={{
@@ -359,7 +401,7 @@ export default function ComposePostScreen() {
           </Text>
         </Pressable>
 
-        {/* Bottom Toolbar matching screenshot */}
+        {/* Bottom Toolbar */}
         <View style={[styles.bottomToolbar, { borderTopColor: borderColor }]}>
           <ScrollView
             horizontal
@@ -368,7 +410,7 @@ export default function ComposePostScreen() {
           >
             {/* 1. Gallery (Coming soon) */}
             <Pressable
-              onPress={showComingSoonToast}
+              onPress={() => showComingSoonToast("Photo gallery")}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel="Attach photo from gallery, coming soon"
@@ -384,7 +426,7 @@ export default function ComposePostScreen() {
 
             {/* 2. Camera (Coming soon) */}
             <Pressable
-              onPress={showComingSoonToast}
+              onPress={() => showComingSoonToast("Camera")}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel="Take photo with camera, coming soon"
@@ -400,7 +442,7 @@ export default function ComposePostScreen() {
 
             {/* 3. Audio / Devotion Scripture (Muted / Coming soon) */}
             <Pressable
-              onPress={showComingSoonToast}
+              onPress={() => showComingSoonToast("Audio devotion")}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel="Audio notes, coming soon"
@@ -416,7 +458,7 @@ export default function ComposePostScreen() {
 
             {/* 4. GIF badge (Muted / Coming soon) */}
             <Pressable
-              onPress={showComingSoonToast}
+              onPress={() => showComingSoonToast("GIF picker")}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel="Attach GIF, coming soon"
@@ -438,7 +480,7 @@ export default function ComposePostScreen() {
 
             {/* 5. Poll / Questionnaire (Muted / Coming soon) */}
             <Pressable
-              onPress={showComingSoonToast}
+              onPress={() => showComingSoonToast("Polls")}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel="Create poll, coming soon"
@@ -454,7 +496,7 @@ export default function ComposePostScreen() {
 
             {/* 6. Location Pin (Muted / Coming soon) */}
             <Pressable
-              onPress={showComingSoonToast}
+              onPress={() => showComingSoonToast("Location tag")}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel="Tag location, coming soon"
@@ -474,7 +516,7 @@ export default function ComposePostScreen() {
 
             {/* 7. Bookmark / Tag (Muted / Coming soon) */}
             <Pressable
-              onPress={showComingSoonToast}
+              onPress={() => showComingSoonToast("Topics & tags")}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel="Add bookmark tag, coming soon"
@@ -490,7 +532,7 @@ export default function ComposePostScreen() {
 
             {/* 8. Plus Chip button (Muted / Coming soon) */}
             <Pressable
-              onPress={showComingSoonToast}
+              onPress={() => showComingSoonToast("More attachments")}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel="More attachments, coming soon"
@@ -506,11 +548,7 @@ export default function ComposePostScreen() {
           </ScrollView>
 
           {/* 9. Circular Character Counter */}
-          <Pressable
-            onPress={showComingSoonToast}
-            hitSlop={6}
-            style={styles.charCounterWrap}
-          >
+          <View style={styles.charCounterWrap}>
             <Text
               style={[
                 styles.charCounter,
@@ -526,7 +564,7 @@ export default function ComposePostScreen() {
             >
               {charsLeft}
             </Text>
-          </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -538,7 +576,7 @@ export default function ComposePostScreen() {
         snapPoints={["half", "full"]}
       >
         <View style={styles.sheetHeader}>
-          <Text style={[styles.sheetTitle, { color: textColor }]}>Post Reflection As</Text>
+          <Text style={[styles.sheetTitle, { color: textColor }]}>Post as</Text>
           <Text style={[styles.sheetSubtitle, { color: mutedColor }]}>
             Select your personal voice, fellowship team, or official account
           </Text>
@@ -547,11 +585,11 @@ export default function ComposePostScreen() {
         <ScrollView
           style={styles.actorList}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={styles.actorListContent}
         >
-          {postableActors.map((actor) => {
+          {availableActors.map((actor) => {
             const isSelected =
-              selectedActor?.id === actor.id ||
+              activeActor?.id === actor.id ||
               (!selectedActor && actor.id === "me");
             const isOfficial = actor.type === "official";
             const isTeam = actor.type === "team";
@@ -577,7 +615,7 @@ export default function ComposePostScreen() {
                         ? "rgba(255, 103, 25, 0.15)"
                         : "#fff7ed"
                       : isDark
-                        ? "#27272a"
+                        ? "#1f1f23"
                         : "#f8fafc",
                     opacity: pressed ? (Platform.OS === "ios" ? 0.75 : 0.95) : 1,
                   },
@@ -651,7 +689,7 @@ export default function ComposePostScreen() {
                     )}
                   </View>
                   <Text style={[styles.actorOptionHandle, { color: mutedColor }]}>
-                    @{actor.handle.replace(/^@/, "")}
+                    @{actor.handle ? actor.handle.replace(/^@/, "") : "member"}
                   </Text>
                 </View>
 
@@ -680,7 +718,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   closeBtn: {
-    padding: 6,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   postBtn: {
     paddingHorizontal: 18,
@@ -705,10 +747,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 16,
     paddingBottom: 24,
-  },
-  textInputCanvas: {
-    flex: 1,
-    minHeight: 240,
   },
   userRow: {
     flexDirection: "row",
@@ -759,33 +797,16 @@ const styles = StyleSheet.create({
     gap: 8,
     flexWrap: "wrap",
   },
-  actorPill: {
+  capsulePill: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 9999,
-    borderWidth: 1,
-    overflow: "hidden",
-    gap: 5,
-  },
-  actorPillText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  audienceCol: {
-    marginLeft: 12,
-  },
-  audiencePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 9999,
+    borderRadius: 20,
     borderWidth: 1,
     gap: 5,
   },
-  audienceText: {
+  capsulePillText: {
     fontSize: 12,
     fontWeight: "600",
   },
@@ -795,7 +816,11 @@ const styles = StyleSheet.create({
     minHeight: 180,
     textAlignVertical: "top",
     paddingTop: 12,
+    paddingBottom: 8,
+  },
+  canvasSpacer: {
     flex: 1,
+    minHeight: 120,
   },
   locationBadge: {
     flexDirection: "row",
@@ -901,20 +926,23 @@ const styles = StyleSheet.create({
   actorList: {
     marginTop: 6,
   },
+  actorListContent: {
+    paddingBottom: 24,
+  },
   actorOption: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    marginBottom: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 8,
     overflow: "hidden",
     gap: 12,
   },
   actorOptionAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#cbd5e1",
   },
   actorOptionTextCol: {

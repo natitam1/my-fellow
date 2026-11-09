@@ -9,6 +9,7 @@ export interface UseConfirmUnsavedChangesOptions {
   continueLabel?: string;
   saveLabel?: string;
   onSave?: () => Promise<boolean | void> | boolean | void;
+  isBypassed?: () => boolean;
 }
 
 /**
@@ -24,6 +25,8 @@ export function useConfirmUnsavedChanges(
 ) {
   const { confirm, hide } = useNativeConfirmation();
   const isNavigatingAwayRef = useRef(false);
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   const {
     title = "Discard unsaved changes?",
@@ -34,83 +37,120 @@ export function useConfirmUnsavedChanges(
     onSave,
   } = options;
 
-  usePreventRemove(hasUnsavedChanges && !isNavigatingAwayRef.current, ({ data, repeat }) => {
-    if (isNavigatingAwayRef.current) {
-      repeat();
-      return;
-    }
+  const disablePrevention = usePreventRemove(
+    hasUnsavedChanges && !isNavigatingAwayRef.current,
+    ({ data, repeat }) => {
+      // If we are actively navigating away or unsaved changes were cleared, allow navigation cleanly
+      if (isNavigatingAwayRef.current || optionsRef.current.isBypassed?.()) {
+        try {
+          hide();
+        } catch {
+          // ignore
+        }
+        repeat();
+        return;
+      }
 
-    if (onSave) {
-      // 3-button flow: Save / Discard / Cancel (Keep Editing)
-      confirm({
-        title,
-        message,
-        actions: [
-          {
-            label: saveLabel,
-            role: "default",
-            onPress: async () => {
-              hide();
-              const result = await onSave();
-              if (result !== false) {
+      if (onSave) {
+        // 3-button flow: Save / Discard / Cancel (Keep Editing)
+        confirm({
+          title,
+          message,
+          actions: [
+            {
+              label: saveLabel,
+              role: "default",
+              onPress: async () => {
+                hide();
+                const result = await onSave();
+                if (result !== false) {
+                  isNavigatingAwayRef.current = true;
+                  try {
+                    disablePrevention?.();
+                  } catch {
+                    // ignore
+                  }
+                  repeat();
+                }
+              },
+            },
+            {
+              label: discardLabel,
+              role: "destructive",
+              onPress: () => {
+                hide();
                 isNavigatingAwayRef.current = true;
+                try {
+                  disablePrevention?.();
+                } catch {
+                  // ignore
+                }
                 repeat();
-              }
+              },
             },
-          },
-          {
-            label: discardLabel,
-            role: "destructive",
-            onPress: () => {
-              hide();
-              isNavigatingAwayRef.current = true;
-              repeat();
+            {
+              label: continueLabel,
+              role: "cancel",
+              onPress: () => {
+                hide();
+              },
             },
-          },
-          {
-            label: continueLabel,
-            role: "cancel",
-            onPress: () => {
-              hide();
+          ],
+        });
+      } else {
+        // 2-button flow: Discard / Continue Editing
+        confirm({
+          title,
+          message,
+          actions: [
+            {
+              label: discardLabel,
+              role: "destructive",
+              onPress: () => {
+                hide();
+                isNavigatingAwayRef.current = true;
+                try {
+                  disablePrevention?.();
+                } catch {
+                  // ignore
+                }
+                repeat();
+              },
             },
-          },
-        ],
-      });
-    } else {
-      // 2-button flow: Discard / Continue Editing
-      confirm({
-        title,
-        message,
-        actions: [
-          {
-            label: discardLabel,
-            role: "destructive",
-            onPress: () => {
-              hide();
-              isNavigatingAwayRef.current = true;
-              repeat();
+            {
+              label: continueLabel,
+              role: "cancel",
+              onPress: () => {
+                hide();
+              },
             },
-          },
-          {
-            label: continueLabel,
-            role: "cancel",
-            onPress: () => {
-              hide();
-            },
-          },
-        ],
-      });
-    }
-  });
+          ],
+        });
+      }
+    },
+  );
 
   const resetPrevention = useCallback(() => {
     isNavigatingAwayRef.current = false;
   }, []);
 
-  const bypassAndNavigate = useCallback((navigateFn: () => void) => {
-    isNavigatingAwayRef.current = true;
-    navigateFn();
-  }, []);
+  const bypassAndNavigate = useCallback(
+    (navigateFn: () => void) => {
+      isNavigatingAwayRef.current = true;
+      try {
+        hide();
+      } catch {
+        // ignore
+      }
+      try {
+        disablePrevention?.();
+      } catch {
+        // ignore
+      }
+      navigateFn();
+    },
+    [disablePrevention, hide],
+  );
 
-  return { resetPrevention, bypassAndNavigate };
+  return { resetPrevention, bypassAndNavigate, disablePrevention };
 }
