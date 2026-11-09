@@ -775,4 +775,25 @@ export class AuthService {
       },
     };
   }
+
+  static async deleteAccount(userId: string) {
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      throw new Error("Account not found.");
+    }
+
+    const phone = user.phoneNumber;
+
+    await Promise.allSettled([
+      ProfileModel.deleteMany({ userId: String(user._id) }),
+      OtpRecordModel.deleteMany({ phoneNumber: phone }),
+    ]);
+
+    await UserModel.deleteOne({ _id: user._id });
+
+    return {
+      success: true,
+      message: "Your account and associated personal data have been permanently deleted.",
+    };
+  }
 }

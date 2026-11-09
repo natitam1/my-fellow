@@ -29,6 +29,7 @@ router.post("/change-password", requireAuth, AuthController.changePassword);
 router.post("/request-otp", AuthController.requestOtp);
 router.post("/verify-otp", AuthController.verifyOtp);
 router.post("/reset-password", AuthController.resetPassword);
+router.delete("/account", requireAuth, AuthController.deleteAccount);
 
 export default router;
 

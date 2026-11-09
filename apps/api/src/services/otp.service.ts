@@ -1,16 +1,6 @@
 import crypto from "crypto";
 
-// GeezSMS configuration commented out for development mode:
-// const BASE_URL = (
-//   process.env.GEEZ_SMS_BASE_URL || "https://api.geezsms.com/api/v1"
-// ).replace(/\/+$/, "");
-// const SEND_PATH = process.env.GEEZ_SMS_SEND_PATH || "/sms/send";
-// const API_KEY = process.env.GEEZ_API_KEY || "";
-// const SHORTCODE_ID = process.env.GEEZ_SMS_SHORTCODE_ID || "";
-//
-// function sendUrl(): string {
-//   return `${BASE_URL}${SEND_PATH.startsWith("/") ? SEND_PATH : `/${SEND_PATH}`}`;
-// }
+const SHORTCODE_ID = process.env.GEEZ_SMS_SHORTCODE_ID || "";
 
 export function normalizeEthiopianPhone(input: string): string {
   const compact = input.trim().replace(/[\s()-]/g, "");
@@ -115,7 +105,7 @@ export class OtpService {
   }
 
   /**
-   * Send SMS via GeezSMS (Commented out for dev mode)
+   * Send SMS via GeezSMS with automatic dev-mode fallback
    */
   static async sendOtpSms(
     phoneNumber: string,
@@ -123,29 +113,19 @@ export class OtpService {
     purpose: "auth" | "signup" | "reset-password" = "auth",
   ): Promise<void> {
     const localPhone = toLocalPhone(phoneNumber);
-    console.info(
-      `[OTP DEV] SMS sending disabled for ${maskedPhone(localPhone)} (${purpose}). Dev code: ${OtpService.developmentCode()} (or ${code})`,
-    );
-    return;
+    const apiKey = process.env.GEEZ_API_KEY?.trim() || "";
 
-    /* GeezSMS real SMS delivery commented out for development mode:
-    const network = getEthiopianMobileNetwork(localPhone);
+    if (OtpService.isDevelopmentOtpEnabled() || !apiKey) {
+      console.info(
+        `[OTP] SMS gateway ${apiKey ? "in dev mode" : "not configured"} for ${maskedPhone(localPhone)} (${purpose}). Code: ${code}`,
+      );
+      return;
+    }
 
     const message =
       purpose === "reset-password"
         ? `Your 4 Kilo Fellowship password reset code is: ${code}. It expires in 5 minutes. Never share this code.`
         : `4 Kilo Fellowship: Your verification code is ${code}. It expires in 5 minutes. Never share this code.`;
-
-    if (OtpService.isDevelopmentOtpEnabled()) {
-      console.info(`[OTP DEV] SMS disabled. Development code: ${OtpService.developmentCode()}`);
-      return;
-    }
-
-    const apiKey = process.env.GEEZ_API_KEY || "";
-
-    if (!apiKey) {
-      throw new Error("OTP provider is not configured.");
-    }
 
     let cleaned = phoneNumber.replace(/[\s\-\(\)\.]/g, "");
     if (cleaned.startsWith("+251")) cleaned = "251" + cleaned.slice(4);
@@ -196,7 +176,6 @@ export class OtpService {
         console.error(
           `GeezSMS rejected POST SMS to ${maskedPhone(localPhone)}: HTTP ${res.status} ${raw}`,
         );
-        console.info(`[OTP Fallback] Code for ${localPhone}: ${code}`);
       } else {
         console.info(
           `[GeezSMS] POST successfully sent OTP to ${maskedPhone(localPhone)}`,
@@ -207,8 +186,6 @@ export class OtpService {
         `GeezSMS network error for ${maskedPhone(localPhone)}:`,
         err?.message || err,
       );
-      console.info(`[OTP Network Fallback] Code for ${localPhone}: ${code}`);
     }
-    */
   }
 }

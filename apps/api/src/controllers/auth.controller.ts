@@ -282,5 +282,21 @@ export class AuthController {
       });
     }
   }
+
+  static async deleteAccount(req: AuthRequest, res: Response) {
+    try {
+      const userId = req.user?.sub;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+      }
+      const result = await AuthService.deleteAccount(userId);
+      return res.status(200).json(result);
+    } catch (err: any) {
+      return res.status(400).json({
+        success: false,
+        message: err.message || "Failed to delete account",
+      });
+    }
+  }
 }
 
