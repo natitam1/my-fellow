@@ -3,7 +3,7 @@
     "name": "My Fellow",
     "slug": "my-fellow",
     "scheme": "my-fellow",
-    "version": "1.2.4",
+    "version": "2.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
@@ -26,7 +26,6 @@
         "android.permission.WAKE_LOCK",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -45,7 +44,7 @@
     },
     "extra": {
       "env": {
-        "NODE_ENV": "development"
+        "NODE_ENV": "production"
       },
       "router": {},
       "eas": {
@@ -96,6 +95,9 @@
       "policy": "appVersion"
     },
     "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/0cd82926-55b4-4421-b89c-5da2ad3f85de"
     }
   }

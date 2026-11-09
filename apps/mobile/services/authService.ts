@@ -351,5 +351,22 @@ export const authService = {
   logout: async (): Promise<void> => {
     delete api.defaults.headers.common.Authorization;
   },
+
+  deleteAccount: async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await api.delete("/auth/account");
+      delete api.defaults.headers.common.Authorization;
+      return response.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        const message =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          "Failed to delete account";
+        throw new Error(message);
+      }
+      throw error;
+    }
+  },
 };
 

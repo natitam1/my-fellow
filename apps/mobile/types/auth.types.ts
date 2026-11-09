@@ -111,6 +111,7 @@ export interface AuthContextType {
     code: string,
   ) => Promise<PhoneAuthVerifyOtpResponse>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   getCurrentUser: () => Promise<User>;
   updateProfile: (data: Partial<SignUpData>) => Promise<User>;
   changePassword: (data: ChangePasswordData) => Promise<ApiResponse<void>>;

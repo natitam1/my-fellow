@@ -23,6 +23,7 @@ import {
 } from "@/types/auth.types";
 import * as SecureStore from "expo-secure-store";
 import { createContext, useContext, useEffect, useState } from "react";
+import { AppState } from "react-native";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -73,6 +74,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     };
     loadToken();
+
+    const sub = AppState.addEventListener("change", async (nextState) => {
+      if (nextState === "active") {
+        try {
+          const token = await SecureStore.getItemAsync("userToken");
+          if (token) {
+            const freshUser = await authService.getCurrentUser();
+            if (freshUser) {
+              useUserStore.getState().setUser(freshUser);
+            }
+          }
+        } catch {
+          // Ignore transient foreground sync errors
+        }
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
   }, []);
 
   const login = async (
@@ -167,6 +188,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       setAuthState({ token: null, authenticated: false });
     }
+  };
+
+  const deleteAccount = async (): Promise<void> => {
+    await authService.deleteAccount();
+    await authClient.signOut().catch(() => {});
+    await SecureStore.deleteItemAsync("userToken");
+    api.defaults.headers.common.Authorization = "";
+    setAuthState({ token: null, authenticated: false });
+    useUserStore.getState().clearUser();
+    useSignupStore.getState().clear();
   };
 
   const getCurrentUser = async (): Promise<User> => {
@@ -272,6 +303,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         sendPhoneAuthOtp,
         verifyPhoneAuthOtp,
         logout,
+        deleteAccount,
         getCurrentUser,
         updateProfile,
         changePassword,

@@ -1,7 +1,7 @@
 {
   "name": "my-fellow",
   "main": "expo-router/entry",
-  "version": "1.2.4",
+  "version": "2.0.0",
   "engines": {
     "node": ">=24.3.0 <25"
   },
@@ -12,6 +12,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "update:production": "eas update --branch production",
+    "update:preview": "eas update --branch preview",
     "postinstall": "node ./scripts/patch-metro.js"
   },
   "dependencies": {
@@ -55,6 +57,7 @@
     "expo-symbols": "~58.0.4",
     "expo-system-ui": "~58.0.7",
     "expo-task-manager": "~58.0.13",
+    "expo-updates": "~58.0.21",
     "expo-video": "~58.0.13",
     "expo-web-browser": "~58.0.7",
     "nativewind": "^4.2.1",
