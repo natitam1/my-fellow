@@ -780,22 +780,30 @@ export default function CommunityScreen() {
       />
 
       {/* Floating Action Button (+) — Floats cleanly above the bottom navigation tab bar (Twitter/X style) */}
-      <TouchableOpacity
-        activeOpacity={0.88}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Create post"
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
           router.push("/community/compose");
         }}
-        style={[
+        android_ripple={{
+          color: "rgba(255, 255, 255, 0.3)",
+          borderless: true,
+          radius: 28,
+        }}
+        style={({ pressed }) => [
           styles.fabBtn,
           {
             backgroundColor: PRIMARY,
             bottom: 60 + Math.max(insets.bottom, 6) + 16,
+            opacity: pressed && Platform.OS === "ios" ? 0.88 : 1,
+            transform: pressed && Platform.OS === "ios" ? [{ scale: 0.94 }] : undefined,
           },
         ]}
       >
         <Ionicons name="add" size={32} color="#ffffff" />
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Three-dots Actions Native Bottom Sheet */}
       <AppBottomSheet
@@ -1170,6 +1178,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
