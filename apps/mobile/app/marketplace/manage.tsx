@@ -204,6 +204,7 @@ export default function ManageProductScreen() {
     updateProduct,
     deleteProduct,
     fetchProductById,
+    fetchProducts,
   } = useMarketplaceStore();
 
   const [loadingInitial, setLoadingInitial] = useState<boolean>(isEditing);
@@ -510,16 +511,8 @@ export default function ManageProductScreen() {
           () => {},
         );
       }
-      setInfoModal({
-        visible: true,
-        title: "Product Saved",
-        message: `Product has been successfully ${isEditing ? "updated" : "published to the fellowship store"}.`,
-        type: "success",
-      });
-
-      setTimeout(() => {
-        router.back();
-      }, 1200);
+      await fetchProducts(true);
+      router.back();
     } catch (err: any) {
       console.error("Manage product error:", err?.response || err);
       const isForbidden = err?.response?.status === 403;
@@ -956,12 +949,7 @@ export default function ManageProductScreen() {
                   style={styles.submitBtnInner}
                 >
                   {submitting ? (
-                    <View style={styles.btnContent}>
-                      <ActivityIndicator color="#ffffff" size="small" />
-                      <Text style={styles.submitButtonText}>
-                        {isEditing ? "Saving Changes..." : "Publishing Product..."}
-                      </Text>
-                    </View>
+                    <ActivityIndicator color="#ffffff" size="small" />
                   ) : (
                     <View style={styles.btnContent}>
                       <Ionicons
@@ -974,7 +962,7 @@ export default function ManageProductScreen() {
                         color="#ffffff"
                       />
                       <Text style={styles.submitButtonText}>
-                        {isEditing ? "Save Changes" : "Publish Product to Store"}
+                        {isEditing ? "Save Changes" : "Publish Product"}
                       </Text>
                     </View>
                   )}
@@ -1409,6 +1397,11 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     overflow: "hidden",
+    elevation: 3,
+    shadowColor: PRIMARY,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
   },
   submitBtnInner: {
     width: "100%",
