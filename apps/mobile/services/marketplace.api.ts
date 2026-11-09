@@ -5,8 +5,6 @@ import {
   ProductsApiResponse,
   SingleResponse,
 } from "@/types/marketplace.types";
-import * as SecureStore from "expo-secure-store";
-import { API_URL } from "@/constants/api";
 import api, { uploadFormData } from "./api";
 
 const isFormDataPayload = (data: unknown): data is FormData => {
@@ -16,80 +14,6 @@ const isFormDataPayload = (data: unknown): data is FormData => {
       typeof data === "object" &&
       typeof (data as any).append === "function")
   );
-};
-
-const uploadMultipart = async <T>(
-  method: "POST" | "PUT",
-  endpoint: string,
-  formData: FormData,
-  onProgress?: (percent: number) => void,
-): Promise<T> => {
-  const token = await SecureStore.getItemAsync("userToken");
-  const baseURL = (api.defaults.baseURL || API_URL).replace(/\/$/, "");
-  const url = `${baseURL}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
-
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open(method, url);
-    if (token) {
-      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    }
-    xhr.setRequestHeader("Accept", "application/json");
-
-    if (xhr.upload && onProgress) {
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable && e.total > 0) {
-          const percent = Math.min(99, Math.round((e.loaded / e.total) * 100));
-          onProgress(percent);
-        }
-      };
-    }
-
-    xhr.onload = () => {
-      try {
-        const text = xhr.responseText;
-        const res = text ? JSON.parse(text) : {};
-        if (xhr.status >= 200 && xhr.status < 300 && res.success !== false) {
-          onProgress?.(100);
-          resolve(res);
-        } else {
-          const message =
-            res.message ||
-            res.error ||
-            res.detail ||
-            (res.errors && Array.isArray(res.errors) ? res.errors[0]?.message : "") ||
-            `Server error (${xhr.status})`;
-          const err: any = new Error(message);
-          err.response = { status: xhr.status, data: res };
-          reject(err);
-        }
-      } catch {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          onProgress?.(100);
-          resolve({ success: true } as any);
-        } else {
-          const error: any = new Error(`Request failed with status ${xhr.status}`);
-          error.response = { status: xhr.status };
-          reject(error);
-        }
-      }
-    };
-
-    xhr.onerror = () => {
-      const err: any = new Error("Network connection error. Please check your internet connection.");
-      err.code = "ERR_NETWORK";
-      reject(err);
-    };
-
-    xhr.ontimeout = () => {
-      const err: any = new Error("Upload timed out. Please check your internet connection and try again.");
-      err.code = "ECONNABORTED";
-      reject(err);
-    };
-
-    xhr.timeout = 120000; // 2 minutes
-    xhr.send(formData as any);
-  });
 };
 
 export const fetchProductsApi = async (
