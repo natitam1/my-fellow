@@ -19,6 +19,21 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+const normalizeAndDedupeProducts = (items: Product[]): Product[] => {
+  const seen = new Set<string>();
+  const result: Product[] = [];
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    const rawId = item.id || (item as any)._id;
+    if (!rawId) continue;
+    const id = String(rawId);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    result.push(item.id === id ? item : { ...item, id });
+  }
+  return result;
+};
+
 type MarketplaceState = {
   // Products
   products: Product[];
@@ -93,7 +108,7 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       currentProduct: null,
       loading: false,
       page: 1,
-      hasMore: true,
+      hasMore: false,
       refreshing: false,
       selectedCategory: "All",
       productsLastFetched: null,
@@ -147,18 +162,22 @@ export const useMarketplaceStore = create<MarketplaceState>()(
             limit,
             categoryToFetch,
           );
-          const newProducts = response.data?.products || [];
+          const newProducts = normalizeAndDedupeProducts(
+            response.data?.products || [],
+          );
           const pagination = response.data?.pagination;
           const totalPages = pagination?.totalPages || 1;
 
-          set({
-            products: reset ? newProducts : [...get().products, ...newProducts],
+          set((s) => ({
+            products: reset
+              ? newProducts
+              : normalizeAndDedupeProducts([...s.products, ...newProducts]),
             page: currentPage + 1,
             hasMore: currentPage < totalPages,
             loading: false,
             refreshing: false,
             productsLastFetched: Date.now(),
-          });
+          }));
         } catch (err: any) {
           // On network failure, preserve existing cached products
           set({
@@ -215,10 +234,15 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       ) => {
         const res = await createProductApi(data);
         if (res.data) {
+          const created = {
+            ...res.data,
+            id: String(res.data.id || (res.data as any)._id),
+          };
           set((state) => ({
-            products: [res.data, ...state.products],
+            products: normalizeAndDedupeProducts([created, ...state.products]),
+            productsLastFetched: Date.now(),
           }));
-          return res.data;
+          return created;
         }
         throw new Error(res.message || "Failed to create product");
       },
@@ -229,17 +253,24 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       ) => {
         const res = await updateProductApi(id, data);
         if (res.data) {
+          const updated = {
+            ...res.data,
+            id: String(res.data.id || (res.data as any)._id || id),
+          };
           set((state) => ({
-            products: state.products.map((p) =>
-              p.id === id || (p as any)._id === id ? res.data : p,
+            products: normalizeAndDedupeProducts(
+              state.products.map((p) =>
+                p.id === id || (p as any)._id === id ? updated : p,
+              ),
             ),
             currentProduct:
               state.currentProduct?.id === id ||
               (state.currentProduct as any)?._id === id
-                ? res.data
+                ? updated
                 : state.currentProduct,
+            productsLastFetched: Date.now(),
           }));
-          return res.data;
+          return updated;
         }
         throw new Error(res.message || "Failed to update product");
       },
@@ -258,8 +289,8 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       },
 
       loadMore: async () => {
-        const { hasMore, loading } = get();
-        if (!hasMore || loading) return;
+        const { hasMore, loading, refreshing } = get();
+        if (!hasMore || loading || refreshing) return;
         await get().fetchProducts(false);
       },
 
@@ -434,9 +465,14 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         cartItems: state.cartItems,
-        products: state.products,
+        products: normalizeAndDedupeProducts(state.products),
         productsLastFetched: state.productsLastFetched,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state && Array.isArray(state.products)) {
+          state.products = normalizeAndDedupeProducts(state.products);
+        }
+      },
     },
   ),
 );

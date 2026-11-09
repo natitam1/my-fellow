@@ -80,9 +80,18 @@ const ProductGridScene = React.memo(function ProductGridScene({
   onBuyPress,
 }: ProductGridSceneProps) {
   const categoryProducts = useMemo(() => {
-    if (categoryKey === "All") return products;
+    const seen = new Set<string>();
+    const uniqueProducts = products.filter((p) => {
+      if (!p) return false;
+      const key = String(p.id || (p as any)._id || "");
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
-    return products.filter((p) => {
+    if (categoryKey === "All") return uniqueProducts;
+
+    return uniqueProducts.filter((p) => {
       if (categoryKey === "new") {
         if (p.isNew) return true;
         if (!p.createdAt) return false;
@@ -202,7 +211,9 @@ const ProductGridScene = React.memo(function ProductGridScene({
   return (
     <FlatList
       data={categoryProducts}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item, index) =>
+        String(item.id || (item as any)._id || `product-${index}`)
+      }
       numColumns={2}
       contentContainerStyle={{
         paddingHorizontal: 8,

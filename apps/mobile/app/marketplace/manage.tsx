@@ -511,7 +511,6 @@ export default function ManageProductScreen() {
           () => {},
         );
       }
-      await fetchProducts(true);
       router.back();
     } catch (err: any) {
       console.error("Manage product error:", err?.response || err);
