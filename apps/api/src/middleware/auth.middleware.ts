@@ -44,12 +44,17 @@ export const requireAuth = async (
 
       if (session && session.user) {
         req.session = session;
-        let phoneNumber = (session.user as any).phoneNumber;
-        let role = (session.user as any).role;
+        const phoneNumber = (session.user as any).phoneNumber;
+        const role = (session.user as any).role;
 
-        const dbUser = await UserModel.findById(session.user.id).select(
+        let dbUser = await UserModel.findById(session.user.id).select(
           "phoneNumber role authVersion",
         );
+        if (!dbUser && phoneNumber) {
+          dbUser = await UserModel.findOne({ phoneNumber }).select(
+            "phoneNumber role authVersion",
+          );
+        }
         if (!dbUser) {
           return res.status(401).json({ success: false, message: "Unauthorized" });
         }
@@ -58,7 +63,7 @@ export const requireAuth = async (
           $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
         }).select("permission");
         req.user = {
-          sub: String(session.user.id),
+          sub: String(dbUser._id),
           phoneNumber: phoneNumber || dbUser.phoneNumber,
           role: dbUser.role || role || "member",
           permissions: grants.map((grant) => grant.permission),
@@ -75,10 +80,20 @@ export const requireAuth = async (
     if (!payload.sub) {
       return res.status(401).json({ success: false, message: "Invalid or expired token" });
     }
-    const dbUser = await UserModel.findById(payload.sub).select(
+    let dbUser = await UserModel.findById(payload.sub).select(
       "phoneNumber role authVersion",
     );
-    if (!dbUser || (payload.authVersion !== undefined && payload.authVersion !== dbUser.authVersion)) {
+    if (!dbUser && payload.phoneNumber) {
+      dbUser = await UserModel.findOne({ phoneNumber: payload.phoneNumber }).select(
+        "phoneNumber role authVersion",
+      );
+    }
+    if (!dbUser) {
+      return res.status(401).json({ success: false, message: "User not found" });
+    }
+    const tokenVer = payload.authVersion ?? 0;
+    const dbVer = dbUser.authVersion ?? 0;
+    if (payload.authVersion !== undefined && tokenVer !== dbVer) {
       return res.status(401).json({ success: false, message: "Session expired" });
     }
     const grants = await RoleGrantModel.find({
@@ -117,13 +132,17 @@ export const requireAdmin = (
 
 export function requirePermission(permission: Permission) {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (
-      !req.user ||
-      !roleHasPermission(req.user.role, permission, req.user.permissions)
-    ) {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    const role = normalizeRole(req.user.role);
+    if (role === "super_admin") {
+      return next();
+    }
+    if (!roleHasPermission(req.user.role, permission, req.user.permissions)) {
       await writeAuditLog({
         req,
-        actorId: req.user?.sub,
+        actorId: req.user.sub,
         action: "authorization.denied",
         resource: req.baseUrl || req.path,
         permission,
@@ -136,7 +155,7 @@ export function requirePermission(permission: Permission) {
     }
     await writeAuditLog({
       req,
-      actorId: req.user?.sub,
+      actorId: req.user.sub,
       action:
         req.method === "DELETE"
           ? "deletion.allowed"
@@ -148,7 +167,7 @@ export function requirePermission(permission: Permission) {
       resource: req.baseUrl || req.path,
       permission,
       outcome: "allowed",
-    });
+    }).catch(() => undefined);
     return next();
   };
 }
