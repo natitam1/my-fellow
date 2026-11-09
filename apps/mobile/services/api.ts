@@ -28,10 +28,13 @@ api.interceptors.request.use(
         typeof (config.data as any).append === "function");
 
     if (isFormData) {
-      if (typeof config.headers.delete === "function") {
+      if (typeof config.headers?.delete === "function") {
         config.headers.delete("Content-Type");
-      } else {
+        config.headers.delete("content-type");
+      }
+      if (config.headers) {
         delete config.headers["Content-Type"];
+        delete config.headers["content-type"];
       }
     }
 

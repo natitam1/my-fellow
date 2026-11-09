@@ -464,11 +464,9 @@ export default function ManageProductScreen() {
         images
           .filter((i) => i.isLocal)
           .forEach((img, idx) => {
-            const rawUri = img.uri;
-            const normalizedUri =
-              Platform.OS === "ios" ? rawUri.replace("file://", "") : rawUri;
+            const fileUri = img.uri;
             let filename =
-              rawUri.split("/").pop() || `product_${Date.now()}_${idx}.jpg`;
+              fileUri.split("/").pop() || `product_${Date.now()}_${idx}.jpg`;
             const extMatch = /\.(\w+)$/.exec(filename);
             const ext = extMatch ? extMatch[1].toLowerCase() : "jpg";
             const fileType =
@@ -483,7 +481,7 @@ export default function ManageProductScreen() {
               ? filename
               : `${filename}.${ext}`;
             formData.append("images", {
-              uri: normalizedUri,
+              uri: fileUri,
               name: safeName,
               type: fileType,
             } as any);
@@ -523,27 +521,25 @@ export default function ManageProductScreen() {
         router.back();
       }, 1200);
     } catch (err: any) {
-      const errorMsg =
+      console.error("Manage product error:", err?.response || err);
+      const isForbidden = err?.response?.status === 403;
+      const serverMessage =
         err?.response?.data?.message ||
         err?.response?.data?.detail ||
-        err?.response?.data?.error ||
-        err?.message ||
-        "Could not save product. Please try again.";
-      const isForbidden = err?.response?.status === 403;
-      const isOffline =
-        !err?.response &&
-        (err?.message?.includes("Network") ||
-          err?.code === "ECONNABORTED" ||
-          err?.code === "ERR_NETWORK");
+        err?.response?.data?.error;
+      const clientMessage =
+        serverMessage ||
+        (isForbidden
+          ? "You need coordinator or leader permissions to manage fellowship products."
+          : err?.message?.includes("Network")
+          ? "Unable to reach the server. Please verify your internet connection and try again."
+          : err?.message || "Could not save product. Please try again.");
+
       setInfoModal({
         visible: true,
-        title: isForbidden
-          ? "Permission Denied"
-          : isOffline
-          ? "Connection Issue"
-          : "Save Failed",
-        message: errorMsg,
-        type: "error",
+        title: isForbidden ? "Permission Required" : "Could Not Save",
+        message: clientMessage,
+        type: "info",
       });
     } finally {
       setSubmitting(false);

@@ -57,12 +57,10 @@ type MarketplaceState = {
   setSelectedCategory: (category: string) => void;
   createProduct: (
     data: FormData | any,
-    onProgress?: (percent: number) => void,
   ) => Promise<Product>;
   updateProduct: (
     id: string,
     data: FormData | any,
-    onProgress?: (percent: number) => void,
   ) => Promise<Product>;
   deleteProduct: (id: string) => Promise<boolean>;
 
@@ -214,9 +212,8 @@ export const useMarketplaceStore = create<MarketplaceState>()(
 
       createProduct: async (
         data: FormData | any,
-        onProgress?: (percent: number) => void,
       ) => {
-        const res = await createProductApi(data, onProgress);
+        const res = await createProductApi(data);
         if (res.data) {
           set((state) => ({
             products: [res.data, ...state.products],
@@ -229,9 +226,8 @@ export const useMarketplaceStore = create<MarketplaceState>()(
       updateProduct: async (
         id: string,
         data: FormData | any,
-        onProgress?: (percent: number) => void,
       ) => {
-        const res = await updateProductApi(id, data, onProgress);
+        const res = await updateProductApi(id, data);
         if (res.data) {
           set((state) => ({
             products: state.products.map((p) =>

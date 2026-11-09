@@ -117,54 +117,22 @@ export const fetchProductByIdApi = async (
 
 export const createProductApi = async (
   data: FormData | any,
-  onProgress?: (percent: number) => void,
 ): Promise<SingleResponse<Product>> => {
-  const isForm = isFormDataPayload(data);
   const res = await api.post<SingleResponse<Product>>(
     "/marketplace/products",
     data,
-    {
-      headers: isForm ? { "Content-Type": "multipart/form-data" } : undefined,
-      transformRequest: isForm ? (d) => d : undefined,
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total && onProgress) {
-          const percent = Math.min(
-            99,
-            Math.round((progressEvent.loaded / progressEvent.total) * 100),
-          );
-          onProgress(percent);
-        }
-      },
-    },
   );
-  onProgress?.(100);
   return res.data;
 };
 
 export const updateProductApi = async (
   id: string,
   data: FormData | any,
-  onProgress?: (percent: number) => void,
 ): Promise<SingleResponse<Product>> => {
-  const isForm = isFormDataPayload(data);
   const res = await api.put<SingleResponse<Product>>(
     `/marketplace/products/${id}`,
     data,
-    {
-      headers: isForm ? { "Content-Type": "multipart/form-data" } : undefined,
-      transformRequest: isForm ? (d) => d : undefined,
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total && onProgress) {
-          const percent = Math.min(
-            99,
-            Math.round((progressEvent.loaded / progressEvent.total) * 100),
-          );
-          onProgress(percent);
-        }
-      },
-    },
   );
-  onProgress?.(100);
   return res.data;
 };
 
