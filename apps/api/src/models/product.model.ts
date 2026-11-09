@@ -16,8 +16,8 @@ export interface IProductDocument extends IProduct, Document {}
 
 const ProductSchema = new Schema<IProductDocument>(
   {
-    title: { type: String, required: true, trim: true, maxlength: 100 },
-    shortDescription: { type: String, required: true, trim: true, maxlength: 300 },
+    title: { type: String, required: true, trim: true, maxlength: 200 },
+    shortDescription: { type: String, required: true, trim: true, maxlength: 3000 },
     price: { type: Number, required: true, min: 0 },
     imageUrls: { type: [String], default: [] },
     category: { type: String, default: "other", trim: true },

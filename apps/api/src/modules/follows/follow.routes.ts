@@ -1,4 +1,5 @@
 import { Router, Response } from "express";
+import mongoose from "mongoose";
 import { requireAuth, AuthRequest } from "../../middleware/auth.middleware.js";
 import { optionalAuth } from "../../platform/auth.js";
 import { AppError } from "../../platform/errors.js";
@@ -13,88 +14,51 @@ import {
   FollowModel,
   BlockModel,
   MediaAssetModel,
-  OutboxEventModel,
+  ActorModel,
 } from "../../models/social.models.js";
+import { followTarget, unfollowTarget } from "./follow.service.js";
 
 const router = Router();
+
+// POST /api/v1/follows/:id (works for both Actors like @fellow and regular Users)
+router.post("/follows/:id", requireAuth, async (req: AuthRequest, res: Response, next) => {
+  try {
+    const followerId = req.user!.sub;
+    const result = await followTarget(followerId, routeParam(req.params.id));
+    return res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/v1/follows/:id
+router.delete("/follows/:id", requireAuth, async (req: AuthRequest, res: Response, next) => {
+  try {
+    const followerId = req.user!.sub;
+    const result = await unfollowTarget(followerId, routeParam(req.params.id));
+    return res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // PUT /api/v1/users/:id/follow
 router.put("/users/:id/follow", requireAuth, async (req: AuthRequest, res: Response, next) => {
   try {
     const followerId = req.user!.sub;
-    const rawParam = routeParam(req.params.id).replace(/^@/, "");
+    const result = await followTarget(followerId, routeParam(req.params.id));
+    return res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
 
-    const targetProfile = await ProfileModel.findOne({
-      $or: [
-        { userId: rawParam },
-        { username: new RegExp(`^${rawParam}$`, "i") },
-      ],
-    });
-    if (!targetProfile) {
-      throw AppError.notFound("User not found", "USER_NOT_FOUND");
-    }
-
-    const followeeId = targetProfile.userId;
-    if (followerId === followeeId) {
-      throw AppError.badRequest("You cannot follow yourself", "CANNOT_FOLLOW_SELF");
-    }
-
-    const block = await BlockModel.findOne({
-      $or: [
-        { blockerId: followerId, blockedId: followeeId },
-        { blockerId: followeeId, blockedId: followerId },
-      ],
-    }).lean();
-    if (block) {
-      throw AppError.forbidden("Cannot follow a blocked user", "USER_BLOCKED");
-    }
-
-    const initialStatus = targetProfile.visibility === "followers" ? "pending" : "accepted";
-
-    const existing = await FollowModel.findOne({ followerId, followeeId });
-    if (existing) {
-      return res.json({
-        following: existing.status === "accepted",
-        status: existing.status,
-        followersCount: targetProfile.followersCount,
-      });
-    }
-
-    await FollowModel.create({
-      followerId,
-      followeeId,
-      status: initialStatus,
-    });
-
-    if (initialStatus === "accepted") {
-      await ProfileModel.updateOne(
-        { userId: followerId },
-        { $inc: { followingCount: 1 } }
-      );
-      targetProfile.followersCount = (targetProfile.followersCount || 0) + 1;
-      await targetProfile.save();
-
-      await OutboxEventModel.create({
-        type: "follow.created",
-        aggregateId: followeeId,
-        payload: {
-          actorId: followerId,
-          recipientId: followeeId,
-        },
-      });
-
-      return res.json({
-        following: true,
-        status: initialStatus,
-        followersCount: targetProfile.followersCount,
-      });
-    }
-
-    return res.json({
-      following: false,
-      status: initialStatus,
-      followersCount: targetProfile.followersCount,
-    });
+// POST /api/v1/users/:id/follow
+router.post("/users/:id/follow", requireAuth, async (req: AuthRequest, res: Response, next) => {
+  try {
+    const followerId = req.user!.sub;
+    const result = await followTarget(followerId, routeParam(req.params.id));
+    return res.json(result);
   } catch (err) {
     next(err);
   }
@@ -104,46 +68,8 @@ router.put("/users/:id/follow", requireAuth, async (req: AuthRequest, res: Respo
 router.delete("/users/:id/follow", requireAuth, async (req: AuthRequest, res: Response, next) => {
   try {
     const followerId = req.user!.sub;
-    const rawParam = routeParam(req.params.id).replace(/^@/, "");
-    const targetLookup = await ProfileModel.findOne({
-      $or: [
-        { userId: rawParam },
-        { username: new RegExp(`^${rawParam}$`, "i") },
-      ],
-    }).lean();
-    const followeeId = (targetLookup as any)?.userId || rawParam;
-
-    const existing = await FollowModel.findOneAndDelete({ followerId, followeeId });
-    if (!existing) {
-      const target = await ProfileModel.findOne({ userId: followeeId }).lean();
-      return res.json({ following: false, followersCount: (target as any)?.followersCount || 0 });
-    }
-
-    if (existing.status === "accepted") {
-      await ProfileModel.updateOne(
-        { userId: followerId },
-        { $inc: { followingCount: -1 } }
-      );
-
-      const updated = await ProfileModel.findOneAndUpdate(
-        { userId: followeeId },
-        { $inc: { followersCount: -1 } },
-        { new: true }
-      ).lean();
-
-      return res.json({
-        following: false,
-        status: "unfollowed",
-        followersCount: Math.max(0, (updated as any)?.followersCount || 0),
-      });
-    }
-
-    const currentTarget = await ProfileModel.findOne({ userId: followeeId }).lean();
-    return res.json({
-      following: false,
-      status: "unfollowed",
-      followersCount: (currentTarget as any)?.followersCount || 0,
-    });
+    const result = await unfollowTarget(followerId, routeParam(req.params.id));
+    return res.json(result);
   } catch (err) {
     next(err);
   }
@@ -158,16 +84,35 @@ router.get("/profiles/:username/followers", optionalAuth, async (req: AuthReques
     const cursor = decodeCursor(req.query.cursor as string);
     const viewerId = req.user?.sub;
 
+    let followeeId: string | null = null;
     const profile = await ProfileModel.findOne({
       $or: [
         { userId: cleanParam },
         { username: new RegExp(`^${cleanParam}$`, "i") },
       ],
     }).lean();
-    if (!profile) throw AppError.notFound("Profile not found");
+
+    if (profile) {
+      followeeId = (profile as any).userId;
+    } else {
+      const isObjectId = mongoose.Types.ObjectId.isValid(cleanParam);
+      const actor = await ActorModel.findOne({
+        $or: [
+          ...(isObjectId ? [{ _id: cleanParam }] : []),
+          { handle: new RegExp(`^${cleanParam}$`, "i") },
+        ],
+        deletedAt: null,
+      }).lean();
+
+      if (actor) {
+        followeeId = (actor as any)._id.toString();
+      }
+    }
+
+    if (!followeeId) throw AppError.notFound("Profile not found");
 
     const query: any = {
-      followeeId: (profile as any).userId,
+      followeeId,
       status: "accepted",
     };
 
@@ -235,16 +180,35 @@ router.get("/profiles/:username/following", optionalAuth, async (req: AuthReques
     const cursor = decodeCursor(req.query.cursor as string);
     const viewerId = req.user?.sub;
 
+    let followerId: string | null = null;
     const profile = await ProfileModel.findOne({
       $or: [
         { userId: cleanParam },
         { username: new RegExp(`^${cleanParam}$`, "i") },
       ],
     }).lean();
-    if (!profile) throw AppError.notFound("Profile not found");
+
+    if (profile) {
+      followerId = (profile as any).userId;
+    } else {
+      const isObjectId = mongoose.Types.ObjectId.isValid(cleanParam);
+      const actor = await ActorModel.findOne({
+        $or: [
+          ...(isObjectId ? [{ _id: cleanParam }] : []),
+          { handle: new RegExp(`^${cleanParam}$`, "i") },
+        ],
+        deletedAt: null,
+      }).lean();
+
+      if (actor) {
+        followerId = (actor as any)._id.toString();
+      }
+    }
+
+    if (!followerId) throw AppError.notFound("Profile not found");
 
     const query: any = {
-      followerId: (profile as any).userId,
+      followerId,
       status: "accepted",
     };
 
@@ -310,15 +274,32 @@ router.get("/profiles/:username/mutuals", requireAuth, async (req: AuthRequest, 
     const rawUsername = routeParam(req.params.username);
     const cleanParam = rawUsername.replace(/^@/, "");
 
+    let targetUserId: string | null = null;
     const profile = await ProfileModel.findOne({
       $or: [
         { userId: cleanParam },
         { username: new RegExp(`^${cleanParam}$`, "i") },
       ],
     }).lean();
-    if (!profile) throw AppError.notFound("Profile not found");
 
-    const targetUserId = (profile as any).userId;
+    if (profile) {
+      targetUserId = (profile as any).userId;
+    } else {
+      const isObjectId = mongoose.Types.ObjectId.isValid(cleanParam);
+      const actor = await ActorModel.findOne({
+        $or: [
+          ...(isObjectId ? [{ _id: cleanParam }] : []),
+          { handle: new RegExp(`^${cleanParam}$`, "i") },
+        ],
+        deletedAt: null,
+      }).lean();
+
+      if (actor) {
+        targetUserId = (actor as any)._id.toString();
+      }
+    }
+
+    if (!targetUserId) throw AppError.notFound("Profile not found");
 
     // People target follows
     const targetFollowees = await FollowModel.find({ followerId: targetUserId, status: "accepted" }).select("followeeId").lean();

@@ -649,6 +649,7 @@ export interface IActor {
   userId?: string | null;
   teamId?: string | null;
   followersCount?: number;
+  followerCount?: number;
   deletedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -669,6 +670,7 @@ const ActorSchema = new Schema<IActorDocument>(
     userId: { type: String, default: null, index: true },
     teamId: { type: String, default: null, index: true },
     followersCount: { type: Number, default: 0 },
+    followerCount: { type: Number, default: 0 },
     deletedAt: { type: Date, default: null },
   },
   {
@@ -677,6 +679,8 @@ const ActorSchema = new Schema<IActorDocument>(
       virtuals: true,
       transform: (_, ret: any) => {
         ret.id = ret._id.toString();
+        ret.followerCount = ret.followersCount ?? ret.followerCount ?? 0;
+        ret.followersCount = ret.followerCount;
         delete ret.__v;
         return ret;
       },

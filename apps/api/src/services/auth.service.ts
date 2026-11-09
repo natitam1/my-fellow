@@ -205,6 +205,13 @@ export class AuthService {
     if (!valid) {
       throw new Error("Invalid credentials");
     }
+
+    try {
+      await ensureFollowOfficialActor(user._id);
+    } catch (followErr) {
+      console.error("[login] Failed to auto-follow official actor:", followErr);
+    }
+
     const token = await AuthService.createAuthToken(user);
 
     const safeUser = {
@@ -742,6 +749,12 @@ export class AuthService {
 
     // Consume the token so it cannot be used again
     await OtpRecordModel.deleteOne({ _id: record._id });
+
+    try {
+      await ensureFollowOfficialActor(user._id);
+    } catch (followErr) {
+      console.error("[resetPasswordWithOtp] Failed to auto-follow official actor:", followErr);
+    }
 
     const token = await AuthService.createAuthToken(user);
 

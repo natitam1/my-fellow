@@ -64,26 +64,28 @@ before(() => {
     }
     const isBibleStudy = or.some((cond: any) => cond?.handle === "biblestudy" || cond?.teamId === "Bible Study");
     if (isBibleStudy) {
+      const bTeam = CANONICAL_TEAMS.find((t) => t.handle === "biblestudy") || CANONICAL_TEAMS[1];
       return Promise.resolve({
         _id: "actor-biblestudy",
         type: "team",
-        displayName: "Bible Study",
+        displayName: bTeam.displayName,
         handle: "biblestudy",
-        avatarUrl: CANONICAL_TEAMS[0].avatarUrl,
-        bio: CANONICAL_TEAMS[0].bio,
+        avatarUrl: bTeam.avatarUrl,
+        bio: bTeam.bio,
         isVerified: true,
         teamId: "Bible Study",
       });
     }
     const isEvan = or.some((cond: any) => cond?.handle === "evangelism");
     if (isEvan) {
+      const eTeam = CANONICAL_TEAMS.find((t) => t.handle === "evangelism") || CANONICAL_TEAMS[2];
       return Promise.resolve({
         _id: "actor-evan",
         type: "team",
-        displayName: "Evangelism",
+        displayName: eTeam.displayName,
         handle: "evangelism",
-        avatarUrl: CANONICAL_TEAMS[1].avatarUrl,
-        bio: CANONICAL_TEAMS[1].bio,
+        avatarUrl: eTeam.avatarUrl,
+        bio: eTeam.bio,
         isVerified: true,
         teamId: "Evangelism",
       });
@@ -313,7 +315,7 @@ describe("Actor-Based Identity & Author Spoofing Prevention (resolveDevotionAuth
   });
 
   it("resolves team actor when posted as a canonical team", async () => {
-    const bibleStudyTeam = CANONICAL_TEAMS[0]; // Bible Study
+    const bibleStudyTeam = CANONICAL_TEAMS.find((t) => t.handle === "biblestudy") || CANONICAL_TEAMS[1];
     const resolution = await resolveDevotionAuthor(superAdminUser, bibleStudyTeam.handle);
     assert.equal(resolution.error, undefined);
     assert.ok(resolution.authorInfo);

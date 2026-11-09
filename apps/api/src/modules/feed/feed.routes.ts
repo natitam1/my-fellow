@@ -41,7 +41,10 @@ router.get("/feed/following", requireAuth, async (req: AuthRequest, res: Respons
     const candidateAuthorIds = followedIds.filter((id) => !excludedAuthorIds.has(id));
 
     const query: any = {
-      authorId: { $in: candidateAuthorIds },
+      $or: [
+        { authorId: { $in: candidateAuthorIds } },
+        { authorActorId: { $in: candidateAuthorIds } },
+      ],
       kind: { $in: ["post", "repost", "quote"] },
       deletedAt: null,
     };
@@ -98,7 +101,16 @@ router.get("/feed/foryou", optionalAuth, async (req: AuthRequest, res: Response,
     };
 
     if (excludedAuthorIds.size > 0) {
-      query.authorId = { $nin: Array.from(excludedAuthorIds) };
+      const excluded = Array.from(excludedAuthorIds);
+      query.$and = [
+        { authorId: { $nin: excluded } },
+        {
+          $or: [
+            { authorActorId: null },
+            { authorActorId: { $nin: excluded } },
+          ],
+        },
+      ];
     }
 
     if (cursor) {
@@ -147,7 +159,11 @@ router.get("/feed/head", optionalAuth, async (req: AuthRequest, res: Response, n
       const followRows = await FollowModel.find({ followerId: viewerId, status: "accepted" })
         .select("followeeId")
         .lean();
-      query.authorId = { $in: [viewerId, ...followRows.map((f: any) => f.followeeId)] };
+      const candidateAuthorIds = [viewerId, ...followRows.map((f: any) => f.followeeId)];
+      query.$or = [
+        { authorId: { $in: candidateAuthorIds } },
+        { authorActorId: { $in: candidateAuthorIds } },
+      ];
     } else {
       query.visibility = "public";
     }

@@ -15,66 +15,66 @@ import { normalizeRole } from "../../rbac/permissions.js";
 
 export const CANONICAL_TEAMS = [
   {
+    teamId: "Worship",
+    displayName: "Worship Team",
+    handle: "worship",
+    bio: "Acoustic praise, instrumentalists, choir, and leading fellowship worship.",
+    avatarUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80",
+    isVerified: true,
+  },
+  {
     teamId: "Bible Study",
-    displayName: "Bible Study",
+    displayName: "Bible Study Team",
     handle: "biblestudy",
-    bio: "Deep scripture study, weekly cell groups & discipleship.",
+    bio: "Deep scripture study, weekly cell groups, discipleship, and foundational teachings.",
     avatarUrl: "https://images.unsplash.com/photo-1507692049790-de58290a4334?w=400&q=80",
     isVerified: true,
   },
   {
     teamId: "Evangelism",
-    displayName: "Evangelism",
+    displayName: "Evangelism Team",
     handle: "evangelism",
-    bio: "Sharing the Gospel across campus and university outreach.",
+    bio: "Sharing the Gospel across campus, university outreaches, and soul winning.",
     avatarUrl: "https://images.unsplash.com/photo-1519491050282-cf00c82424b4?w=400&q=80",
     isVerified: true,
   },
   {
-    teamId: "Worship",
-    displayName: "Worship",
-    handle: "worship",
-    bio: "Acoustic teams, praise, and leading fellowship worship.",
-    avatarUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80",
-    isVerified: true,
-  },
-  {
-    teamId: "I4U",
-    displayName: "I4U",
-    handle: "i4u",
-    bio: "Care, encouragement, mutual support, and student welfare.",
-    avatarUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80",
-    isVerified: true,
-  },
-  {
     teamId: "Media",
-    displayName: "Media & Literature",
+    displayName: "Media & Literature Team",
     handle: "media",
-    bio: "Media, literature, publications, and fellowship media.",
+    bio: "Fellowship media production, publications, social content, and technical creative support.",
     avatarUrl: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&q=80",
     isVerified: true,
   },
   {
     teamId: "Prayer",
-    displayName: "Prayer",
+    displayName: "Prayer Team",
     handle: "prayer",
-    bio: "Intercession, morning prayers, and fellowship fasting nights.",
+    bio: "Intercession, morning campus prayers, fasting nights, and standing in the gap for students.",
     avatarUrl: "https://images.unsplash.com/photo-1544717302-de2939b7ef71?w=400&q=80",
     isVerified: true,
   },
   {
+    teamId: "I4U",
+    displayName: "I4U Team",
+    handle: "i4u",
+    bio: "Student welfare, emergency support, mutual encouragement, and Christ-like care.",
+    avatarUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80",
+    isVerified: true,
+  },
+  {
     teamId: "Freshman",
-    displayName: "Freshman",
+    displayName: "Freshman Ministry Team",
     handle: "freshman",
-    bio: "Welcoming and guiding new campus students in faith and life.",
+    bio: "Welcoming and guiding new campus students in faith, community, and university life.",
     avatarUrl: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&q=80",
     isVerified: true,
   },
   {
     teamId: "Other",
-    displayName: "Other Ministry",
+    displayName: "Fellowship Ministry Team",
     handle: "fellowship_ministry",
-    bio: "General fellowship member and community ministries.",
+    bio: "General fellowship member ministries, community outreach, and campus operations.",
     avatarUrl: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=400&q=80",
     isVerified: true,
   },
@@ -82,9 +82,9 @@ export const CANONICAL_TEAMS = [
 
 export const OFFICIAL_ACTOR = {
   type: "official" as const,
-  displayName: "fellow",
+  displayName: "Fellow",
   handle: "fellow",
-  bio: "Official account of 4 Kilo Christian Students Fellowship (AAU ECSF).",
+  bio: "Official account of 4 Kilo Christian Students Fellowship (AAU ECSF). Rooted in Christ, transforming lives across campus.",
   avatarUrl: "https://res.cloudinary.com/doi9bg69o/image/upload/v1794136664/fellowship-official/hrxszkmivxfwrhlpeany.png",
   isVerified: true,
 };
@@ -140,6 +140,28 @@ export async function ensureDefaultActors(): Promise<void> {
         }
       }
 
+      // Always update all existing official/fellow actor records to "Fellow" and the primary logo
+      await ActorModel.updateMany(
+        {
+          $or: [
+            { handle: OFFICIAL_ACTOR.handle },
+            { handle: "4kilo_ecsf" },
+            { type: "official" },
+          ],
+        },
+        {
+          $set: {
+            displayName: OFFICIAL_ACTOR.displayName,
+            handle: OFFICIAL_ACTOR.handle,
+            bio: OFFICIAL_ACTOR.bio,
+            avatarUrl: OFFICIAL_ACTOR.avatarUrl,
+            isVerified: OFFICIAL_ACTOR.isVerified,
+            type: OFFICIAL_ACTOR.type,
+            deletedAt: null,
+          },
+        }
+      );
+
       // Clean up any legacy duplicates
       if (officialDocs.length > 1) {
         for (let i = 1; i < officialDocs.length; i++) {
@@ -185,7 +207,62 @@ export interface ActorSummaryPayload {
   followersCount?: number;
 }
 
-async function isApprovedWriter(userId: string): Promise<boolean> {
+export async function isFellowshipLeaderOrAdmin(
+  user: { sub: string; role?: string }
+): Promise<boolean> {
+  const norm = normalizeRole(user.role);
+  if (
+    norm === "super_admin" ||
+    norm === "leader" ||
+    user.role === "admin" ||
+    user.role === "super_admin" ||
+    user.role === "leader"
+  ) {
+    return true;
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(user.sub)) {
+    return false;
+  }
+
+  try {
+    const userDoc = await UserModel.findById(user.sub).lean();
+    if (userDoc) {
+      const docRole = normalizeRole(userDoc.role);
+      if (
+        docRole === "super_admin" ||
+        docRole === "leader" ||
+        userDoc.role === "admin" ||
+        userDoc.role === "super_admin" ||
+        userDoc.role === "leader"
+      ) {
+        return true;
+      }
+    }
+
+    const profileDoc = await ProfileModel.findOne({ userId: user.sub }).lean();
+    if (profileDoc?.fellowshipRole) {
+      const fRole = profileDoc.fellowshipRole.toLowerCase();
+      if (
+        fRole.includes("executive") ||
+        fRole.includes("president") ||
+        fRole.includes("general secretary") ||
+        fRole.includes("fellowship leader") ||
+        fRole.includes("campus leader") ||
+        fRole.includes("main leader") ||
+        fRole.includes("director")
+      ) {
+        return true;
+      }
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
+export async function isApprovedWriter(userId: string): Promise<boolean> {
   try {
     const isApproved = await WriterRequestModel.exists({
       userId,
@@ -197,7 +274,7 @@ async function isApprovedWriter(userId: string): Promise<boolean> {
   }
 }
 
-async function isUserTeamLeaderAny(userId: string, userRole?: string): Promise<boolean> {
+export async function isUserTeamLeaderAny(userId: string, userRole?: string): Promise<boolean> {
   try {
     const validOid = mongoose.Types.ObjectId.isValid(userId);
     // 1. TeamMembershipModel where role in leader/co_leader/admin/owner/team_leader
@@ -229,6 +306,18 @@ async function isUserTeamLeaderAny(userId: string, userRole?: string): Promise<b
       ) {
         return true;
       }
+
+      const profileDoc = await ProfileModel.findOne({ userId }).lean();
+      if (profileDoc?.fellowshipRole) {
+        const fRole = profileDoc.fellowshipRole.toLowerCase();
+        if (
+          fRole.includes("team leader") ||
+          fRole.includes("lead") ||
+          fRole.includes("coordinator")
+        ) {
+          return true;
+        }
+      }
     }
   } catch {
     return false;
@@ -237,7 +326,7 @@ async function isUserTeamLeaderAny(userId: string, userRole?: string): Promise<b
   return false;
 }
 
-async function isUserLeaderOfTeam(userId: string, actor: IActorDocument, userRole?: string): Promise<boolean> {
+export async function isUserLeaderOfTeam(userId: string, actor: IActorDocument, userRole?: string): Promise<boolean> {
   try {
     const validOid = mongoose.Types.ObjectId.isValid(userId);
     // 1. Check TeamMembershipModel where userId and role in ["leader", "co_leader", "admin", "owner", "team_leader"]
@@ -255,7 +344,9 @@ async function isUserLeaderOfTeam(userId: string, actor: IActorDocument, userRol
             t.name.toLowerCase() === actor.displayName.toLowerCase() ||
             (actor.teamId && t.name.toLowerCase() === actor.teamId.toLowerCase()) ||
             t._id.toString() === actor.teamId ||
-            t._id.toString() === actor._id.toString()
+            t._id.toString() === actor._id.toString() ||
+            actor.displayName.toLowerCase().includes(t.name.toLowerCase()) ||
+            t.name.toLowerCase().includes(actor.displayName.toLowerCase())
           ) {
             return true;
           }
@@ -289,7 +380,31 @@ async function isUserLeaderOfTeam(userId: string, actor: IActorDocument, userRol
           teamDoc?.name?.toLowerCase() === actor.displayName.toLowerCase() ||
           (actor.teamId && teamDoc?.name?.toLowerCase() === actor.teamId.toLowerCase()) ||
           String(userDoc.team) === actor.teamId ||
-          String(userDoc.team) === actor._id.toString()
+          String(userDoc.team) === actor._id.toString() ||
+          (teamDoc?.name && actor.displayName.toLowerCase().includes(teamDoc.name.toLowerCase()))
+        ) {
+          return true;
+        }
+
+        if (
+          typeof userDoc.team === "string" &&
+          (userDoc.team.toLowerCase() === actor.displayName.toLowerCase() ||
+            (actor.teamId && userDoc.team.toLowerCase() === actor.teamId.toLowerCase()) ||
+            actor.displayName.toLowerCase().includes(userDoc.team.toLowerCase()) ||
+            userDoc.team.toLowerCase().includes(actor.displayName.toLowerCase()))
+        ) {
+          return true;
+        }
+      }
+
+      const profileDoc = await ProfileModel.findOne({ userId }).lean();
+      if (profileDoc?.fellowshipRole) {
+        const fRole = profileDoc.fellowshipRole.toLowerCase();
+        const actorName = (actor.displayName || "").toLowerCase().replace(/ team$/i, "");
+        const teamIdName = (actor.teamId || "").toLowerCase().replace(/ team$/i, "");
+        if (
+          (actorName && fRole.includes(actorName) && (fRole.includes("leader") || fRole.includes("lead") || fRole.includes("coordinator"))) ||
+          (teamIdName && fRole.includes(teamIdName) && (fRole.includes("leader") || fRole.includes("lead") || fRole.includes("coordinator")))
         ) {
           return true;
         }
@@ -306,35 +421,25 @@ export async function canPostAs(
   user: { sub: string; role?: string },
   actorIdOrHandle: string
 ): Promise<{ allowed: boolean; actor?: IActorDocument | null }> {
-  const userRole = normalizeRole(user.role);
-  const isSuperOrLeader = userRole === "super_admin" || userRole === "leader" || user.role === "admin";
-
   // Check posting as "me"
+  // Any user can post as themselves ("me")
   if (!actorIdOrHandle || actorIdOrHandle === "me") {
-    if (isSuperOrLeader) {
-      return { allowed: true, actor: null };
-    }
-    const isTeamLeader = await isUserTeamLeaderAny(user.sub, user.role);
-    if (isTeamLeader) {
-      return { allowed: true, actor: null };
-    }
-    const isWriter = await isApprovedWriter(user.sub);
-    if (isWriter) {
-      return { allowed: true, actor: null };
-    }
-    return { allowed: false, actor: null };
+    return { allowed: true, actor: null };
   }
+
+  const isLeaderOrAdmin = await isFellowshipLeaderOrAdmin(user);
 
   const isObjectId = /^[0-9a-fA-F]{24}$/.test(actorIdOrHandle);
   const isOfficialAlias =
-    actorIdOrHandle === "fellow" ||
-    actorIdOrHandle === "official" ||
-    actorIdOrHandle === OFFICIAL_ACTOR.handle ||
-    actorIdOrHandle === "4kilo_ecsf";
+    actorIdOrHandle.toLowerCase() === "fellow" ||
+    actorIdOrHandle.toLowerCase() === "official" ||
+    actorIdOrHandle.toLowerCase() === OFFICIAL_ACTOR.handle.toLowerCase() ||
+    actorIdOrHandle.toLowerCase() === "4kilo_ecsf";
 
   let actor: IActorDocument | null = (await ActorModel.findOne({
     $or: [
       ...(isObjectId ? [{ _id: actorIdOrHandle }] : []),
+      { handle: actorIdOrHandle.toLowerCase() },
       { handle: actorIdOrHandle },
       { teamId: actorIdOrHandle },
       { displayName: actorIdOrHandle },
@@ -372,7 +477,8 @@ export async function canPostAs(
       (t) =>
         t.handle.toLowerCase() === actorIdOrHandle.toLowerCase() ||
         t.displayName.toLowerCase() === actorIdOrHandle.toLowerCase() ||
-        t.teamId.toLowerCase() === actorIdOrHandle.toLowerCase()
+        t.teamId.toLowerCase() === actorIdOrHandle.toLowerCase() ||
+        t.displayName.toLowerCase().replace(/ team$/i, "") === actorIdOrHandle.toLowerCase()
     );
     if (canonical) {
       actor = new ActorModel({
@@ -389,26 +495,15 @@ export async function canPostAs(
 
   // Personal user actor
   if (actor.type === "user") {
-    if (actor.userId !== user.sub) {
-      return { allowed: false, actor };
-    }
-    if (isSuperOrLeader) {
-      return { allowed: true, actor };
-    }
-    const isTeamLeader = await isUserTeamLeaderAny(user.sub, user.role);
-    if (isTeamLeader) {
-      return { allowed: true, actor };
-    }
-    const isWriter = await isApprovedWriter(user.sub);
-    if (isWriter) {
+    if (actor.userId === user.sub) {
       return { allowed: true, actor };
     }
     return { allowed: false, actor };
   }
 
   // Official actor ("fellow")
-  if (actor.type === "official") {
-    if (isSuperOrLeader) {
+  if (actor.type === "official" || actor.handle === "fellow") {
+    if (isLeaderOrAdmin) {
       return { allowed: true, actor };
     }
     const hasMembership = await TeamMemberModel.exists({
@@ -421,7 +516,7 @@ export async function canPostAs(
 
   // Team actor
   if (actor.type === "team") {
-    if (isSuperOrLeader) {
+    if (isLeaderOrAdmin) {
       return { allowed: true, actor };
     }
     const isLeaderOfThisTeam = await isUserLeaderOfTeam(user.sub, actor, user.role);
@@ -461,10 +556,7 @@ export async function getPostableActors(
     isVerified: Boolean(profileDoc?.isVerified),
   };
 
-  const userRole = normalizeRole(user.role || userDoc?.role);
-  const isSuperOrLeader = userRole === "super_admin" || userRole === "leader" || user.role === "admin";
-
-  const { allowed: canPostMe } = await canPostAs(user, "me");
+  const isLeaderOrAdmin = await isFellowshipLeaderOrAdmin(user);
 
   // Fetch official actor
   const officialDoc = await ActorModel.findOne({
@@ -515,7 +607,7 @@ export async function getPostableActors(
 
   // Sorting logic based on role:
   // 1. If leader/super_admin: Official actor `fellow` is index 0 with `isDefault: true`. Then teams, then "me".
-  if (isSuperOrLeader) {
+  if (isLeaderOrAdmin) {
     const results: (ActorSummaryPayload & { isDefault?: boolean })[] = [];
     if (officialActor) {
       results.push({ ...officialActor, isDefault: true });
@@ -523,35 +615,26 @@ export async function getPostableActors(
     for (const team of allowedTeamActors) {
       results.push({ ...team, isDefault: false });
     }
-    if (canPostMe) {
-      results.push({ ...personalActor, isDefault: false });
-    }
+    results.push({ ...personalActor, isDefault: false });
     if (results.length > 0 && !results.some((r) => r.isDefault)) {
       results[0].isDefault = true;
     }
     return results;
   }
 
-  // 2. If team leader: Their team is index 0 with `isDefault: true`. Then "me".
+  // 2. If team leader: Their team is index 0 with `isDefault: true`. Then other teams, then "me".
   if (allowedTeamActors.length > 0) {
     const results: (ActorSummaryPayload & { isDefault?: boolean })[] = [];
     results.push({ ...allowedTeamActors[0], isDefault: true });
     for (let i = 1; i < allowedTeamActors.length; i++) {
       results.push({ ...allowedTeamActors[i], isDefault: false });
     }
-    if (canPostMe) {
-      results.push({ ...personalActor, isDefault: false });
-    }
+    results.push({ ...personalActor, isDefault: false });
     return results;
   }
 
-  // 3. If approved writer: "me" is index 0 with `isDefault: true`.
-  if (canPostMe) {
-    return [{ ...personalActor, isDefault: true }];
-  }
-
-  // 4. Regular member with no post permissions
-  return [];
+  // 3. Regular member: "me" is index 0 with `isDefault: true`.
+  return [{ ...personalActor, isDefault: true }];
 }
 
 export async function ensureFollowOfficialActor(
@@ -601,4 +684,20 @@ export async function ensureFollowOfficialActor(
   }
 
   return false;
+}
+
+export async function syncAllUsersFollowOfficialActor(): Promise<number> {
+  const officialActor = await ActorModel.findOne({
+    $or: [{ handle: OFFICIAL_ACTOR.handle }, { type: "official" }],
+    deletedAt: null,
+  });
+  if (!officialActor) return 0;
+
+  const users = await UserModel.find({ deletedAt: null }).select("_id").lean();
+  let count = 0;
+  for (const user of users) {
+    const followed = await ensureFollowOfficialActor(user._id);
+    if (followed) count++;
+  }
+  return count;
 }

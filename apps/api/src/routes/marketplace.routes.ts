@@ -4,7 +4,7 @@ import {
   requireMinimumRole,
 } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
-import { uploadMultiple } from "../middleware/upload.middleware.js";
+import { uploadProductImages } from "../middleware/upload.middleware.js";
 import { handleMulterError } from "../middleware/multerError.middleware.js";
 import {
   createProductSchema,
@@ -24,7 +24,7 @@ router.post(
   "/products",
   requireAuth,
   requireMinimumRole("coordinator"),
-  uploadMultiple,
+  uploadProductImages,
   handleMulterError,
   validate(createProductSchema),
   ProductController.create,
@@ -34,7 +34,7 @@ router.put(
   "/products/:id",
   requireAuth,
   requireMinimumRole("coordinator"),
-  uploadMultiple,
+  uploadProductImages,
   handleMulterError,
   validate(updateProductSchema),
   ProductController.update,

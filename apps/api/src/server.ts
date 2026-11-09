@@ -4,7 +4,10 @@ import mongoose from "mongoose";
 
 import { mongoClient } from "./utils/mongodb.js";
 import { sweepExpiredEvents } from "./utils/cron.js";
-import { ensureDefaultActors } from "./modules/actors/actor.service.js";
+import {
+  ensureDefaultActors,
+  syncAllUsersFollowOfficialActor,
+} from "./modules/actors/actor.service.js";
 
 const PORT: number = Number(process.env.PORT) || 4000;
 const MONGO_URI = process.env.MONGO_URI;
@@ -26,15 +29,20 @@ Promise.all([
     );
 
     // Ensure canonical actors (8 teams + official fellowship identity)
-    await ensureDefaultActors().catch((e) =>
+    await ensureDefaultActors().catch((e: unknown) =>
       console.error("Actor initialization failed:", e),
+    );
+
+    // Safe idempotent background sync ensuring all existing users follow the fellow actor
+    syncAllUsersFollowOfficialActor().catch((e: unknown) =>
+      console.error("Background auto-follow sync failed:", e),
     );
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
   })
-  .catch((err) => {
+  .catch((err: unknown) => {
     console.error("Mongo connection error:", err);
     process.exit(1);
   });

@@ -21,6 +21,7 @@ import {
   MuteModel,
   HighlightModel,
   MediaAssetModel,
+  ActorModel,
 } from "../../models/social.models.js";
 import mongoose from "mongoose";
 
@@ -30,6 +31,7 @@ const router = Router();
 async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string): Promise<ProfileDetail | null> {
   const normalized = cleanParam.toLowerCase();
   const isOfficial = [
+    "fellow",
     "4kilofellowship",
     "4kilo",
     "fellowship",
@@ -38,9 +40,19 @@ async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string
     "aau4kilofellowship",
   ].includes(normalized);
 
+  const isOid = mongoose.Types.ObjectId.isValid(cleanParam);
+  let actor = await ActorModel.findOne({
+    $or: [
+      ...(isOid ? [{ _id: new mongoose.Types.ObjectId(cleanParam) }] : []),
+      { handle: new RegExp(`^${cleanParam}$`, "i") },
+      ...(isOfficial ? [{ type: "official" as const }, { handle: "fellow" }] : []),
+    ] as any,
+    deletedAt: null,
+  }).lean();
+
   let user = null;
-  if (!isOfficial) {
-    if (mongoose.Types.ObjectId.isValid(cleanParam)) {
+  if (!actor && !isOfficial) {
+    if (isOid) {
       user = await UserModel.findById(cleanParam).lean();
     }
     if (!user) {
@@ -55,26 +67,33 @@ async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string
   }
 
   const isOfficialAccount =
+    Boolean(actor && (actor as any).type === "official") ||
     isOfficial ||
     (user as any)?.phoneNumber === "0900004000" ||
     ((user as any)?.fullName && (user as any).fullName.toLowerCase().includes("4 kilo"));
 
-  if (!isOfficialAccount && !user) {
+  if (!actor && !isOfficialAccount && !user) {
     return null;
   }
 
-  const id = isOfficialAccount ? "user-fellowship" : (user as any)!._id.toString();
-  const username = isOfficialAccount
-    ? "4kilo_fellowship"
-    : ((user as any)!.telegramUserName
-      ? (user as any)!.telegramUserName.replace(/^@/, "")
-      : `user_${id.slice(-6)}`);
-  const displayName = isOfficialAccount
-    ? "4 Kilo Fellowship"
-    : ((user as any)!.fullName || "Fellowship Member");
-  const avatarUrl = isOfficialAccount
-    ? "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=400&q=80"
-    : ((user as any)!.profileImage || null);
+  const id = actor ? (actor as any)._id.toString() : (isOfficialAccount ? "user-fellowship" : (user as any)!._id.toString());
+  const username = actor
+    ? (actor as any).handle
+    : (isOfficialAccount
+      ? "fellow"
+      : ((user as any)!.telegramUserName
+        ? (user as any)!.telegramUserName.replace(/^@/, "")
+        : `user_${id.slice(-6)}`));
+  const displayName = actor
+    ? (actor as any).displayName
+    : (isOfficialAccount
+      ? "fellow"
+      : ((user as any)!.fullName || "Fellowship Member"));
+  const avatarUrl = actor
+    ? (actor as any).avatarUrl
+    : (isOfficialAccount
+      ? "https://res.cloudinary.com/doi9bg69o/image/upload/v1794136664/fellowship-official/hrxszkmivxfwrhlpeany.png"
+      : ((user as any)!.profileImage || null));
 
   const fallbackAvatar: MediaRef | null = avatarUrl ? {
     id: `avatar-${id}`,
@@ -102,9 +121,11 @@ async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string
     }
   };
 
-  const bio = isOfficialAccount
-    ? "Official digital home of Addis Ababa University 4 Kilo Christian Students Fellowship. 'Rooted & Built Up in Him.' Col 2:7 ✝️"
-    : ((user as any)?.department ? `${(user as any).department} student walking faithfully in Christ.` : "Fellowship member at AAU 4 Kilo Campus.");
+  const bio = actor
+    ? ((actor as any).bio || "Official 4 Kilo Fellowship account.")
+    : (isOfficialAccount
+      ? "Official digital home of Addis Ababa University 4 Kilo Christian Students Fellowship. 'Rooted & Built Up in Him.' Col 2:7 ✝️"
+      : ((user as any)?.department ? `${(user as any).department} student walking faithfully in Christ.` : "Fellowship member at AAU 4 Kilo Campus."));
 
   const studyYear = isOfficialAccount ? 4 : ((user as any)?.yearOfStudy ? parseInt(String((user as any).yearOfStudy), 10) : undefined);
   const academic = {
@@ -119,9 +140,12 @@ async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string
     isFollowing = Boolean(f);
   }
 
-  const followersCount = await FollowModel.countDocuments({ followeeId: id, status: "accepted" });
+  const followersCount = (actor as any)?.followersCount ?? (await FollowModel.countDocuments({ followeeId: id, status: "accepted" }));
   const followingCount = await FollowModel.countDocuments({ followerId: id, status: "accepted" });
-  const postsCount = await PostModel.countDocuments({ authorId: id, deletedAt: null });
+  const postsCount = await PostModel.countDocuments({
+    $or: [{ authorId: id }, { authorActorId: id }],
+    deletedAt: null,
+  });
 
   return {
     id,

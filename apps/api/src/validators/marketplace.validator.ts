@@ -18,26 +18,35 @@ const imageUrlsPreprocess = z
   .optional();
 
 export const createProductSchema = z.object({
-  body: z.object({
-    title: z
-      .string()
-      .min(3, "Title must be at least 3 characters")
-      .max(100, "Title must be at most 100 characters"),
-    shortDescription: z
-      .string()
-      .min(5, "Short description must be at least 5 characters")
-      .max(300, "Short description must be at most 300 characters"),
-    price: z.coerce
-      .number({ message: "Price must be a number" })
-      .positive("Price must be greater than 0"),
-    category: z.string().optional().default("other"),
-    imageUrls: imageUrlsPreprocess,
-    stock: z.coerce
-      .number({ message: "Stock must be a number" })
-      .int("Stock must be an integer")
-      .min(0, "Stock cannot be negative"),
-    isActive: z.coerce.boolean().optional().default(true),
-  }),
+  body: z
+    .object({
+      title: z
+        .string()
+        .min(3, "Title must be at least 3 characters")
+        .max(200, "Title must be at most 200 characters"),
+      shortDescription: z
+        .string()
+        .min(3, "Short description must be at least 3 characters")
+        .max(3000, "Short description must be at most 3000 characters")
+        .optional(),
+      description: z.string().max(3000).optional(),
+      price: z.coerce
+        .number({ message: "Price must be a number" })
+        .positive("Price must be greater than 0"),
+      category: z.string().optional().default("other"),
+      imageUrls: imageUrlsPreprocess,
+      stock: z.coerce
+        .number({ message: "Stock must be a number" })
+        .int("Stock must be an integer")
+        .min(0, "Stock cannot be negative")
+        .optional()
+        .default(10),
+      isActive: z.coerce.boolean().optional().default(true),
+    })
+    .refine((data) => Boolean(data.shortDescription || data.description), {
+      message: "Product description is required",
+      path: ["shortDescription"],
+    }),
 });
 
 export const updateProductSchema = z.object({
@@ -45,13 +54,14 @@ export const updateProductSchema = z.object({
     title: z
       .string()
       .min(3, "Title must be at least 3 characters")
-      .max(100, "Title must be at most 100 characters")
+      .max(200, "Title must be at most 200 characters")
       .optional(),
     shortDescription: z
       .string()
-      .min(5, "Short description must be at least 5 characters")
-      .max(300, "Short description must be at most 300 characters")
+      .min(3, "Short description must be at least 3 characters")
+      .max(3000, "Short description must be at most 3000 characters")
       .optional(),
+    description: z.string().max(3000).optional(),
     price: z.coerce
       .number({ message: "Price must be a number" })
       .positive("Price must be greater than 0")
