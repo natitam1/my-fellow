@@ -272,7 +272,7 @@ export async function unfollowTarget(
         actor._id,
         { $inc: { followersCount: -1, followerCount: -1 } },
         { new: true }
-      ).lean();
+      );
 
       const finalCount = Math.max(0, updated?.followersCount ?? updated?.followerCount ?? 0);
       return {

@@ -641,12 +641,19 @@ export async function ensureFollowOfficialActor(
   userId: string | mongoose.Types.ObjectId
 ): Promise<boolean> {
   const followerId = String(userId);
-  await ensureDefaultActors();
 
-  const officialActor = await ActorModel.findOne({
+  let officialActor = await ActorModel.findOne({
     $or: [{ handle: OFFICIAL_ACTOR.handle }, { type: "official" }],
     deletedAt: null,
   });
+
+  if (!officialActor) {
+    await ensureDefaultActors();
+    officialActor = await ActorModel.findOne({
+      $or: [{ handle: OFFICIAL_ACTOR.handle }, { type: "official" }],
+      deletedAt: null,
+    });
+  }
 
   if (!officialActor) {
     console.warn("[ensureFollowOfficialActor] Official actor not found");
@@ -672,7 +679,7 @@ export async function ensureFollowOfficialActor(
       });
       await ActorModel.updateOne(
         { _id: officialActor._id },
-        { $inc: { followersCount: 1 } }
+        { $inc: { followersCount: 1, followerCount: 1 } }
       );
       return true;
     } catch (err: any) {
@@ -687,6 +694,7 @@ export async function ensureFollowOfficialActor(
 }
 
 export async function syncAllUsersFollowOfficialActor(): Promise<number> {
+  await ensureDefaultActors();
   const officialActor = await ActorModel.findOne({
     $or: [{ handle: OFFICIAL_ACTOR.handle }, { type: "official" }],
     deletedAt: null,
