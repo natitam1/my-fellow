@@ -8,7 +8,11 @@ const imageFilter = (
   file: Express.Multer.File,
   cb: FileFilterCallback,
 ) => {
-  if (file.mimetype.startsWith("image/")) {
+  if (
+    file.mimetype.startsWith("image/") ||
+    file.mimetype === "application/octet-stream" ||
+    /\.(jpg|jpeg|png|webp|heic|heif|gif)$/i.test(file.originalname)
+  ) {
     cb(null, true);
   } else {
     cb(new Error("Only image files are allowed"));

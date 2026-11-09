@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it, before, after } from "node:test";
 import mongoose from "mongoose";
 import {
   createDevotionSchema,
@@ -18,6 +18,88 @@ import {
 import { WriterRequestModel } from "../src/models/writerRequest.model.js";
 import { UserModel } from "../src/models/user.model.js";
 import { DevotionModel } from "../src/models/devotion.model.js";
+import { ActorModel, ProfileModel, TeamMemberModel } from "../src/models/social.models.js";
+import { TeamMembershipModel } from "../src/models/rbac.model.js";
+
+let origActorFindOne: any;
+let origTeamMembershipExists: any;
+let origTeamMembershipFind: any;
+let origTeamMemberExists: any;
+let origProfileFindOne: any;
+let origUserFindById: any;
+
+before(() => {
+  origActorFindOne = ActorModel.findOne;
+  origTeamMembershipExists = TeamMembershipModel.exists;
+  origTeamMembershipFind = TeamMembershipModel.find;
+  origTeamMemberExists = TeamMemberModel.exists;
+  origProfileFindOne = ProfileModel.findOne;
+  origUserFindById = UserModel.findById;
+
+  (TeamMembershipModel as any).exists = async () => null;
+  (TeamMembershipModel as any).find = () => ({
+    lean: async () => [],
+  });
+  (TeamMemberModel as any).exists = async () => null;
+  (ProfileModel as any).findOne = () => ({
+    lean: async () => null,
+  });
+  (UserModel as any).findById = () => ({
+    lean: async () => null,
+  });
+
+  (ActorModel as any).findOne = (query: any) => {
+    const or = query?.$or || [];
+    const isFellow = or.some((cond: any) => cond?.handle === "fellow" || cond?.type === "official");
+    if (isFellow) {
+      return Promise.resolve({
+        _id: "actor-fellow",
+        type: "official",
+        displayName: "fellow",
+        handle: "fellow",
+        avatarUrl: OFFICIAL_ACTOR.avatarUrl,
+        bio: OFFICIAL_ACTOR.bio,
+        isVerified: true,
+      });
+    }
+    const isBibleStudy = or.some((cond: any) => cond?.handle === "biblestudy" || cond?.teamId === "Bible Study");
+    if (isBibleStudy) {
+      return Promise.resolve({
+        _id: "actor-biblestudy",
+        type: "team",
+        displayName: "Bible Study",
+        handle: "biblestudy",
+        avatarUrl: CANONICAL_TEAMS[0].avatarUrl,
+        bio: CANONICAL_TEAMS[0].bio,
+        isVerified: true,
+        teamId: "Bible Study",
+      });
+    }
+    const isEvan = or.some((cond: any) => cond?.handle === "evangelism");
+    if (isEvan) {
+      return Promise.resolve({
+        _id: "actor-evan",
+        type: "team",
+        displayName: "Evangelism",
+        handle: "evangelism",
+        avatarUrl: CANONICAL_TEAMS[1].avatarUrl,
+        bio: CANONICAL_TEAMS[1].bio,
+        isVerified: true,
+        teamId: "Evangelism",
+      });
+    }
+    return Promise.resolve(null);
+  };
+});
+
+after(() => {
+  if (origActorFindOne) ActorModel.findOne = origActorFindOne;
+  if (origTeamMembershipExists) TeamMembershipModel.exists = origTeamMembershipExists;
+  if (origTeamMembershipFind) TeamMembershipModel.find = origTeamMembershipFind;
+  if (origTeamMemberExists) TeamMemberModel.exists = origTeamMemberExists;
+  if (origProfileFindOne) ProfileModel.findOne = origProfileFindOne;
+  if (origUserFindById) UserModel.findById = origUserFindById;
+});
 
 describe("Devotion Validation & Parsing", () => {
   it("parses valid text devotion with JSON string tags", () => {
@@ -243,7 +325,9 @@ describe("Actor-Based Identity & Author Spoofing Prevention (resolveDevotionAuth
 
   it("defaults to personal ('me') actor for approved writers and populates user info", async () => {
     const originalFindById = UserModel.findById;
+    const originalWriterExists = WriterRequestModel.exists;
     try {
+      WriterRequestModel.exists = (async () => ({ _id: "writer-req-1" })) as any;
       UserModel.findById = (() => ({
         lean: async () => ({
           _id: regularMemberUser.sub,
@@ -261,27 +345,40 @@ describe("Actor-Based Identity & Author Spoofing Prevention (resolveDevotionAuth
       assert.equal(resolution.authorInfo.authorAvatar, "https://example.com/avatar.jpg");
     } finally {
       UserModel.findById = originalFindById;
+      WriterRequestModel.exists = originalWriterExists;
     }
   });
 
   it("strictly denies unauthorized users from posting as the official 'fellow' actor", async () => {
-    const resolution = await resolveDevotionAuthor(regularMemberUser, "fellow");
-    assert.ok(resolution.error);
-    assert.equal(resolution.error.status, 403);
-    assert.equal(
-      resolution.error.message,
-      "You are not authorized to post as this actor"
-    );
+    const originalWriterExists = WriterRequestModel.exists;
+    try {
+      WriterRequestModel.exists = (async () => null) as any;
+      const resolution = await resolveDevotionAuthor(regularMemberUser, "fellow");
+      assert.ok(resolution.error);
+      assert.equal(resolution.error.status, 403);
+      assert.equal(
+        resolution.error.message,
+        "You are not authorized to post as this actor"
+      );
+    } finally {
+      WriterRequestModel.exists = originalWriterExists;
+    }
   });
 
   it("strictly denies unauthorized users from posting as another team actor", async () => {
-    const resolution = await resolveDevotionAuthor(regularMemberUser, "evangelism");
-    assert.ok(resolution.error);
-    assert.equal(resolution.error.status, 403);
-    assert.equal(
-      resolution.error.message,
-      "You are not authorized to post as this actor"
-    );
+    const originalWriterExists = WriterRequestModel.exists;
+    try {
+      WriterRequestModel.exists = (async () => null) as any;
+      const resolution = await resolveDevotionAuthor(regularMemberUser, "evangelism");
+      assert.ok(resolution.error);
+      assert.equal(resolution.error.status, 403);
+      assert.equal(
+        resolution.error.message,
+        "You are not authorized to post as this actor"
+      );
+    } finally {
+      WriterRequestModel.exists = originalWriterExists;
+    }
   });
 });
 

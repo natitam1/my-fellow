@@ -11,17 +11,17 @@ export const handleMulterError = (
     if (err.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
         success: false,
-        message: "File size too large. Maximum size is 5MB.",
+        message: "File size too large. Maximum size is 25MB per image.",
       });
     }
     return res
       .status(400)
-      .json({ success: false, message: "Something went wrong" });
+      .json({ success: false, message: err.message || "File upload error" });
   }
   if (err) {
     return res
       .status(400)
-      .json({ success: false, message: "File upload error" });
+      .json({ success: false, message: err.message || "File upload error" });
   }
   next();
 };

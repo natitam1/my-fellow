@@ -23,7 +23,7 @@ router.get("/products/:id", ProductController.getById);
 router.post(
   "/products",
   requireAuth,
-  requireMinimumRole("team_leader"),
+  requireMinimumRole("coordinator"),
   uploadMultiple,
   handleMulterError,
   validate(createProductSchema),
@@ -33,7 +33,7 @@ router.post(
 router.put(
   "/products/:id",
   requireAuth,
-  requireMinimumRole("team_leader"),
+  requireMinimumRole("coordinator"),
   uploadMultiple,
   handleMulterError,
   validate(updateProductSchema),
@@ -43,7 +43,7 @@ router.put(
 router.delete(
   "/products/:id",
   requireAuth,
-  requireMinimumRole("team_leader"),
+  requireMinimumRole("coordinator"),
   ProductController.remove,
 );
 
@@ -59,7 +59,7 @@ router.get("/orders/my", requireAuth, OrderController.getMyOrders);
 router.get(
   "/orders",
   requireAuth,
-  requireMinimumRole("team_leader"),
+  requireMinimumRole("coordinator"),
   OrderController.getAll,
 );
 
@@ -68,7 +68,7 @@ router.get("/orders/:id", requireAuth, OrderController.getById);
 router.patch(
   "/orders/:id/status",
   requireAuth,
-  requireMinimumRole("team_leader"),
+  requireMinimumRole("coordinator"),
   validate(updateOrderStatusSchema),
   OrderController.updateStatus,
 );

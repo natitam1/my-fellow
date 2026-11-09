@@ -100,7 +100,7 @@ export async function ensureDefaultActors(): Promise<void> {
       ],
     });
 
-    if (officialDocs.length === 0) {
+    if (!officialDocs || officialDocs.length === 0) {
       await ActorModel.create({
         type: OFFICIAL_ACTOR.type,
         displayName: OFFICIAL_ACTOR.displayName,
@@ -112,14 +112,33 @@ export async function ensureDefaultActors(): Promise<void> {
       });
     } else {
       const primary = officialDocs[0];
-      primary.type = OFFICIAL_ACTOR.type;
-      primary.displayName = OFFICIAL_ACTOR.displayName;
-      primary.handle = OFFICIAL_ACTOR.handle;
-      primary.bio = OFFICIAL_ACTOR.bio;
-      primary.avatarUrl = OFFICIAL_ACTOR.avatarUrl;
-      primary.isVerified = OFFICIAL_ACTOR.isVerified;
-      primary.deletedAt = null;
-      await primary.save();
+      if (primary) {
+        if (typeof primary.save === "function") {
+          primary.type = OFFICIAL_ACTOR.type;
+          primary.displayName = OFFICIAL_ACTOR.displayName;
+          primary.handle = OFFICIAL_ACTOR.handle;
+          primary.bio = OFFICIAL_ACTOR.bio;
+          primary.avatarUrl = OFFICIAL_ACTOR.avatarUrl;
+          primary.isVerified = OFFICIAL_ACTOR.isVerified;
+          primary.deletedAt = null;
+          await primary.save();
+        } else if (primary._id) {
+          await ActorModel.updateOne(
+            { _id: primary._id },
+            {
+              $set: {
+                type: OFFICIAL_ACTOR.type,
+                displayName: OFFICIAL_ACTOR.displayName,
+                handle: OFFICIAL_ACTOR.handle,
+                bio: OFFICIAL_ACTOR.bio,
+                avatarUrl: OFFICIAL_ACTOR.avatarUrl,
+                isVerified: OFFICIAL_ACTOR.isVerified,
+                deletedAt: null,
+              },
+            }
+          );
+        }
+      }
 
       // Clean up any legacy duplicates
       if (officialDocs.length > 1) {
@@ -167,95 +186,117 @@ export interface ActorSummaryPayload {
 }
 
 async function isApprovedWriter(userId: string): Promise<boolean> {
-  const isApproved = await WriterRequestModel.exists({
-    userId,
-    status: { $in: ["accepted", "approved"] },
-  });
-  return Boolean(isApproved);
+  try {
+    const isApproved = await WriterRequestModel.exists({
+      userId,
+      status: { $in: ["accepted", "approved"] },
+    });
+    return Boolean(isApproved);
+  } catch {
+    return false;
+  }
 }
 
 async function isUserTeamLeaderAny(userId: string, userRole?: string): Promise<boolean> {
-  // 1. TeamMembershipModel where role in leader/co_leader/admin/owner/team_leader
-  const hasTeamMembership = await TeamMembershipModel.exists({
-    userId,
-    role: { $in: ["leader", "co_leader", "admin", "owner", "team_leader"] as any },
-  });
-  if (hasTeamMembership) return true;
+  try {
+    const validOid = mongoose.Types.ObjectId.isValid(userId);
+    // 1. TeamMembershipModel where role in leader/co_leader/admin/owner/team_leader
+    if (validOid) {
+      const hasTeamMembership = await TeamMembershipModel.exists({
+        userId,
+        role: { $in: ["leader", "co_leader", "admin", "owner", "team_leader"] as any },
+      });
+      if (hasTeamMembership) return true;
+    }
 
-  // 2. TeamMemberModel where role in owner/editor/leader/admin
-  const hasTeamMember = await TeamMemberModel.exists({
-    userId,
-    role: { $in: ["owner", "editor", "leader", "admin"] as any },
-  });
-  if (hasTeamMember) return true;
+    // 2. TeamMemberModel where role in owner/editor/leader/admin
+    const hasTeamMember = await TeamMemberModel.exists({
+      userId,
+      role: { $in: ["owner", "editor", "leader", "admin"] as any },
+    });
+    if (hasTeamMember) return true;
 
-  // 3. UserModel.team when user has role of leader
-  const userDoc = await UserModel.findById(userId).lean();
-  const normalized = normalizeRole(userRole || userDoc?.role);
-  if (
-    userDoc?.team &&
-    (normalized === "leader" ||
-      normalized === "team_leader" ||
-      userDoc?.role === "leader" ||
-      userDoc?.role === "team_leader")
-  ) {
-    return true;
+    // 3. UserModel.team when user has role of leader
+    if (validOid) {
+      const userDoc = await UserModel.findById(userId).lean();
+      const normalized = normalizeRole(userRole || userDoc?.role);
+      if (
+        userDoc?.team &&
+        (normalized === "leader" ||
+          normalized === "team_leader" ||
+          userDoc?.role === "leader" ||
+          userDoc?.role === "team_leader")
+      ) {
+        return true;
+      }
+    }
+  } catch {
+    return false;
   }
 
   return false;
 }
 
 async function isUserLeaderOfTeam(userId: string, actor: IActorDocument, userRole?: string): Promise<boolean> {
-  // 1. Check TeamMembershipModel where userId and role in ["leader", "co_leader", "admin", "owner", "team_leader"]
-  const memberships = await TeamMembershipModel.find({
-    userId,
-    role: { $in: ["leader", "co_leader", "admin", "owner", "team_leader"] as any },
-  }).lean();
+  try {
+    const validOid = mongoose.Types.ObjectId.isValid(userId);
+    // 1. Check TeamMembershipModel where userId and role in ["leader", "co_leader", "admin", "owner", "team_leader"]
+    if (validOid) {
+      const memberships = await TeamMembershipModel.find({
+        userId,
+        role: { $in: ["leader", "co_leader", "admin", "owner", "team_leader"] as any },
+      }).lean();
 
-  if (memberships.length > 0) {
-    const teamIds = memberships.map((m) => m.teamId);
-    const teams = await TeamModel.find({ _id: { $in: teamIds } }).lean();
-    for (const t of teams) {
-      if (
-        t.name.toLowerCase() === actor.displayName.toLowerCase() ||
-        (actor.teamId && t.name.toLowerCase() === actor.teamId.toLowerCase()) ||
-        t._id.toString() === actor.teamId ||
-        t._id.toString() === actor._id.toString()
-      ) {
-        return true;
+      if (memberships.length > 0) {
+        const teamIds = memberships.map((m) => m.teamId);
+        const teams = await TeamModel.find({ _id: { $in: teamIds } }).lean();
+        for (const t of teams) {
+          if (
+            t.name.toLowerCase() === actor.displayName.toLowerCase() ||
+            (actor.teamId && t.name.toLowerCase() === actor.teamId.toLowerCase()) ||
+            t._id.toString() === actor.teamId ||
+            t._id.toString() === actor._id.toString()
+          ) {
+            return true;
+          }
+        }
       }
     }
-  }
 
-  // 2. Check TeamMemberModel for that actor
-  const hasActorMembership = await TeamMemberModel.exists({
-    actorId: actor._id.toString(),
-    userId,
-    role: { $in: ["owner", "editor", "leader", "admin"] as any },
-  });
-  if (hasActorMembership) {
-    return true;
-  }
-
-  // 3. Check UserModel.team when user has role of leader
-  const userDoc = await UserModel.findById(userId).lean();
-  const normalized = normalizeRole(userRole || userDoc?.role);
-  if (
-    userDoc?.team &&
-    (normalized === "leader" ||
-      normalized === "team_leader" ||
-      userDoc?.role === "leader" ||
-      userDoc?.role === "team_leader")
-  ) {
-    const teamDoc = await TeamModel.findById(userDoc.team).lean();
-    if (
-      teamDoc?.name?.toLowerCase() === actor.displayName.toLowerCase() ||
-      (actor.teamId && teamDoc?.name?.toLowerCase() === actor.teamId.toLowerCase()) ||
-      String(userDoc.team) === actor.teamId ||
-      String(userDoc.team) === actor._id.toString()
-    ) {
+    // 2. Check TeamMemberModel for that actor
+    const hasActorMembership = await TeamMemberModel.exists({
+      actorId: actor._id.toString(),
+      userId,
+      role: { $in: ["owner", "editor", "leader", "admin"] as any },
+    });
+    if (hasActorMembership) {
       return true;
     }
+
+    // 3. Check UserModel.team when user has role of leader
+    if (validOid) {
+      const userDoc = await UserModel.findById(userId).lean();
+      const normalized = normalizeRole(userRole || userDoc?.role);
+      if (
+        userDoc?.team &&
+        (normalized === "leader" ||
+          normalized === "team_leader" ||
+          userDoc?.role === "leader" ||
+          userDoc?.role === "team_leader")
+      ) {
+        const teamDoc = await TeamModel.findById(userDoc.team).lean();
+        if (
+          teamDoc?.name?.toLowerCase() === actor.displayName.toLowerCase() ||
+          (actor.teamId && teamDoc?.name?.toLowerCase() === actor.teamId.toLowerCase()) ||
+          String(userDoc.team) === actor.teamId ||
+          String(userDoc.team) === actor._id.toString()
+        ) {
+          return true;
+        }
+      }
+    }
+  } catch {
+    return false;
   }
 
   return false;
