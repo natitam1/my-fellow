@@ -7,7 +7,7 @@ import {
 } from "@/types/marketplace.types";
 import * as SecureStore from "expo-secure-store";
 import { API_URL } from "@/constants/api";
-import api from "./api";
+import api, { uploadFormData } from "./api";
 
 const isFormDataPayload = (data: unknown): data is FormData => {
   return (
@@ -118,6 +118,13 @@ export const fetchProductByIdApi = async (
 export const createProductApi = async (
   data: FormData | any,
 ): Promise<SingleResponse<Product>> => {
+  if (isFormDataPayload(data)) {
+    return uploadFormData<SingleResponse<Product>>(
+      "/marketplace/products",
+      data,
+      "POST",
+    );
+  }
   const res = await api.post<SingleResponse<Product>>(
     "/marketplace/products",
     data,
@@ -129,6 +136,13 @@ export const updateProductApi = async (
   id: string,
   data: FormData | any,
 ): Promise<SingleResponse<Product>> => {
+  if (isFormDataPayload(data)) {
+    return uploadFormData<SingleResponse<Product>>(
+      `/marketplace/products/${id}`,
+      data,
+      "PUT",
+    );
+  }
   const res = await api.put<SingleResponse<Product>>(
     `/marketplace/products/${id}`,
     data,

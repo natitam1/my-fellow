@@ -4,7 +4,7 @@ import {
   EventRegistration,
   EventRegistrationData,
 } from "@/types/events.types";
-import api from "./api";
+import api, { uploadFormData } from "./api";
 
 export interface FetchEventsOptions {
   sort?: "asc" | "desc";
@@ -66,6 +66,14 @@ export const unregisterFromEventApi = async (data: {
 export const createEventApi = async (
   data: FormData | any,
 ): Promise<ApiResponse<AppEvent>> => {
+  if (
+    data instanceof FormData ||
+    (Boolean(data) &&
+      typeof data === "object" &&
+      typeof (data as any).append === "function")
+  ) {
+    return uploadFormData<ApiResponse<AppEvent>>("/events", data, "POST");
+  }
   const res = await api.post<ApiResponse<AppEvent>>("/events", data);
   return res.data;
 };
@@ -74,6 +82,14 @@ export const updateEventApi = async (
   id: string,
   data: FormData | any,
 ): Promise<ApiResponse<AppEvent>> => {
+  if (
+    data instanceof FormData ||
+    (Boolean(data) &&
+      typeof data === "object" &&
+      typeof (data as any).append === "function")
+  ) {
+    return uploadFormData<ApiResponse<AppEvent>>(`/events/${id}`, data, "PUT");
+  }
   const res = await api.put<ApiResponse<AppEvent>>(`/events/${id}`, data);
   return res.data;
 };
