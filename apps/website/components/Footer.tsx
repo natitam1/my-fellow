@@ -47,10 +47,10 @@ export function Footer() {
             </div>
 
             <div className="mt-auto pt-4 text-gray-500 space-y-3">
-              <button className="hover:underline transition-all">
-                Cookie settings
-              </button>
-              <p>© {new Date().getFullYear()} 4kILO ECSF, Inc.</p>
+              <Link href="/privacy" className="hover:underline transition-all block">
+                Cookie & Privacy Settings
+              </Link>
+              <p>© 2026 AAU 4-Kilo ECSF. All rights reserved.</p>
             </div>
           </div>
 
@@ -60,40 +60,34 @@ export function Footer() {
             <div className="flex flex-col space-y-3">
               <h3 className="font-semibold text-gray-900 mb-2">Fellowship</h3>
               <Link
-                href="/about"
+                href="/#features"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
                 About ECSF
               </Link>
               <Link
-                href="/teams"
+                href="/#features"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Ministry Teams
               </Link>
               <Link
-                href="/security"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Security
-              </Link>
-              <Link
-                href="/status"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Status
-              </Link>
-              <Link
                 href="/terms"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Terms & privacy
+                Terms of Service
               </Link>
               <Link
                 href="/privacy"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Your privacy rights
+                Privacy Policy
+              </Link>
+              <Link
+                href="/delete-account"
+                className="text-red-500 hover:text-red-600 transition-colors font-medium"
+              >
+                Delete Account
               </Link>
             </div>
 
@@ -101,17 +95,25 @@ export function Footer() {
             <div className="flex flex-col space-y-3">
               <h3 className="font-semibold text-gray-900 mb-2">Download</h3>
               <Link
-                href="#"
+                href="/#download"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
-                iOS & Android
+                Android (Play Store)
               </Link>
               <Link
-                href="#"
+                href="/#download"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Mac & Windows
+                iOS (App Store)
               </Link>
+              <a
+                href="https://t.me/I4U_TEAM_bot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Telegram Bot
+              </a>
             </div>
 
             {/* Column 3: Resources */}
@@ -121,37 +123,7 @@ export function Footer() {
                 href="/support"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Help center
-              </Link>
-              <Link
-                href="/delete-account"
-                className="text-red-500 hover:text-red-600 transition-colors"
-              >
-                Delete Account
-              </Link>
-              <Link
-                href="/devotions"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Daily Devotionals
-              </Link>
-              <Link
-                href="#"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Marketplace
-              </Link>
-              <Link
-                href="#"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Community
-              </Link>
-              <Link
-                href="#"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Integrations
+                Help Center
               </Link>
               <Link
                 href="/docs"
@@ -159,37 +131,49 @@ export function Footer() {
               >
                 Documentation
               </Link>
+              <Link
+                href="/changelog"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Changelog
+              </Link>
+              <Link
+                href="/catalog"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Fellowship Store
+              </Link>
             </div>
 
             {/* Column 4: App Features */}
             <div className="flex flex-col space-y-3">
               <h3 className="font-semibold text-gray-900 mb-2">
-                My Fellow for
+                Ecosystem
               </h3>
               <Link
-                href="#"
+                href="/#features"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Daily Devotionals
+              </Link>
+              <Link
+                href="/#features"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Events & RSVPs
               </Link>
               <Link
-                href="#"
+                href="/#features"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Digital Giving (Jami)
               </Link>
-              <Link
-                href="#"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Team Leaders
-              </Link>
               <div className="pt-4">
                 <Link
-                  href="#"
+                  href="/#faqs"
                   className="font-medium text-gray-900 hover:underline flex items-center group transition-all"
                 >
-                  Explore more
+                  FAQs
                   <span className="ml-1 translate-x-0 group-hover:translate-x-1 transition-transform">
                     →
                   </span>

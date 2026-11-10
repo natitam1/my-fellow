@@ -10,9 +10,37 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "4kILO ECSF - Fellowship Page",
+  metadataBase: new URL("https://4kilofellowship.org"),
+  title: {
+    default: "4 Kilo ECSF — AAU Christian Students Fellowship",
+    template: "%s | 4 Kilo ECSF",
+  },
   description:
-    "Stay connected with AAU 4-killo Students Christian Fellowship through the My Fellow mobile app.",
+    "Official digital ecosystem for the AAU 4-Kilo Evangelical Christian Students Fellowship (ECSF) — connecting students, devotions, fellowship events, and discipleship.",
+  keywords: [
+    "AAU",
+    "ECSF",
+    "4 Kilo",
+    "Addis Ababa University",
+    "Christian Students Fellowship",
+    "My Fellow App",
+    "Ethiopian Fellowship",
+  ],
+  openGraph: {
+    title: "4 Kilo ECSF — Fellowship Ecosystem",
+    description:
+      "Stay spiritually nurtured and deeply connected with AAU 4-Kilo Christian Students Fellowship through the My Fellow app.",
+    url: "https://4kilofellowship.org",
+    siteName: "My Fellow — 4 Kilo ECSF",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "4 Kilo ECSF — Fellowship Ecosystem",
+    description:
+      "Stay spiritually nurtured and deeply connected with AAU 4-Kilo Christian Students Fellowship through the My Fellow app.",
+  },
 };
 
 export default function RootLayout({
@@ -25,7 +53,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} antialiased flex flex-col min-h-screen`}
       >
-        <main className="flex-1">{children}</main>
+        <div className="flex-1">{children}</div>
         <Footer />
         <Toaster position="top-center" richColors />
       </body>
