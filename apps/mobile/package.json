@@ -66,6 +66,7 @@
     "react": "19.3.0",
     "react-hook-form": "^7.71.1",
     "react-native": "0.88.1",
+    "react-native-css-interop": "0.2.7",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-markdown-display": "^7.0.2",
     "react-native-pager-view": "9.0.7",
@@ -81,7 +82,6 @@
     "zustand": "^4.5.7"
   },
   "devDependencies": {
-    "@babel/plugin-transform-react-jsx": "^8.0.1",
     "@types/react": "~19.3.0",
     "bun-types": "^1.4.4",
     "eslint": "^9.25.0",
