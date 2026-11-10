@@ -17,6 +17,7 @@ import Toast from "react-native-toast-message";
 import { AvatarPreviewHost } from "@/components/avatar-preview";
 import { NativeConfirmationProvider } from "@/components/NativeConfirmationDialog";
 import { NativeDialogProvider } from "@/context/native-dialog-context";
+import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { useNotificationObserver } from "@/notifications";
 import "./global.css";
 
@@ -128,6 +129,7 @@ function RootNavigator() {
   const isDark = theme === "dark";
 
   useNotificationObserver();
+  useOTAUpdates(true);
 
   return (
     <Stack

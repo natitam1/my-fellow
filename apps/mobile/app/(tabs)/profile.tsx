@@ -192,6 +192,11 @@ export default function ProfileScreen() {
       const metaUser = metaRes?.data?.data?.user || metaRes?.data?.user || null;
       if (metaUser) {
         setSocialProfile(metaUser);
+        const metaAvatar = extractMediaUrl(metaUser.avatar);
+        const latestUser = useUserStore.getState().user;
+        if (metaAvatar && latestUser && !latestUser.profileImage) {
+          setUser({ ...latestUser, profileImage: metaAvatar });
+        }
       }
 
       const targetUserId =
@@ -204,6 +209,11 @@ export default function ProfileScreen() {
           .then((prof) => {
             if (prof && prof.id) {
               setProfileDetail(prof);
+              const profAvatar = extractMediaUrl(prof.avatar);
+              const latestUser = useUserStore.getState().user;
+              if (profAvatar && latestUser && !latestUser.profileImage) {
+                setUser({ ...latestUser, profileImage: profAvatar });
+              }
               const isSyntheticFallback =
                 prof.streak?.current === 142 &&
                 prof.counts?.connects === 1240 &&

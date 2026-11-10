@@ -1,7 +1,12 @@
 import { useTheme } from "@/context/ThemeContext";
+import api from "@/services/api";
+import { useCommunityStore } from "@/stores/community.store";
+import { useUserStore } from "@/stores/user.store";
+import { getPrefilledAvatar } from "@/utils/avatar";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
+import { Image as ExpoImage } from "expo-image";
 import { router as expoRouter } from "expo-router";
 import { SFSymbol, SymbolView } from "expo-symbols";
 import React, { useCallback, useEffect, useState } from "react";
@@ -37,21 +42,62 @@ const triggerTabHaptic = () => {
   }
 };
 
+function extractMediaUrl(media?: any): string | null {
+  if (!media) return null;
+  if (typeof media === "string") return media;
+  if (media.id === "default-cover") return null;
+  return (
+    media.urls?.original ||
+    media.urls?.lg ||
+    media.urls?.md ||
+    media.urls?.sm ||
+    media.uri ||
+    null
+  );
+}
+
 // --- Native Platform Icons: SF Symbols on iOS, Material Design Icons on Android ---
 
 function TabIcon({
   routeName,
   focused,
   color,
+  avatarUri,
 }: {
   routeName: string;
   focused: boolean;
   color: string;
+  avatarUri?: string | null;
 }) {
   const isIOS = Platform.OS === "ios";
   // Home icon is just a tiny bit bigger (31 vs 28)
   const isHome = routeName === "index";
   const iconSize = isHome ? 31 : ICON_SIZE;
+  const [avatarError, setAvatarError] = useState(false);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [avatarUri]);
+
+  // Profile tab: render circular profile picture with active ring when focused
+  if (routeName === "profile" && avatarUri && !avatarError) {
+    return (
+      <ExpoImage
+        source={{ uri: avatarUri }}
+        style={[
+          styles.profileAvatarImg,
+          focused && {
+            borderWidth: 2,
+            borderColor: color,
+          },
+        ]}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={150}
+        onError={() => setAvatarError(true)}
+      />
+    );
+  }
 
   // 1. Native Apple SF Symbols on iOS
   if (isIOS) {
@@ -186,6 +232,40 @@ export default function AppTabBar(props: any) {
   const insets = passedInsets || contextInsets;
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const { user, setUser } = useUserStore();
+  const memberAvatar = useCommunityStore((s) =>
+    user?.id ? s.members[user.id]?.avatar : undefined
+  );
+  const [socialAvatar, setSocialAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id || user.profileImage) return;
+    let active = true;
+    api
+      .get("/v1/meta/me")
+      .then((res) => {
+        if (!active) return;
+        const metaUser = res?.data?.data?.user || res?.data?.user || null;
+        const resolved = extractMediaUrl(metaUser?.avatar);
+        if (resolved) {
+          setSocialAvatar(resolved);
+          const currentUser = useUserStore.getState().user;
+          if (currentUser && !currentUser.profileImage) {
+            setUser({ ...currentUser, profileImage: resolved });
+          }
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [user?.id, user?.profileImage, setUser]);
+
+  const avatarUri =
+    user?.profileImage ||
+    socialAvatar ||
+    memberAvatar ||
+    getPrefilledAvatar(user?.phoneNumber || user?.id || "fellow");
 
   const isIOS = Platform.OS === "ios";
   // High-contrast, punchy active and inactive colors for maximum visibility
@@ -382,6 +462,7 @@ export default function AppTabBar(props: any) {
                 routeName={route.name}
                 focused={isFocused}
                 color={isFocused ? activeColor : inactiveColor}
+                avatarUri={avatarUri}
               />
             </TabBarButton>
           );
