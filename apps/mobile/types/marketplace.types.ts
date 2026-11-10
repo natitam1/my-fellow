@@ -120,6 +120,9 @@ export interface OrdersApiResponse {
   message?: string;
 }
 
+export const FALLBACK_PRODUCT_IMAGE =
+  "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&q=80";
+
 export const getProductPrice = (product: Product): number => {
   if (product.price === undefined || product.price === null) return 0;
   return typeof product.price === "string"
@@ -128,7 +131,7 @@ export const getProductPrice = (product: Product): number => {
 };
 
 export const getProductImage = (product: Product): string => {
-  return product.imageUrls?.[0] || "https://via.placeholder.com/300";
+  return product.imageUrls?.[0] || FALLBACK_PRODUCT_IMAGE;
 };
 
 export const getProductImages = (product: Product): string[] => {
@@ -136,6 +139,6 @@ export const getProductImages = (product: Product): string[] => {
     return product.imageUrls;
   }
   return [
-    product.image || product.imageUrl || "https://via.placeholder.com/300",
+    product.image || product.imageUrl || FALLBACK_PRODUCT_IMAGE,
   ];
 };

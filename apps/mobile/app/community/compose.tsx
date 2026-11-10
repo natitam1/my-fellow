@@ -9,6 +9,7 @@ import { getPrefilledAvatar } from "@/utils/avatar";
 import { PostableActor } from "@/types/social.types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -105,9 +106,56 @@ export default function ComposePostScreen() {
   }, [fetchPostableActors]);
 
   const charLimit = 500;
-  const charsLeft = charLimit - content.length;
+  const locationSuffix = hasLocation && !content.includes("📍") ? "\n\n📍 4 Kilo Campus, AAU" : "";
+  const totalLength = content.length + locationSuffix.length;
+  const charsLeft = charLimit - totalLength;
   const isOverLimit = charsLeft < 0;
   const hasContent = (!!content.trim() || !!pickedImageUri) && !isOverLimit;
+
+  const pickImageFromGallery = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Photo library permission is needed to attach images to fellowship posts.",
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setPickedImageUri(result.assets[0].uri);
+      }
+    } catch (err: any) {
+      console.warn("Error picking image:", err);
+    }
+  };
+
+  const takePhotoWithCamera = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Camera permission is needed to take photos for fellowship posts.",
+        );
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setPickedImageUri(result.assets[0].uri);
+      }
+    } catch (err: any) {
+      console.warn("Error launching camera:", err);
+    }
+  };
 
   const hasUnsavedChanges =
     !hasPostedRef.current &&
@@ -408,12 +456,12 @@ export default function ComposePostScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.toolbarIconsRow}
           >
-            {/* 1. Gallery (Coming soon) */}
+            {/* 1. Gallery */}
             <Pressable
-              onPress={() => showComingSoonToast("Photo gallery")}
+              onPress={pickImageFromGallery}
               hitSlop={6}
               accessibilityRole="button"
-              accessibilityLabel="Attach photo from gallery, coming soon"
+              accessibilityLabel="Attach photo from gallery"
               android_ripple={{
                 color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
                 borderless: true,
@@ -424,12 +472,12 @@ export default function ComposePostScreen() {
               <Ionicons name="image-outline" size={22} color={mutedColor} />
             </Pressable>
 
-            {/* 2. Camera (Coming soon) */}
+            {/* 2. Camera */}
             <Pressable
-              onPress={() => showComingSoonToast("Camera")}
+              onPress={takePhotoWithCamera}
               hitSlop={6}
               accessibilityRole="button"
-              accessibilityLabel="Take photo with camera, coming soon"
+              accessibilityLabel="Take photo with camera"
               android_ripple={{
                 color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
                 borderless: true,

@@ -33,18 +33,40 @@ const VIDEO_HEIGHT = Math.round((width * 9) / 16);
 export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
   visible,
   video,
+  videos,
   onClose,
+  onSelectVideo,
+  isDark = false,
+}) => {
+  if (!visible || !video) return null;
+
+  return (
+    <VideoPlayerContent
+      visible={visible}
+      video={video}
+      videos={videos}
+      onClose={onClose}
+      onSelectVideo={onSelectVideo}
+      isDark={isDark}
+    />
+  );
+};
+
+const VideoPlayerContent: React.FC<VideoPlayerModalProps & { video: Video }> = ({
+  visible,
+  video,
+  videos,
+  onClose,
+  onSelectVideo,
   isDark = false,
 }) => {
   const insets = useSafeAreaInsets();
   const videoViewRef = useRef<VideoView>(null);
 
-  // Initialize expo-video player
-  const player = useVideoPlayer(video?.videoUrl ?? "", (p) => {
+  // Initialize expo-video player only when video is active
+  const player = useVideoPlayer(video.videoUrl, (p) => {
     p.loop = false;
-    if (visible && video?.videoUrl) {
-      p.play();
-    }
+    p.play();
   });
 
   // Track player events
@@ -55,6 +77,15 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
   const { status } = useEvent(player, "statusChange", {
     status: player?.status ?? "idle",
   });
+
+  // Pause playback if modal unmounts
+  useEffect(() => {
+    return () => {
+      try {
+        player.pause();
+      } catch {}
+    };
+  }, [player]);
 
   // Keep screen awake during playback
   useEffect(() => {
@@ -68,27 +99,26 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
     };
   }, [visible, isPlaying]);
 
-  // Update source and play when active video changes
+  // Update source asynchronously when active video changes
   useEffect(() => {
     if (visible && video?.videoUrl && player) {
-      try {
-        player.replace(video.videoUrl);
+      player.replaceAsync(video.videoUrl).then(() => {
         player.play();
-      } catch (err) {
+      }).catch((err) => {
         console.warn("Error replacing video source:", err);
-      }
+      });
     }
-  }, [video?.videoUrl, visible]);
+  }, [video?.videoUrl, visible, player]);
 
   const handleClose = () => {
     if (player) {
-      player.pause();
+      try {
+        player.pause();
+      } catch {}
     }
     deactivateKeepAwake("video_player").catch(() => {});
     onClose();
   };
-
-  if (!video) return null;
 
   // Clean, minimalist title: "Living Hope"
   let cleanTitle = (video.title || "")
@@ -185,8 +215,7 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
               <Pressable
                 onPress={() => {
                   if (video?.videoUrl && player) {
-                    player.replace(video.videoUrl);
-                    player.play();
+                    player.replaceAsync(video.videoUrl).then(() => player.play()).catch(() => {});
                   }
                 }}
                 style={styles.retryBtn}

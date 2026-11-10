@@ -41,6 +41,16 @@ const getYesterdayDateString = (): string => {
   return getLocalDateString(d);
 };
 
+const getDayDifference = (d1: string, d2: string): number => {
+  try {
+    const t1 = new Date(d1 + "T00:00:00Z").getTime();
+    const t2 = new Date(d2 + "T00:00:00Z").getTime();
+    return Math.round(Math.abs(t1 - t2) / (1000 * 60 * 60 * 24));
+  } catch {
+    return 2;
+  }
+};
+
 export const useStreakStore = create<StreakState>()(
   persist(
     (set, get) => ({
@@ -66,10 +76,10 @@ export const useStreakStore = create<StreakState>()(
         }
 
         const today = getLocalDateString();
-        const yesterday = getYesterdayDateString();
+        const diff = getDayDifference(lastActiveDate, today);
 
-        // If last active was neither today nor yesterday, the streak lapsed
-        if (lastActiveDate !== today && lastActiveDate !== yesterday) {
+        // If last active was more than 1 day ago, the streak lapsed
+        if (diff > 1) {
           if (currentStreak > 0) {
             set({ currentStreak: 0 });
           }

@@ -9,8 +9,10 @@ export default function Index() {
   const hasCompletedOnboarding = useAppStore(
     (state) => state.hasCompletedOnboarding,
   );
+  const user = useUserStore((state) => state.user);
+  const hasHydrated = useUserStore((state) => state._hasHydrated);
 
-  if (authState.authenticated === null) {
+  if (authState.authenticated === null || !hasHydrated) {
     return null;
   }
 
@@ -18,7 +20,6 @@ export default function Index() {
   if (!hasCompletedOnboarding) {
     destination = "/onboarding";
   } else if (authState.authenticated) {
-    const user = useUserStore.getState().user;
     if (user && (!user.fullName || !user.department)) {
       destination = "/(auth)/personalization";
     } else {

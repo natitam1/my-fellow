@@ -43,6 +43,7 @@ export async function checkForNewNotifications(): Promise<number> {
             "New Upcoming Event",
             event.title,
             notifId,
+            { url: `/events/${event._id}` },
           ).catch(() => {});
         }
       }
@@ -88,7 +89,9 @@ export async function checkForNewNotifications(): Promise<number> {
         });
 
         if (!isFirstCheck) {
-          sendImmediateNotification(title, bodyText, notifId).catch(() => {});
+          sendImmediateNotification(title, bodyText, notifId, {
+            url: `/marketplace/${product.id}`,
+          }).catch(() => {});
         }
       }
 

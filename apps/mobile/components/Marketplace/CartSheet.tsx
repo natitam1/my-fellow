@@ -1,5 +1,4 @@
 import { AppBottomSheet } from "@/components/AppBottomSheet";
-import { API_URL } from "@/constants/api";
 import { PRIMARY } from "@/constants/colors";
 import {
   useInitJamiPaymentMutation,
@@ -89,6 +88,7 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
       const itemsPayload = cartItems.map((item) => ({
         productId: item.product.id,
         quantity: item.quantity,
+        size: item.size || undefined,
       }));
       const orderTotal = total;
       const order = await placeOrderMutation.mutateAsync(itemsPayload);
@@ -97,10 +97,11 @@ export const CartSheet = ({ visible, onClose, isDark }: CartSheetProps) => {
           try {
             const initRes = await initJamiMutation.mutateAsync({
               amount: orderTotal,
-              email: user?.email?.trim() || "206413681+natitam1@users.noreply.github.com",
+              email: user?.email?.trim() || "finance@4kilofellowship.org",
               phone: user?.phoneNumber,
               reason: `Fellowship Store Order #${order.id.slice(-6).toUpperCase()}`,
-              returnUrl: `${API_URL}/payments/success`,
+              returnUrl: "my-fellow://payment-status",
+              orderId: order.id,
             });
 
             let launchUrl = initRes.checkoutUrl;

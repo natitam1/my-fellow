@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { FALLBACK_PRODUCT_IMAGE } from "@/types/marketplace.types";
 import React, { useCallback, useRef, useState } from "react";
 import {
   Dimensions,
@@ -24,7 +25,7 @@ const ImageGallery = ({ images, isDark }: ImageGalleryProps) => {
   const isProgrammaticScroll = useRef(false);
 
   const galleryImages =
-    images.length > 0 ? images : ["https://via.placeholder.com/500"];
+    images.length > 0 ? images : [FALLBACK_PRODUCT_IMAGE];
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {

@@ -139,6 +139,7 @@ export const sendImmediateNotification = async (
   title: string,
   body: string,
   id?: string,
+  extraData?: Record<string, any>,
 ): Promise<void> => {
   const hasPermission = await ensureLocalNotificationPermissionAsync();
   if (!hasPermission) return;
@@ -150,7 +151,7 @@ export const sendImmediateNotification = async (
         title,
         body,
         sound: "default",
-        data: { id },
+        data: { id, ...extraData },
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       trigger: null,

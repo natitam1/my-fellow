@@ -36,8 +36,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { FALLBACK_PRODUCT_IMAGE } from "@/types/marketplace.types";
+
 // ─── Constants ────────────────────────────────────────────────────────────────
-const PLACEHOLDER_IMAGE = "https://via.placeholder.com/500";
+const PLACEHOLDER_IMAGE = FALLBACK_PRODUCT_IMAGE;
 
 // Minimalistic Product Detail Skeleton
 const ProductDetailSkeleton = ({ isDark }: { isDark: boolean }) => {

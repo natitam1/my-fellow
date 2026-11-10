@@ -16,7 +16,8 @@
       "icon": "./assets/images/app-icon.png",
       "infoPlist": {
         "UIBackgroundModes": [
-          "audio"
+          "audio",
+          "remote-notification"
         ]
       }
     },
@@ -92,7 +93,7 @@
     ],
     "owner": "arat-kilo-fellowship",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "updates": {
       "enabled": true,

@@ -609,7 +609,7 @@ export default function ProfileScreen() {
     }
 
     return Array.from(merged.values());
-  }, [posts, fetchedAuthorPosts, user?.id, user?.fullName, systemHandle]);
+  }, [posts, fetchedAuthorPosts, user, systemHandle]);
 
   // Media posts (author posts that have an image)
   const mediaPosts = useMemo(() => {

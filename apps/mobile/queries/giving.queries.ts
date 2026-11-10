@@ -22,6 +22,7 @@ export interface InitJamiPaymentInput {
   phone?: string;
   reason: string;
   returnUrl?: string;
+  orderId?: string;
 }
 
 export interface InitJamiPaymentResult {

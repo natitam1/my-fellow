@@ -7,6 +7,7 @@ import {
 import { useAppStore } from "@/stores/app.store";
 import { Ionicons } from "@expo/vector-icons";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { setAudioModeAsync } from "expo-audio";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -245,6 +246,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     setupReactQueryAppStateListener();
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: "doNotMix",
+    }).catch((err) => console.warn("[Audio] Global setAudioModeAsync notice:", err));
   }, []);
 
   useEffect(() => {

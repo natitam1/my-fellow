@@ -265,7 +265,7 @@ const Gifts = () => {
     try {
       const payload = {
         amount: data.amount,
-        email: user?.email?.trim() || "206413681+natitam1@users.noreply.github.com",
+        email: user?.email?.trim() || "finance@4kilofellowship.org",
         phone: user?.phoneNumber,
         reason: reason,
         returnUrl: `${API_URL}/payments/success`,

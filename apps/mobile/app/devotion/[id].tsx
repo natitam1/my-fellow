@@ -147,19 +147,37 @@ const DevotionDetail = () => {
     } catch {}
     if (status.playing) {
       player.pause();
-      player.setActiveForLockScreen(false);
     } else {
       if (devotion && devotion.type === "voice") {
-        player.setActiveForLockScreen(true, {
-          title: devotion.title,
-          artist: actor.displayName,
-          albumTitle: "4 Kilo Fellowship Devotions",
-          artworkUrl: devotion.image,
-        });
+        player.setActiveForLockScreen(
+          true,
+          {
+            title: devotion.title,
+            artist: actor.displayName,
+            albumTitle: "4 Kilo Fellowship Devotions",
+            artworkUrl: devotion.image,
+          },
+          {
+            showSeekForward: true,
+            showSeekBackward: true,
+            seekForwardIntervalSeconds: 10,
+            seekBackwardIntervalSeconds: 10,
+          },
+        );
+      }
+      if (status.didJustFinish) {
+        player.seekTo(0);
       }
       player.play();
     }
   };
+
+  useEffect(() => {
+    if (status.didJustFinish) {
+      player.setActiveForLockScreen(false);
+      player.seekTo(0);
+    }
+  }, [status.didJustFinish, player]);
 
   const handleSeekPress = (e: GestureResponderEvent) => {
     if (status.duration > 0 && progressBarWidth > 0) {
@@ -270,7 +288,9 @@ const DevotionDetail = () => {
           );
           await downloadResumable.downloadAsync();
         }
-        setAudioSource(mediaFile);
+        if (!status.playing && status.currentTime === 0) {
+          setAudioSource(mediaFile);
+        }
         completedFiles++;
         setDownloadProgress((completedFiles / totalFiles) * 100);
       }
@@ -684,6 +704,7 @@ const DevotionDetail = () => {
                   } justify-center`}
                 >
                   <View
+                    pointerEvents="none"
                     style={{
                       width:
                         status.duration > 0
@@ -751,9 +772,11 @@ const DevotionDetail = () => {
                     try {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     } catch {}
-                    player.seekTo(
-                      Math.min(status.duration, status.currentTime + 10),
-                    );
+                    const targetTime =
+                      status.duration > 0
+                        ? Math.min(status.duration, status.currentTime + 10)
+                        : status.currentTime + 10;
+                    player.seekTo(targetTime);
                   }}
                   className={`w-10 h-10 rounded-full items-center justify-center ${
                     isDark ? "bg-[#222]" : "bg-gray-100"
