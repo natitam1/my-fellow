@@ -18,13 +18,16 @@ async function seed() {
   console.log("Connected to MongoDB successfully.");
 
   // 1. Ensure Official "4 Kilo Fellowship" Admin Account exists
+  const officialPhone = process.env.OFFICIAL_PHONE || "0900004000";
+  const adminPhone = process.env.ADMIN_PHONE || "0911000002";
+
   console.log("\nEnsuring official 4 Kilo Fellowship user account...");
   const officialUser = await UserModel.findOneAndUpdate(
-    { phoneNumber: "0900004000" },
+    { phoneNumber: officialPhone },
     {
       $set: {
         fullName: "4 Kilo Fellowship",
-        phoneNumber: "0900004000",
+        phoneNumber: officialPhone,
         role: "admin",
         department: "Campus Ministry Leadership",
         telegramUserName: "4kilo_fellowship",
@@ -36,10 +39,10 @@ async function seed() {
   );
   console.log("Official Fellowship User ID:", officialUser._id.toString());
 
-  // 2. Ensure Admin "Nati" has complete profile info
-  console.log("Updating admin Nati profile...");
+  // 2. Ensure Admin Profile
+  console.log("Updating admin profile...");
   const adminNati = await UserModel.findOneAndUpdate(
-    { phoneNumber: "0911000002" },
+    { phoneNumber: adminPhone },
     {
       $set: {
         fullName: "Natnael Tamiru",

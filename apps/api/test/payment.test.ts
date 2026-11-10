@@ -8,7 +8,7 @@ test("JamiService normalizes Ethiopian phone numbers accurately", () => {
 
   assert.equal(service.normalizeEthiopianPhone("0912345678"), "251912345678");
   assert.equal(service.normalizeEthiopianPhone("912345678"), "251912345678");
-  assert.equal(service.normalizeEthiopianPhone("+251911000003"), "251912345678");
+  assert.equal(service.normalizeEthiopianPhone("+251912345678"), "251912345678");
   assert.equal(service.normalizeEthiopianPhone("0712345678"), "251712345678");
   assert.equal(service.normalizeEthiopianPhone("712345678"), "251712345678");
   assert.equal(service.normalizeEthiopianPhone("251912345678"), "251912345678");

@@ -9,7 +9,7 @@ if (!mongoUri) {
   process.exit(1);
 }
 
-const inputPhone = process.argv[2] || "0900000001";
+const inputPhone = process.argv[2] || process.env.ADMIN_PHONE || "0900000001";
 const normalizedPhone = AuthService.normalizePhone(inputPhone);
 
 console.log(`Connecting to MongoDB to promote user with phone: ${inputPhone} (normalized: ${normalizedPhone})...`);

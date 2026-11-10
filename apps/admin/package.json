@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check-types": "tsc --noEmit",
+    "test": "echo 'Admin tests placeholder'"
   },
   "dependencies": {
     "@types/js-cookie": "^3.0.6",

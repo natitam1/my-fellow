@@ -70,7 +70,10 @@ if (fs.existsSync(cwdPublicAssets)) {
   app.use("/assets", express.static(cwdPublicAssets, staticAssetOptions));
 }
 
-// Fallback static assets from mobile app (my-fellow/assets/images)
+// Fallback static assets from mobile app (mobile/assets/images or my-fellow/assets/images)
+app.use("/assets", express.static(path.resolve(__dirname, "../../mobile/assets/images"), staticAssetOptions));
+app.use("/assets", express.static(path.resolve(process.cwd(), "../mobile/assets/images"), staticAssetOptions));
+app.use("/assets", express.static(path.resolve(process.cwd(), "apps/mobile/assets/images"), staticAssetOptions));
 app.use("/assets", express.static(path.resolve(__dirname, "../../my-fellow/assets/images"), staticAssetOptions));
 app.use("/assets", express.static(path.resolve(process.cwd(), "../my-fellow/assets/images"), staticAssetOptions));
 const rootMobileAssets = path.resolve(process.cwd(), "my-fellow/assets/images");
