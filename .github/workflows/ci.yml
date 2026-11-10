@@ -25,9 +25,19 @@ jobs:
 
       - name: API Tests
         run: bun --filter my-fellow-api test
+        env:
+          NODE_ENV: test
+          MONGO_URI: mongodb://localhost:27017/my_fellow_test
+          JWT_SECRET: ci-test-jwt-secret-placeholder-for-tests
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
 
       - name: API Build
         run: bun --filter my-fellow-api build
+        env:
+          NODE_ENV: test
+          MONGO_URI: mongodb://localhost:27017/my_fellow_test
+          JWT_SECRET: ci-test-jwt-secret-placeholder-for-tests
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
 
       - name: Admin Build & Lint
         run: |
