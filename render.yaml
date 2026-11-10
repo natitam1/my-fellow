@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: my-fellow-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: apps/api
+    buildCommand: curl -fsSL https://bun.sh/install | bash && export PATH="$HOME/.bun/bin:$PATH" && cd ../.. && bun install && cd apps/api && bun run build
+    startCommand: node dist/server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - apps/api/**
+        - package.json
+        - bun.lock
