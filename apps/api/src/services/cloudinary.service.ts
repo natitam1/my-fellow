@@ -20,6 +20,10 @@ export interface UploadOptions {
   folder?: string;
   transformation?: any;
   resource_type?: "image" | "video" | "raw" | "auto";
+  public_id?: string;
+  overwrite?: boolean;
+  invalidate?: boolean;
+  tags?: string[];
 }
 
 export const uploadImageToCloudinary = async (
@@ -41,15 +45,39 @@ export const uploadImageToCloudinary = async (
       folder = "profile-images",
       transformation = {},
       resource_type = "image",
+      public_id,
+      overwrite = true,
+      invalidate = true,
+      tags,
     } = options;
 
     return new Promise((resolve, reject) => {
+      const uploadParams: any = {
+        folder,
+        resource_type,
+        overwrite,
+        invalidate,
+      };
+
+      if (public_id) uploadParams.public_id = public_id;
+      if (tags && tags.length > 0) uploadParams.tags = tags;
+
+      // Apply Cloudinary optimization best practices (f_auto, q_auto)
+      if (transformation && Object.keys(transformation).length > 0) {
+        uploadParams.transformation = {
+          quality: "auto",
+          fetch_format: "auto",
+          ...transformation,
+        };
+      } else {
+        uploadParams.transformation = {
+          quality: "auto",
+          fetch_format: "auto",
+        };
+      }
+
       const uploadStream = cloudinary.v2.uploader.upload_stream(
-        {
-          folder,
-          resource_type,
-          transformation,
-        },
+        uploadParams,
         (error, result) => {
           if (error) {
             reject(error);

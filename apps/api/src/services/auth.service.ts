@@ -5,7 +5,7 @@ import TeamModel from "../models/team.model.js";
 import { IUserDocument, UserModel } from "../models/user.model.js";
 import { SignInDTO, SignUpDTO } from "../types/types.js";
 import { signJwt } from "../utils/jwt.js";
-import { ProfileModel } from "../models/social.models.js";
+import { ProfileModel, ActorModel } from "../models/social.models.js";
 import { resolveUniqueUsername } from "../utils/username.js";
 import { uploadImageToCloudinary } from "./cloudinary.service.js";
 import { OtpService, toLocalPhone } from "./otp.service.js";
@@ -265,11 +265,14 @@ export class AuthService {
       try {
         const uploadResult = await uploadImageToCloudinary(file.buffer, {
           folder: "profile-images",
+          public_id: `user-${user._id}`,
+          overwrite: true,
+          invalidate: true,
           transformation: {
             width: 500,
             height: 500,
             crop: "fill",
-            quality: "auto",
+            gravity: "face",
           },
         });
         updates.profileImage = uploadResult.secure_url;
@@ -278,6 +281,8 @@ export class AuthService {
           `Failed to upload image: ${error.message || "Image upload error"}`,
         );
       }
+    } else if (updates.image && !updates.profileImage) {
+      updates.profileImage = updates.image;
     }
 
     // Resolve team name string → ObjectId if a string name was sent
@@ -334,6 +339,7 @@ export class AuthService {
             displayName: user.fullName || "Fellowship Member",
             department: user.department || null,
             studyYear: studyYearNum,
+            avatarUrl: user.profileImage,
             links,
           },
           $setOnInsert: {
@@ -341,6 +347,17 @@ export class AuthService {
           },
         },
         { upsert: true, new: true }
+      );
+
+      await ActorModel.updateMany(
+        { userId: String(user._id), type: "user" },
+        {
+          $set: {
+            displayName: user.fullName || "Fellowship Member",
+            handle: resolvedUsername,
+            avatarUrl: user.profileImage,
+          },
+        }
       );
     } catch (err) {
       console.error("Failed to sync profile username in updateProfile:", err);

@@ -24,6 +24,12 @@ router.post("/media/upload-file", requireAuth, uploadSingle, async (req: AuthReq
     const fileBuffer = Buffer.from((req.file as Express.Multer.File).buffer);
     const result = await uploadImageToCloudinary(fileBuffer, { folder });
 
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "doi9bg69o";
+    const publicId = result.public_id;
+    const sm = `https://res.cloudinary.com/${cloudName}/image/upload/c_limit,w_400/f_auto/q_auto/${publicId}`;
+    const md = `https://res.cloudinary.com/${cloudName}/image/upload/c_limit,w_800/f_auto/q_auto/${publicId}`;
+    const lg = `https://res.cloudinary.com/${cloudName}/image/upload/c_limit,w_1200/f_auto/q_auto/${publicId}`;
+
     const asset = await MediaAssetModel.create({
       ownerId,
       purpose: (req.body.purpose as string) || "post",
@@ -35,9 +41,9 @@ router.post("/media/upload-file", requireAuth, uploadSingle, async (req: AuthReq
       height: result.height || 600,
       variants: {
         original: result.secure_url,
-        sm: result.secure_url,
-        md: result.secure_url,
-        lg: result.secure_url,
+        sm,
+        md,
+        lg,
       },
       readyAt: new Date(),
     });

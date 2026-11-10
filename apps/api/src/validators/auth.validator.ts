@@ -27,6 +27,8 @@ export const updateProfileSchema = z.object({
   department: z.string().optional().nullable(),
   yearOfStudy: z.string().optional().nullable(),
   telegramUserName: z.string().optional().nullable(),
+  profileImage: z.string().optional().nullable(),
+  image: z.string().optional().nullable(),
 });
 
 export const sendPhoneAuthOtpSchema = z.object({
