@@ -7,9 +7,8 @@ const PAGE_SIZE = 5;
 export async function handleDevotionsList(ctx: BotContext) {
     ctx.session.currentSection = "devotions";
     const page = ctx.session.currentPage || 1;
-    const type = ctx.session.onboardingData?.team as any;
     try {
-        const result = await getAllDevotions({ page, limit: PAGE_SIZE, type });
+        const result = await getAllDevotions({ page, limit: PAGE_SIZE });
         const allDevotions = Array.isArray(result)
             ? result
             : result.devotions || result.data || [];

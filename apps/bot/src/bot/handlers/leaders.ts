@@ -20,13 +20,14 @@ export async function handleLeadersList(ctx: BotContext) {
     const pagedLeaders = allLeaders.slice(start, start + PAGE_SIZE);
     let text = `<b>Fellowship Leaders</b> (Page ${validPage}/${totalPages})\n\n`;
     for (const leader of pagedLeaders) {
-      const handle = leader.telegram.replace("@", "");
-      const tgLink = `https://t.me/${handle}`;
+      const rawTg = leader.telegram ? String(leader.telegram).trim() : "";
+      const handle = rawTg.replace(/^@/, "");
+      const tgDisplay = handle ? `<a href="https://t.me/${handle}">@${handle}</a>` : "N/A";
       const phone = leader.phoneNumber || "N/A";
       text += `<b>${leader.name}</b>\n`;
       text += `Role: ${leader.role || "N/A"}\n`;
       text += `Phone: <code>${phone}</code>\n`;
-      text += `Telegram: <a href="${tgLink}">@${handle}</a>\n\n`;
+      text += `Telegram: ${tgDisplay}\n\n`;
     }
     const kb = new InlineKeyboard();
     if (validPage > 1) {

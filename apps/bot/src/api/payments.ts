@@ -8,6 +8,7 @@ export async function initializePayment(
     phoneNumber?: string;
     email: string;
     reason: string;
+    returnUrl?: string;
   },
 ) {
   const api = createApiClient(token);
@@ -16,6 +17,7 @@ export async function initializePayment(
     email: body.email,
     phone: body.phone || body.phoneNumber,
     reason: body.reason,
+    returnUrl: body.returnUrl || "https://t.me/I4U_TEAM_bot",
   });
   return data;
 }

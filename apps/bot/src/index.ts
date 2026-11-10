@@ -1,7 +1,9 @@
+import http from "http";
 import { Bot, session } from "grammy";
 import axios from "axios";
 import { config } from "./config";
 import { BotContext, SessionData } from "./bot/context";
+import { likeUnlikeDevotion } from "./api/devotions";
 import {
   handleStart,
   handleContact,
@@ -103,6 +105,30 @@ bot.command("menu", (ctx) => {
   ctx.session.currentPage = 1;
   return handleEventsList(ctx);
 });
+bot.command("help", (ctx) =>
+  handleFellowInfo(ctx, mainReplyKeyboard(ctx.session.user?.role === "admin"))
+);
+bot.command("give", handlePayments);
+bot.command("events", (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleEventsList(ctx);
+});
+bot.command(["devotion", "devotions"], (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleDevotionsList(ctx);
+});
+bot.command("teams", (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleTeamsList(ctx);
+});
+bot.command("leaders", (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleLeadersList(ctx);
+});
+bot.command("programs", (ctx) => {
+  ctx.session.currentPage = 1;
+  return handleProgramsList(ctx);
+});
 bot.command("logout", handleLogout);
 bot.on("message:contact", handleContact);
 bot.hears("Back to Main Menu", async (ctx) => {
@@ -171,6 +197,10 @@ bot.on("callback_query:data", async (ctx) => {
       s.currentPage = 1;
       return handleEventsList(ctx);
     }
+    if (data === "fi_devotions") {
+      s.currentPage = 1;
+      return handleDevotionsList(ctx);
+    }
     if (data === "fi_teams") {
       s.currentPage = 1;
       return handleTeamsList(ctx);
@@ -198,6 +228,16 @@ bot.on("callback_query:data", async (ctx) => {
       return handleEventRegister(ctx, data.replace("ev_reg_", ""));
     if (data.startsWith("devotion_view_"))
       return handleDevotionDetail(ctx, data.replace("devotion_view_", ""));
+    if (data.startsWith("devotion_like_")) {
+      const devId = data.replace("devotion_like_", "");
+      if (ctx.session.token) {
+        await likeUnlikeDevotion(ctx.session.token, devId).catch(() => {});
+        await ctx.answerCallbackQuery("Updated devotion like! ❤️");
+      } else {
+        await ctx.answerCallbackQuery("Please log in to like devotions.");
+      }
+      return;
+    }
     if (data.startsWith("team_view_")) return handleTeamDetail(ctx);
     if (data.startsWith("team_join_"))
       return handleTeamJoin(ctx, data.replace("team_join_", ""));
@@ -402,6 +442,36 @@ bot.on("message:photo", async (ctx) => {
 bot.catch((err) => {
   console.error(`Bot error for update ${err.ctx.update.update_id}:`, err.error);
 });
+
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
+if (PORT) {
+  const healthServer = http.createServer((req, res) => {
+    if (req.url === "/health" || req.url === "/") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok", service: "my-fellow-bot" }));
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+  healthServer.listen(PORT, () => {
+    console.log(`Bot health server listening on port ${PORT}`);
+  });
+}
+
+const stopBot = async (signal: string) => {
+  console.log(`Received ${signal}. Gracefully stopping bot...`);
+  try {
+    await bot.stop();
+  } catch (err) {
+    console.error("Error stopping bot:", err);
+  }
+  process.exit(0);
+};
+
+process.once("SIGINT", () => stopBot("SIGINT"));
+process.once("SIGTERM", () => stopBot("SIGTERM"));
+
 console.log("My Fellow Bot is updated. Starting in hybrid mode...");
 bot.api.deleteWebhook({ drop_pending_updates: true }).then(() => {
   bot.start();

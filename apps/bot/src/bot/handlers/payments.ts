@@ -44,6 +44,7 @@ export async function completePayment(ctx: BotContext, text: string) {
       phoneNumber: user.phoneNumber,
       email: lines[1],
       reason: lines[2],
+      returnUrl: "https://t.me/I4U_TEAM_bot",
     });
     const checkoutUrl = result.checkoutUrl || result.data?.checkout_url;
     if (checkoutUrl) {
