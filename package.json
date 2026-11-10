@@ -1,0 +1,26 @@
+{
+  "name": "my-fellow",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "check-types": "turbo check-types",
+    "dev:mobile": "bun --filter my-fellow start",
+    "dev:api": "bun --filter my-fellow-api dev",
+    "dev:admin": "bun --filter my-fellow-admin dev",
+    "dev:website": "bun --filter my-fellow-website dev",
+    "dev:bot": "bun --filter my-fellow-bot dev"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.4"
+  },
+  "packageManager": "bun@1.4.4",
+  "engines": {
+    "node": ">=24.3.0 <25"
+  }
+}

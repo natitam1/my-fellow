@@ -1,0 +1,34 @@
+name: Bug Report
+description: Report a reproducible bug or issue
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve the My Fellow ecosystem!
+  - type: dropdown
+    id: app
+    attributes:
+      label: Affected Component
+      options:
+        - apps/mobile
+        - apps/api
+        - apps/admin
+        - apps/website
+        - apps/bot
+        - Monorepo tooling / Docs
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe what happened and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the issue.
+    validations:
+      required: true

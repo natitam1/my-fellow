@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.4
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: API Tests
+        run: bun --filter my-fellow-api test
+
+      - name: API Build
+        run: bun --filter my-fellow-api build
+
+      - name: Admin Build & Lint
+        run: |
+          bun --filter my-fellow-admin lint
+          bun --filter my-fellow-admin build
+
+      - name: Website Build & Lint
+        run: |
+          bun --filter my-fellow-website lint
+          bun --filter my-fellow-website build
+
+      - name: Bot Build & Lint
+        run: |
+          bun --filter my-fellow-bot lint
+          bun --filter my-fellow-bot build
+
+      - name: Mobile Lint & Typecheck
+        run: |
+          cd apps/mobile
+          bun run lint
+          bunx tsc --noEmit

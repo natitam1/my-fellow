@@ -1,0 +1,87 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Turborepo
+.turbo/
+
+# Build and export outputs
+dist/
+build/
+out/
+.next/
+.expo/
+web-build/
+
+# Native folders (Expo prebuild)
+/apps/mobile/ios/
+/apps/mobile/android/
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Google Play Service Account & secrets
+google-service-account.json
+
+# Environment variables
+.env
+.env.*
+.env*.local
+!.env.example
+
+# Metro
+.metro-health-check*
+.tmp-icon-preview/
+
+# TypeScript & generated code
+*.tsbuildinfo
+expo-env.d.ts
+next-env.d.ts
+/apps/api/src/generated/prisma
+
+# Scoped bot compile outputs (do not ignore root or other app configs)
+apps/bot/**/*.js
+apps/bot/**/*.d.ts
+apps/bot/**/*.map
+!apps/bot/**/*.config.js
+
+# Logs and debug
+logs/
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.pnpm-debug.log*
+
+# Runtime data & locks
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+
+# Mac / OS / Editor artifacts
+.DS_Store
+*.pem
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Vercel
+.vercel/
+
+# Database dumps
+dump/
