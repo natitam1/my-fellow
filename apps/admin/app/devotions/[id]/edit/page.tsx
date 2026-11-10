@@ -20,7 +20,7 @@ export default function EditDevotionPage({ params }: Props) {
     const fetchDevotion = async () => {
       try {
         const response = await api.get(`/devotions/${id}`);
-        setInitialData(response.data.data);
+        setInitialData(response.data?.data ?? response.data);
       } catch (error) {
         console.error(error);
         toast.error("Failed to load devotion data");
@@ -39,6 +39,14 @@ export default function EditDevotionPage({ params }: Props) {
     return (
       <div className="flex justify-center p-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff6719]"></div>
+      </div>
+    );
+  }
+
+  if (!initialData) {
+    return (
+      <div className="text-center p-12">
+        <p className="text-gray-500">Devotion not found.</p>
       </div>
     );
   }

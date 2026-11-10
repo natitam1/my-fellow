@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("admin_token")?.value;
   const { pathname } = request.nextUrl;
 
-  const publicRoutes = ["/signin", "/signup"];
+  const publicRoutes = ["/", "/signin", "/signup"];
   const isPublicRoute = publicRoutes.includes(pathname);
   const isStaticAsset =
     pathname.startsWith("/images") ||
@@ -21,9 +21,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/signin", request.url));
   }
 
-  // Redirect to home if accessing signin while already authenticated
+  // Redirect to dashboard if accessing public landing/auth routes while already authenticated
   if (isPublicRoute && token) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();

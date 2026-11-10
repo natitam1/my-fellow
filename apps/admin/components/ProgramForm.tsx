@@ -69,19 +69,61 @@ export function ProgramForm({ initialData }: ProgramFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.title.trim()) {
+      toast.error("Program title is required");
+      return;
+    }
+    if (!formData.description.trim()) {
+      toast.error("Description is required");
+      return;
+    }
+    if (formData.description.trim().length < 10) {
+      toast.error("Description must be at least 10 characters");
+      return;
+    }
+    if (!formData.day) {
+      toast.error("Please select a day");
+      return;
+    }
+    if (!formData.time.trim()) {
+      toast.error("Time is required");
+      return;
+    }
+    if (!formData.category.trim()) {
+      toast.error("Category is required");
+      return;
+    }
+    if (!formData.location.trim()) {
+      toast.error("Location name is required");
+      return;
+    }
+
+    const latNum = parseFloat(formData.lat);
+    const lngNum = parseFloat(formData.lng);
+    if (isNaN(latNum) || isNaN(lngNum)) {
+      toast.error("Please provide valid coordinates (Latitude and Longitude)");
+      return;
+    }
+
+    if (!imageFile && !isEditing && !initialData?.image) {
+      toast.error("Please upload an image for the program");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const payload = {
-        title: formData.title,
-        description: formData.description,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
         day: formData.day,
-        time: formData.time,
-        category: formData.category,
-        location: formData.location,
+        time: formData.time.trim(),
+        category: formData.category.trim(),
+        location: formData.location.trim(),
         coordinates: {
-          lat: parseFloat(formData.lat),
-          lng: parseFloat(formData.lng),
+          lat: latNum,
+          lng: lngNum,
         },
         image: formData.image,
       };
@@ -99,10 +141,6 @@ export function ProgramForm({ initialData }: ProgramFormProps) {
         form.append("image", imageFile);
       } else if (isEditing && initialData.image) {
         form.append("image", initialData.image);
-      } else if (!isEditing) {
-        toast.error("Please upload an image");
-        setLoading(false);
-        return;
       }
 
       if (isEditing) {
@@ -125,8 +163,10 @@ export function ProgramForm({ initialData }: ProgramFormProps) {
     } catch (error: any) {
       const message =
         error.response?.data?.message ||
+        error.response?.data?.errors?.[0]?.message ||
         error.response?.data?.error ||
         "Failed to save program";
+      console.error("Program save error:", error.response?.data);
       toast.error(message);
     } finally {
       setLoading(false);
@@ -152,6 +192,7 @@ export function ProgramForm({ initialData }: ProgramFormProps) {
                     src={imagePreview}
                     alt="Preview"
                     fill
+                    unoptimized
                     className="object-contain"
                   />
                   <button

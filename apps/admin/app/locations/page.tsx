@@ -88,7 +88,7 @@ export default function LocationsPage() {
                       <div className="mt-2 flex flex-col sm:flex-row sm:gap-4">
                         <div className="flex items-center text-sm text-gray-500">
                           <MapIcon className="shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                          <p>{location.address}</p>
+                          <p>{location.address || "No address provided"}</p>
                         </div>
                         <div className="flex items-center text-sm text-gray-500 mt-1 sm:mt-0">
                           <Clock className="shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
@@ -117,8 +117,10 @@ export default function LocationsPage() {
               </li>
             ))}
             {locations.length === 0 && (
-              <li className="px-4 py-8 text-center text-gray-500">
-                No locations found. Add one!
+              <li className="px-4 py-12 text-center text-gray-500">
+                <MapPin className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                <p className="text-base font-medium text-gray-600">No locations found</p>
+                <p className="text-sm text-gray-400 mt-1">Add fellowship branch campuses, auditoriums, and prayer centers.</p>
               </li>
             )}
           </ul>

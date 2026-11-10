@@ -113,11 +113,11 @@ export default function DevotionsPage() {
                         </div>
                         <div className="flex items-center text-sm text-gray-500 mr-4">
                           <span className="font-medium">Date:</span>&nbsp;
-                          {devotion.date}
+                          {devotion.date || "N/A"}
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <span>
-                            Views: {devotion.views} | Likes: {devotion.likes}
+                            Views: {devotion.views ?? 0} | Likes: {devotion.likes ?? 0}
                           </span>
                         </div>
                       </div>
@@ -141,8 +141,10 @@ export default function DevotionsPage() {
               </li>
             ))}
             {devotions.length === 0 && (
-              <li className="px-4 py-8 text-center text-gray-500">
-                No devotions found. Create one!
+              <li className="px-4 py-12 text-center text-gray-500">
+                <BookOpen className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                <p className="text-base font-medium text-gray-600">No devotions found</p>
+                <p className="text-sm text-gray-400 mt-1">Get started by creating a new text or voice devotion.</p>
               </li>
             )}
           </ul>

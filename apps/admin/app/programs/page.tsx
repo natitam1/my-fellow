@@ -95,12 +95,12 @@ export default function ProgramsPage() {
                         <div className="flex items-center text-sm text-gray-500">
                           <Clock className="shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
                           <p>
-                            {program.day} at {program.time}
+                            {program.day || "TBD"} {program.time ? `at ${program.time}` : ""}
                           </p>
                         </div>
                         <div className="flex items-center text-sm text-gray-500 mt-1 sm:mt-0">
                           <MapPin className="shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                          <p>{program.location}</p>
+                          <p>{program.location || "No location set"}</p>
                         </div>
                       </div>
                     </div>
@@ -123,8 +123,10 @@ export default function ProgramsPage() {
               </li>
             ))}
             {programs.length === 0 && (
-              <li className="px-4 py-8 text-center text-gray-500">
-                No programs found. Create one!
+              <li className="px-4 py-12 text-center text-gray-500">
+                <Briefcase className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                <p className="text-base font-medium text-gray-600">No programs found</p>
+                <p className="text-sm text-gray-400 mt-1">Add recurring prayer meetings, Bible studies, or weekly fellowship programs.</p>
               </li>
             )}
           </ul>

@@ -92,14 +92,14 @@ export default function TeamsPage() {
                           {team.category}
                         </span>
                         <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                          {team.members} members
+                          {team.members ?? 0} members
                         </span>
                       </div>
                       <div className="mt-2 flex flex-col sm:flex-row sm:gap-4">
                         <div className="flex items-center text-sm text-gray-500">
                           <UserIcon className="shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
                           <p>
-                            Leader: {team.leader?.name} ({team.leader?.role})
+                            Leader: {team.leader?.name ? `${team.leader.name}${team.leader.role ? ` (${team.leader.role})` : ""}` : "No leader assigned"}
                           </p>
                         </div>
                         <div className="flex items-center text-sm text-gray-500 mt-1 sm:mt-0">
@@ -127,8 +127,10 @@ export default function TeamsPage() {
               </li>
             ))}
             {teams.length === 0 && (
-              <li className="px-4 py-8 text-center text-gray-500">
-                No teams found. Create one!
+              <li className="px-4 py-12 text-center text-gray-500">
+                <Users className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                <p className="text-base font-medium text-gray-600">No teams found</p>
+                <p className="text-sm text-gray-400 mt-1">Create ministry teams, departments, or worship units.</p>
               </li>
             )}
           </ul>

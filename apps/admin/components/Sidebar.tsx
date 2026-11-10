@@ -17,6 +17,7 @@ import {
   Menu,
   Package,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   UserCheck,
   UserPlus,
@@ -31,8 +32,9 @@ import { removeToken } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Overview", href: "/" },
+  { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
   { icon: Users, label: "Users", href: "/users" },
+  { icon: ShieldCheck, label: "Roles & RBAC", href: "/roles" },
   { icon: ClipboardList, label: "Registrations", href: "/registrations" },
   { icon: Calendar, label: "Events", href: "/events" },
   { icon: Briefcase, label: "Programs", href: "/programs" },
@@ -45,7 +47,7 @@ const menuItems = [
   { icon: Package, label: "Orders", href: "/orders" },
   { icon: Bell, label: "Notifications", href: "/notifications" },
   { icon: BarChart3, label: "Reports", href: "/reports" },
-  { icon: UserPlus, label: "Join Requests", href: "/requests" },
+  { icon: UserPlus, label: "Requests Center", href: "/requests" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ];
 

@@ -79,18 +79,58 @@ export function LocationForm({ initialData }: LocationFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.name.trim()) {
+      toast.error("Location name is required");
+      return;
+    }
+    if (!formData.address.trim()) {
+      toast.error("Address is required");
+      return;
+    }
+
+    const latNum = parseFloat(formData.latitude);
+    const lngNum = parseFloat(formData.longitude);
+    if (isNaN(latNum) || isNaN(lngNum)) {
+      toast.error("Please provide valid coordinates (Latitude and Longitude)");
+      return;
+    }
+
+    const validServiceTimes = serviceTimes.filter((t) => t.trim() !== "");
+    if (validServiceTimes.length === 0) {
+      toast.error("At least one service time is required");
+      return;
+    }
+
+    if (!formData.googleMapsUrl.trim()) {
+      toast.error("Google Maps URL is required");
+      return;
+    }
+    if (
+      !formData.googleMapsUrl.startsWith("http://") &&
+      !formData.googleMapsUrl.startsWith("https://")
+    ) {
+      toast.error("Google Maps URL must start with http:// or https://");
+      return;
+    }
+
+    if (!imageFile && !isEditing && !initialData?.image) {
+      toast.error("Please upload an image for the location");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const payload = {
-        name: formData.name,
-        address: formData.address,
+        name: formData.name.trim(),
+        address: formData.address.trim(),
         coordinates: {
-          latitude: parseFloat(formData.latitude),
-          longitude: parseFloat(formData.longitude),
+          latitude: latNum,
+          longitude: lngNum,
         },
-        serviceTimes: serviceTimes.filter((t) => t.trim() !== ""),
-        googleMapsUrl: formData.googleMapsUrl,
+        serviceTimes: validServiceTimes,
+        googleMapsUrl: formData.googleMapsUrl.trim(),
       };
 
       const form = new FormData();
@@ -106,10 +146,6 @@ export function LocationForm({ initialData }: LocationFormProps) {
         form.append("image", imageFile);
       } else if (isEditing && initialData.image) {
         form.append("image", initialData.image);
-      } else if (!isEditing) {
-        toast.error("Please upload an image");
-        setLoading(false);
-        return;
       }
 
       if (isEditing) {
@@ -132,8 +168,10 @@ export function LocationForm({ initialData }: LocationFormProps) {
     } catch (error: any) {
       const message =
         error.response?.data?.message ||
+        error.response?.data?.errors?.[0]?.message ||
         error.response?.data?.error ||
         "Failed to save location";
+      console.error("Location save error:", error.response?.data);
       toast.error(message);
     } finally {
       setLoading(false);
@@ -159,6 +197,7 @@ export function LocationForm({ initialData }: LocationFormProps) {
                     src={imagePreview}
                     alt="Preview"
                     fill
+                    unoptimized
                     className="object-contain"
                   />
                   <button

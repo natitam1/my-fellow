@@ -1,6 +1,7 @@
 "use client";
-//
+
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import api from "@/lib/api";
 import Link from "next/link";
 import {
@@ -12,6 +13,7 @@ import {
   Phone,
   Send,
   CheckCircle,
+  Users,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -90,6 +92,7 @@ export default function LeadersPage() {
                             src={leader.image}
                             alt={leader.name}
                             fill
+                            unoptimized
                             className="object-cover"
                           />
                         ) : (
@@ -110,18 +113,18 @@ export default function LeadersPage() {
                             />
                           )}
                           <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            {leader.type}
+                            {leader.type || "Leader"}
                           </span>
                         </div>
                         <div className="mt-1 flex flex-col sm:flex-row sm:gap-4">
                           <p className="text-sm text-gray-500 italic">
-                            {leader.role}
+                            {leader.role || "Fellowship Leader"}
                           </p>
                           <div className="flex items-center text-sm text-gray-500 mt-1 sm:mt-0">
                             <Phone className="shrink-0 mr-1 h-3 w-3 text-gray-400" />
-                            <p className="mr-3">{leader.phoneNumber}</p>
+                            <p className="mr-3">{leader.phoneNumber || "No phone"}</p>
                             <Send className="shrink-0 mr-1 h-3 w-3 text-gray-400" />
-                            <p>{leader.telegram}</p>
+                            <p>{leader.telegram || "No telegram"}</p>
                           </div>
                         </div>
                       </div>
@@ -145,8 +148,10 @@ export default function LeadersPage() {
               </li>
             ))}
             {leaders.length === 0 && (
-              <li className="px-4 py-8 text-center text-gray-500">
-                No leaders found. Add one!
+              <li className="px-4 py-12 text-center text-gray-500">
+                <Users className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                <p className="text-base font-medium text-gray-600">No leaders found</p>
+                <p className="text-sm text-gray-400 mt-1">Add fellowship executive leaders, pastors, and team mentors.</p>
               </li>
             )}
           </ul>
@@ -155,6 +160,3 @@ export default function LeadersPage() {
     </div>
   );
 }
-
-// Helper to use Image in CSR
-import Image from "next/image";

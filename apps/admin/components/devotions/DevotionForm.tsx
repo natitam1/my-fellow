@@ -6,6 +6,7 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
 import { Loader2, Upload, X } from "lucide-react";
+import { format } from "date-fns";
 
 interface DevotionFormProps {
   initialData?: any;
@@ -24,18 +25,14 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
   const [formData, setFormData] = useState({
     title: "",
     author: "",
-    date: "",
+    date: format(new Date(), "MMMM d, yyyy"),
     type: "text",
     content: "",
     duration: "",
     caption: "",
-    pageCount: "",
-    bookFormat: "",
     tags: "",
     featured: false,
     audioUrl: "",
-    pdfUrl: "",
-    bookUrl: "",
   });
 
   useEffect(() => {
@@ -43,20 +40,16 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
       setFormData({
         title: initialData.title || "",
         author: initialData.author || "",
-        date: initialData.date || "",
+        date: initialData.date || format(new Date(), "MMMM d, yyyy"),
         type: initialData.type || "text",
         content: initialData.content || "",
         duration: initialData.duration || "",
         caption: initialData.caption || "",
-        pageCount: initialData.pageCount?.toString() || "",
-        bookFormat: initialData.bookFormat || "",
         tags: Array.isArray(initialData.tags)
           ? initialData.tags.join(", ")
           : "",
         featured: initialData.featured || false,
         audioUrl: initialData.audioUrl || "",
-        pdfUrl: initialData.pdfUrl || "",
-        bookUrl: initialData.bookUrl || "",
       });
     }
   }, [initialData]);
@@ -94,6 +87,41 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Client-side validation
+    if (!formData.title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!formData.author.trim()) {
+      toast.error("Author is required");
+      return;
+    }
+    if (!formData.date.trim()) {
+      toast.error("Date is required");
+      return;
+    }
+
+    if (formData.type === "text" && !formData.content.trim()) {
+      toast.error("Content is required for text devotions");
+      return;
+    }
+
+    if (formData.type === "voice") {
+      if (!isEditing && !mediaFile && !formData.audioUrl) {
+        toast.error("Please upload an audio file for the voice devotion");
+        return;
+      }
+      if (!formData.duration.trim()) {
+        toast.error("Please specify audio duration (e.g. 5:20)");
+        return;
+      }
+      if (!formData.caption.trim() && !formData.content.trim()) {
+        toast.error("Voice devotions require a caption or transcript text");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -124,10 +152,6 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
       }
 
       if (isEditing) {
-        // For text devotions, if we didn't change the image, we still need to send the old URL
-        // However, our API replaces if imageFile is present, else it relies on `image` in body schema
-        // The validator expects `image` to be present if it's text context (or handled natively)
-        // Ensure image URL is passed if no new file is selected.
         if (!imageFile && initialData.image) {
           form.append("image", initialData.image);
         }
@@ -151,6 +175,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
       const message =
         error.response?.data?.message ||
         error.response?.data?.errors?.[0]?.message ||
+        error.response?.data?.error ||
         "Failed to save devotion";
       console.error("Devotion save error:", error.response?.data);
       toast.error(message);
@@ -170,7 +195,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
           {/* IMAGE UPLOAD */}
           <div className="sm:col-span-6">
             <label className="block text-sm font-medium text-gray-700">
-              Cover Image *
+              Cover Image
             </label>
             <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative hover:border-[#ff6719] transition-colors bg-gray-50">
               {imagePreview ? (
@@ -179,6 +204,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
                     src={imagePreview}
                     alt="Preview"
                     fill
+                    unoptimized
                     className="object-contain"
                   />
                   <button
@@ -195,7 +221,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
               ) : (
                 <div className="space-y-1 text-center">
                   <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
+                  <div className="flex text-sm text-gray-600 justify-center">
                     <label
                       htmlFor="image-upload"
                       className="relative cursor-pointer bg-white rounded-md font-medium text-[#ff6719] hover:text-[#e55a15] focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#ff6719]"
@@ -208,11 +234,11 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
                         className="sr-only"
                         accept="image/*"
                         onChange={handleImageChange}
-                        required={!isEditing && !formData.type}
                       />
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, WebP up to 10MB</p>
                 </div>
               )}
             </div>
@@ -232,6 +258,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
               required
               value={formData.title}
               onChange={handleChange}
+              placeholder="e.g. Walking in Fellowship and Grace"
               className="mt-1 shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
             />
           </div>
@@ -251,10 +278,8 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
               onChange={handleChange}
               className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#ff6719] focus:border-[#ff6719] sm:text-sm rounded-md border"
             >
-              <option value="text">Text</option>
-              <option value="voice">Voice (Audio)</option>
-              <option value="pdf">PDF Document</option>
-              <option value="book">Book (EPUB/PDF)</option>
+              <option value="text">Text Devotion</option>
+              <option value="voice">Voice Devotion (Audio)</option>
             </select>
           </div>
 
@@ -272,6 +297,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
               required
               value={formData.author}
               onChange={handleChange}
+              placeholder="e.g. Pastor Yohannes / Executive Ministry"
               className="mt-1 shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
             />
           </div>
@@ -281,7 +307,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
               htmlFor="date"
               className="block text-sm font-medium text-gray-700"
             >
-              Date * (e.g. October 24, 2023)
+              Date * (e.g. October 24, 2024)
             </label>
             <input
               type="text"
@@ -290,6 +316,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
               required
               value={formData.date}
               onChange={handleChange}
+              placeholder="e.g. October 24, 2024"
               className="mt-1 shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
             />
           </div>
@@ -307,7 +334,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
               id="tags"
               value={formData.tags}
               onChange={handleChange}
-              placeholder="faith, hope, love"
+              placeholder="faith, grace, prayer, scripture"
               className="mt-1 shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
             />
           </div>
@@ -323,25 +350,25 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
             />
             <label
               htmlFor="featured"
-              className="ml-2 block text-sm text-gray-900"
+              className="ml-2 block text-sm font-medium text-gray-700"
             >
-              Featured Devotion
+              Featured Devotion (pinned to spotlight hero banner)
             </label>
           </div>
 
           {/* CONDITIONAL FIELDS BASED ON TYPE */}
           <div className="sm:col-span-6 border-t pt-6 mt-2">
             <h4 className="text-md font-medium text-gray-900 mb-4 capitalize">
-              {formData.type} Details
+              {formData.type === "voice" ? "Voice Details" : "Text Details"}
             </h4>
 
             {formData.type === "text" && (
               <div>
                 <label
                   htmlFor="content"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Content *
+                  Devotion Content *
                 </label>
                 <textarea
                   id="content"
@@ -350,6 +377,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
                   required={formData.type === "text"}
                   value={formData.content}
                   onChange={handleChange}
+                  placeholder="Write the full devotional message, scripture references, and reflection questions..."
                   className="mt-1 shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
                 />
               </div>
@@ -359,7 +387,7 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Audio File *
+                    Audio File {isEditing ? "(Optional if keeping existing file)" : "*"}
                   </label>
                   <input
                     type="file"
@@ -368,25 +396,27 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
                     className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#ff6719] file:text-white hover:file:bg-[#e55a15]"
                   />
                   {formData.audioUrl && !mediaFile && (
-                    <p className="text-xs text-blue-500 mt-1">
-                      Current File: {formData.audioUrl}
+                    <p className="text-xs text-blue-600 mt-1 break-all">
+                      Current Audio: {formData.audioUrl}
                     </p>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="duration"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Duration (e.g. 5:30)
+                      Duration * (e.g. 5:30)
                     </label>
                     <input
                       type="text"
                       name="duration"
                       id="duration"
+                      required={formData.type === "voice"}
                       value={formData.duration}
                       onChange={handleChange}
+                      placeholder="e.g. 5:30"
                       className="mt-1 shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
                     />
                   </div>
@@ -395,88 +425,34 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
                       htmlFor="caption"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Caption / Short Desc
+                      Caption / Short Summary *
                     </label>
                     <input
                       type="text"
                       name="caption"
                       id="caption"
+                      required={formData.type === "voice"}
                       value={formData.caption}
                       onChange={handleChange}
+                      placeholder="e.g. A guided prayer on trusting God through hardship"
                       className="mt-1 shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
                     />
                   </div>
                 </div>
-              </div>
-            )}
-
-            {formData.type === "pdf" && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    PDF Document *
-                  </label>
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleMediaChange}
-                    className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#ff6719] file:text-white hover:file:bg-[#e55a15]"
-                  />
-                  {formData.pdfUrl && !mediaFile && (
-                    <p className="text-xs text-blue-500 mt-1">
-                      Current File: {formData.pdfUrl}
-                    </p>
-                  )}
-                </div>
                 <div>
                   <label
-                    htmlFor="pageCount"
-                    className="block text-sm font-medium text-gray-700"
+                    htmlFor="content"
+                    className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Page Count
+                    Transcript / Additional Notes (Optional)
                   </label>
-                  <input
-                    type="number"
-                    name="pageCount"
-                    id="pageCount"
-                    value={formData.pageCount}
+                  <textarea
+                    id="content"
+                    name="content"
+                    rows={4}
+                    value={formData.content}
                     onChange={handleChange}
-                    className="mt-1 shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
-                  />
-                </div>
-              </div>
-            )}
-
-            {formData.type === "book" && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Book File (EPUB, PDF, etc) *
-                  </label>
-                  <input
-                    type="file"
-                    onChange={handleMediaChange}
-                    className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#ff6719] file:text-white hover:file:bg-[#e55a15]"
-                  />
-                  {formData.bookUrl && !mediaFile && (
-                    <p className="text-xs text-blue-500 mt-1">
-                      Current File: {formData.bookUrl}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label
-                    htmlFor="bookFormat"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Format (e.g. EPUB, PDF)
-                  </label>
-                  <input
-                    type="text"
-                    name="bookFormat"
-                    id="bookFormat"
-                    value={formData.bookFormat}
-                    onChange={handleChange}
+                    placeholder="Full audio transcript or study notes..."
                     className="mt-1 shadow-sm focus:ring-[#ff6719] focus:border-[#ff6719] block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
                   />
                 </div>
@@ -501,6 +477,8 @@ export function DevotionForm({ initialData }: DevotionFormProps) {
             >
               {loading ? (
                 <Loader2 className="animate-spin h-5 w-5" />
+              ) : isEditing ? (
+                "Update Devotion"
               ) : (
                 "Save Devotion"
               )}

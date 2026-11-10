@@ -95,29 +95,63 @@ export function TeamForm({ initialData }: TeamFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.name.trim()) {
+      toast.error("Team name is required");
+      return;
+    }
+    if (formData.name.trim().length < 3) {
+      toast.error("Team name must be at least 3 characters");
+      return;
+    }
+    if (!formData.category.trim()) {
+      toast.error("Category is required");
+      return;
+    }
+    if (!formData.description.trim()) {
+      toast.error("Description is required");
+      return;
+    }
+    if (formData.description.trim().length < 10) {
+      toast.error("Description must be at least 10 characters");
+      return;
+    }
+    if (!isEditing && !imageFile && !imagePreview) {
+      toast.error("Please upload a team cover image");
+      return;
+    }
+    if (!formData.leaderName.trim()) {
+      toast.error("Leader name is required");
+      return;
+    }
+    if (!formData.leaderRole.trim()) {
+      toast.error("Leader role is required");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const payload = {
-        name: formData.name,
-        icon: formData.icon,
-        color: formData.color,
-        members: parseInt(formData.members),
-        description: formData.description,
-        about: formData.about,
-        meetingDay: formData.meetingDay,
-        time: formData.time,
-        category: formData.category,
-        location: formData.location,
+        name: formData.name.trim(),
+        icon: formData.icon.trim() || "Users",
+        color: formData.color || "#ff6719",
+        members: parseInt(formData.members, 10) || 0,
+        description: formData.description.trim(),
+        about: formData.about.trim(),
+        meetingDay: formData.meetingDay.trim(),
+        time: formData.time.trim(),
+        category: formData.category.trim(),
+        location: formData.location.trim(),
         coordinates: {
           lat: parseFloat(formData.lat) || 0,
           lng: parseFloat(formData.lng) || 0,
         },
         leader: {
-          name: formData.leaderName,
-          role: formData.leaderRole,
-          telegram: formData.leaderTelegram,
-          phone: formData.leaderPhone,
+          name: formData.leaderName.trim(),
+          role: formData.leaderRole.trim(),
+          telegram: formData.leaderTelegram.trim(),
+          phone: formData.leaderPhone.trim(),
           imageUrl:
             initialData?.leader?.imageUrl ||
             "https://placeholder.com/leader.jpg",
@@ -161,8 +195,10 @@ export function TeamForm({ initialData }: TeamFormProps) {
     } catch (error: any) {
       const message =
         error.response?.data?.message ||
+        error.response?.data?.errors?.[0]?.message ||
         error.response?.data?.error ||
         "Failed to save team";
+      console.error("Team save error:", error.response?.data);
       toast.error(message);
     } finally {
       setLoading(false);
@@ -189,6 +225,7 @@ export function TeamForm({ initialData }: TeamFormProps) {
                       src={imagePreview}
                       alt="Preview"
                       fill
+                      unoptimized
                       className="object-contain"
                     />
                     <button
@@ -487,6 +524,7 @@ export function TeamForm({ initialData }: TeamFormProps) {
                       src={leaderImagePreview}
                       alt="Leader Preview"
                       fill
+                      unoptimized
                       className="object-contain"
                     />
                     <button

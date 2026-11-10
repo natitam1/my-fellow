@@ -11,6 +11,13 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  if (!["admin", "super_admin"].includes(String(auth.payload.role))) {
+    return NextResponse.json(
+      { success: false, message: "Forbidden: Super Admin or Admin access required to view financial records." },
+      { status: 403 },
+    );
+  }
+
   // Mock data source uses `donations` for transactions.
   return NextResponse.json({ success: true, data: donations });
 }

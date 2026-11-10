@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import axios from "axios";
 import api from "@/lib/api";
 import { setToken, setUser } from "@/lib/auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 export default function SignIn() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function SignIn() {
       }
 
       toast.success("Successfully signed in!");
-      router.push("/");
+      router.push("/dashboard");
     } catch (error: any) {
       // Use console.warn instead of console.error to avoid triggering Next.js error overlay
       console.warn("Login attempt failed:", error.message);
@@ -89,6 +90,17 @@ export default function SignIn() {
       {/* Right Side - Sign In Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center px-8 py-12 bg-white">
         <div className="w-full max-w-sm">
+          {/* Back to Home Link */}
+          <div className="mb-6">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#ff6719] transition-colors group"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+              <span>Back to Home</span>
+            </Link>
+          </div>
+
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-2 mb-12">
             <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">

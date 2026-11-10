@@ -65,6 +65,45 @@ export function LeaderForm({ initialData }: LeaderFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.name.trim()) {
+      toast.error("Full name is required");
+      return;
+    }
+    if (!formData.role.trim()) {
+      toast.error("Role is required");
+      return;
+    }
+    if (!formData.bio.trim()) {
+      toast.error("Bio is required");
+      return;
+    }
+    if (formData.bio.trim().length < 10) {
+      toast.error("Bio must be at least 10 characters");
+      return;
+    }
+    if (!formData.phoneNumber.trim()) {
+      toast.error("Phone number is required");
+      return;
+    }
+    if (formData.phoneNumber.trim().length < 10) {
+      toast.error("Phone number must be at least 10 characters");
+      return;
+    }
+    if (!formData.telegram.trim()) {
+      toast.error("Telegram handle is required");
+      return;
+    }
+    if (!formData.type) {
+      toast.error("Please select a leader type");
+      return;
+    }
+
+    if (!imageFile && !isEditing && !initialData?.image) {
+      toast.error("Please upload a leader photo");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -77,10 +116,6 @@ export function LeaderForm({ initialData }: LeaderFormProps) {
         form.append("image", imageFile);
       } else if (isEditing && initialData.image) {
         form.append("image", initialData.image);
-      } else if (!isEditing) {
-        toast.error("Please upload an image");
-        setLoading(false);
-        return;
       }
 
       if (isEditing) {
@@ -103,8 +138,10 @@ export function LeaderForm({ initialData }: LeaderFormProps) {
     } catch (error: any) {
       const message =
         error.response?.data?.message ||
+        error.response?.data?.errors?.[0]?.message ||
         error.response?.data?.error ||
         "Failed to save leader";
+      console.error("Leader save error:", error.response?.data);
       toast.error(message);
     } finally {
       setLoading(false);
@@ -130,6 +167,7 @@ export function LeaderForm({ initialData }: LeaderFormProps) {
                     src={imagePreview}
                     alt="Preview"
                     fill
+                    unoptimized
                     className="object-contain"
                   />
                   <button

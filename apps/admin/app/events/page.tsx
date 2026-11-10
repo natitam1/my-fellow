@@ -19,6 +19,13 @@ interface Event {
   registrationsCount?: number;
 }
 
+const formatSafeDate = (dateVal?: string | Date | null, pattern: string = "MMM d, yyyy HH:mm") => {
+  if (!dateVal) return "N/A";
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return "Invalid date";
+  return format(d, pattern);
+};
+
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,11 +124,8 @@ export default function EventsPage() {
                             aria-hidden="true"
                           />
                           <p>
-                            {format(
-                              new Date(event.startDate),
-                              "MMM d, yyyy HH:mm",
-                            )}{" "}
-                            - {format(new Date(event.endDate), "HH:mm")}
+                            {formatSafeDate(event.startDate, "MMM d, yyyy HH:mm")}{" "}
+                            - {formatSafeDate(event.endDate, "HH:mm")}
                           </p>
                         </div>
                         <div className="flex items-center text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
@@ -163,8 +167,10 @@ export default function EventsPage() {
               </li>
             ))}
             {events.length === 0 && (
-              <li className="px-4 py-8 text-center text-gray-500">
-                No events found. Create one!
+              <li className="px-4 py-12 text-center text-gray-500">
+                <Calendar className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                <p className="text-base font-medium text-gray-600">No events found</p>
+                <p className="text-sm text-gray-400 mt-1">Create your first event or retreat to begin publishing to fellowship members.</p>
               </li>
             )}
           </ul>
