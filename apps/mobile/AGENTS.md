@@ -90,7 +90,7 @@ bun run dev           # next dev
 
 ## 5. Coding Agent Guidelines
 
-1. **Isolation:** Maintain each sub-project as an independent Git repository with its own remote (`origin` pointing to `https://github.com/4kilo-fellowship/<repo-name>.git`).
+1. **Monorepo Context:** All applications reside in the unified monorepo at `https://github.com/natitam1/my-fellow.git`.
 2. **Type Safety:** Adhere to strict TypeScript typing. Do not bypass errors with `any`, blanket `@ts-ignore`, or disabling compiler options.
 3. **Expo Upgrades:** Always align packages using `bunx expo install --fix` and verify with `bunx expo-doctor` and `bunx tsc --noEmit`.
 

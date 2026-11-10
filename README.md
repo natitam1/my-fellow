@@ -1,7 +1,7 @@
 # 4 Kilo Fellowship Ecosystem (My Fellow)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/4kilo-fellowship/my-fellow/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![CI](https://github.com/natitam1/my-fellow/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/node-%3E%3D24.3.0-green.svg)](package.json)
 [![Package Manager](https://img.shields.io/badge/package%20manager-bun-orange.svg)](https://bun.sh)
 
@@ -72,7 +72,7 @@ flowchart TD
 
 ### 1. Clone & Install Dependencies
 ```bash
-git clone https://github.com/4kilo-fellowship/my-fellow.git
+git clone https://github.com/natitam1/my-fellow.git
 cd my-fellow
 bun install
 ```

@@ -7,14 +7,14 @@ export const siteConfig = {
     catalog: "/catalog",
     appDownload: "#download",
     // telegramBot: "https://t.me/MyFellowBot",
-    githubRepo: "https://github.com/4kilo-fellowship/my-fellow",
+    githubRepo: "https://github.com/natitam1/my-fellow",
     docs: "/docs",
     changelog: "/changelog",
     support: "/support",
     faqs: "/#faqs",
   },
   github: {
-    owner: "4kilo-fellowship",
+    owner: "natitam1",
     repo: "my-fellow",
   },
 };
