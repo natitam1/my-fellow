@@ -1,11 +1,33 @@
 import cloudinary from "cloudinary";
 import { Readable } from "stream";
 
-cloudinary.v2.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "",
-  api_key: process.env.CLOUDINARY_API_KEY || "",
-  api_secret: process.env.CLOUDINARY_API_SECRET || "",
-});
+// Configure Cloudinary supporting either CLOUDINARY_URL or individual credentials
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "";
+const apiKey = process.env.CLOUDINARY_API_KEY || "";
+const apiSecret = process.env.CLOUDINARY_API_SECRET || "";
+const cloudinaryUrl = process.env.CLOUDINARY_URL;
+
+if (cloudinaryUrl) {
+  cloudinary.v2.config({
+    cloudinary_url: cloudinaryUrl,
+    secure: true,
+  });
+} else {
+  cloudinary.v2.config({
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
+    secure: true,
+  });
+}
+
+export interface MediaVariants {
+  original: string;
+  sm: string;
+  md: string;
+  lg: string;
+  [key: string]: string;
+}
 
 export interface CloudinaryUploadResponse {
   secure_url: string;
@@ -14,6 +36,7 @@ export interface CloudinaryUploadResponse {
   width: number;
   height: number;
   bytes: number;
+  variants?: MediaVariants;
 }
 
 export interface UploadOptions {
@@ -24,18 +47,102 @@ export interface UploadOptions {
   overwrite?: boolean;
   invalidate?: boolean;
   tags?: string[];
+  isAvatar?: boolean;
 }
+
+/**
+ * Check if Cloudinary credentials are valid and reachable
+ */
+export const pingCloudinary = async (): Promise<boolean> => {
+  try {
+    const res = await cloudinary.v2.api.ping();
+    return res?.status === "ok";
+  } catch (err) {
+    console.error("Cloudinary ping failed:", err);
+    return false;
+  }
+};
+
+/**
+ * Generate responsive and optimized variant URLs adhering to Cloudinary best practices:
+ * - c_fill,g_face for avatars so no face is ever cut off
+ * - f_auto,q_auto for optimal format and bandwidth efficiency
+ */
+export const generateImageVariants = (
+  publicId: string,
+  isAvatar: boolean = false,
+): MediaVariants => {
+  if (isAvatar) {
+    return {
+      sm: cloudinary.v2.url(publicId, {
+        secure: true,
+        transformation: [
+          { width: 150, height: 150, crop: "fill", gravity: "face" },
+          { fetch_format: "auto", quality: "auto" },
+        ],
+      }),
+      md: cloudinary.v2.url(publicId, {
+        secure: true,
+        transformation: [
+          { width: 400, height: 400, crop: "fill", gravity: "face" },
+          { fetch_format: "auto", quality: "auto" },
+        ],
+      }),
+      lg: cloudinary.v2.url(publicId, {
+        secure: true,
+        transformation: [
+          { width: 800, height: 800, crop: "fill", gravity: "face" },
+          { fetch_format: "auto", quality: "auto" },
+        ],
+      }),
+      original: cloudinary.v2.url(publicId, {
+        secure: true,
+        transformation: [{ fetch_format: "auto", quality: "auto" }],
+      }),
+    };
+  }
+
+  return {
+    sm: cloudinary.v2.url(publicId, {
+      secure: true,
+      transformation: [
+        { width: 320, crop: "limit" },
+        { fetch_format: "auto", quality: "auto" },
+      ],
+    }),
+    md: cloudinary.v2.url(publicId, {
+      secure: true,
+      transformation: [
+        { width: 720, crop: "limit" },
+        { fetch_format: "auto", quality: "auto" },
+      ],
+    }),
+    lg: cloudinary.v2.url(publicId, {
+      secure: true,
+      transformation: [
+        { width: 1280, crop: "limit" },
+        { fetch_format: "auto", quality: "auto" },
+      ],
+    }),
+    original: cloudinary.v2.url(publicId, {
+      secure: true,
+      transformation: [{ fetch_format: "auto", quality: "auto" }],
+    }),
+  };
+};
 
 export const uploadImageToCloudinary = async (
   fileBuffer: Buffer,
   options: UploadOptions = {},
 ): Promise<CloudinaryUploadResponse> => {
   try {
-    if (
-      !process.env.CLOUDINARY_CLOUD_NAME ||
-      !process.env.CLOUDINARY_API_KEY ||
-      !process.env.CLOUDINARY_API_SECRET
-    ) {
+    const isConfigured =
+      Boolean(process.env.CLOUDINARY_URL) ||
+      (Boolean(process.env.CLOUDINARY_CLOUD_NAME) &&
+        Boolean(process.env.CLOUDINARY_API_KEY) &&
+        Boolean(process.env.CLOUDINARY_API_SECRET));
+
+    if (!isConfigured) {
       throw new Error(
         "Cloudinary credentials not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables.",
       );
@@ -49,6 +156,7 @@ export const uploadImageToCloudinary = async (
       overwrite = true,
       invalidate = true,
       tags,
+      isAvatar = folder === "profile-images",
     } = options;
 
     return new Promise((resolve, reject) => {
@@ -89,6 +197,8 @@ export const uploadImageToCloudinary = async (
             return;
           }
 
+          const variants = generateImageVariants(result.public_id, isAvatar);
+
           resolve({
             secure_url: result.secure_url,
             public_id: result.public_id,
@@ -96,6 +206,7 @@ export const uploadImageToCloudinary = async (
             width: result.width || 0,
             height: result.height || 0,
             bytes: result.bytes || 0,
+            variants,
           });
         },
       );
@@ -120,11 +231,13 @@ export const uploadFileToCloudinary = async (
   options: UploadOptions = {},
 ): Promise<CloudinaryUploadResponse> => {
   try {
-    if (
-      !process.env.CLOUDINARY_CLOUD_NAME ||
-      !process.env.CLOUDINARY_API_KEY ||
-      !process.env.CLOUDINARY_API_SECRET
-    ) {
+    const isConfigured =
+      Boolean(process.env.CLOUDINARY_URL) ||
+      (Boolean(process.env.CLOUDINARY_CLOUD_NAME) &&
+        Boolean(process.env.CLOUDINARY_API_KEY) &&
+        Boolean(process.env.CLOUDINARY_API_SECRET));
+
+    if (!isConfigured) {
       throw new Error(
         "Cloudinary credentials not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables.",
       );
@@ -176,11 +289,13 @@ export const deleteImageFromCloudinary = async (
   resourceType: "image" | "video" | "raw" = "image",
 ): Promise<void> => {
   try {
-    if (
-      !process.env.CLOUDINARY_CLOUD_NAME ||
-      !process.env.CLOUDINARY_API_KEY ||
-      !process.env.CLOUDINARY_API_SECRET
-    ) {
+    const isConfigured =
+      Boolean(process.env.CLOUDINARY_URL) ||
+      (Boolean(process.env.CLOUDINARY_CLOUD_NAME) &&
+        Boolean(process.env.CLOUDINARY_API_KEY) &&
+        Boolean(process.env.CLOUDINARY_API_SECRET));
+
+    if (!isConfigured) {
       throw new Error(
         "Cloudinary credentials not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables.",
       );

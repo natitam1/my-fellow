@@ -1,0 +1,559 @@
+Method & path
+
+GET /profiles/:username
+
+GET /profiles/:username/posts?
+kind=reflections|replies
+
+Purpose
+
+ProfileDetail (viewer-aware; 404 if
+blocked-by, per privacy policy)
+
+Reflections tab
+
+GET /profiles/:username/media
+
+Media tab (grid of posts' media)
+
+GET /profiles/:username/ministries
+
+Ministry tab: memberships + upcoming events
+
+GET /profiles/:username/likes
+
+GET /profiles/:username/followers ·
+/following · /mutuals
+
+Likes tab (privacy rule: self-only by default;
+make it a setting)
+
+Graph lists (paginated, with viewer state)
+
+PUT /users/:id/follow · DELETE
+
+Follow/unfollow (returns new counts +
+
+/users/:id/follow
+
+relationship)
+
+PUT/DELETE /users/:id/block · /mute
+
+Safety
+
+GET /suggestions/users
+
+"Who to Follow" (§9)
+
+DELETE /suggestions/users/:id
+
+The ✕ dismiss (inserts
+
+follow_dismissals )
+
+Posts, feed, interactions
+Method & path
+
+POST /posts
+
+GET /posts/:id · GET /posts/:id/thread
+· GET /posts/:id/replies
+
+Purpose
+Create post/reply/quote ( body ,
+
+mediaAssetIds[] , replyToId? , quotedId? )
+
+Detail, ancestors+focused+replies, replies page
+
+PATCH /posts/:id · DELETE /posts/:id
+
+Edit (window) / soft delete (author or moderator)
+
+PUT/DELETE /posts/:id/like
+
+Like/unlike
+
+PUT/DELETE /posts/:id/bookmark · GET
+/me/bookmarks
+PUT/DELETE /posts/:id/repost
+
+Bookmarks
+
+Repost/undo (quote uses POST /posts )
+
+Method & path
+
+GET /feed/following · GET /feed/foryou
+GET /feed/head?since=<cursor>
+
+Purpose
+
+Feeds (§10)
+
+Cheap "N new posts" check
+
+Media, notifications, search, extras
+Method & path
+
+POST /media/uploads
+
+POST /media/uploads/:id/complete
+
+Purpose
+Create an upload intent → presigned URL
++ assetId (§8)
+Client signals completion; server verifies &
+enqueues processing
+Asset status
+
+GET /media/:id
+
+( pending/processing/ready ) for the
+composer
+
+GET /notifications · GET
+/notifications/unread-count
+POST /notifications/read
+PUT /me/push-devices · DELETE /me/pushdevices/:token
+GET/PATCH /me/notification-preferences
+GET /search?q=&type=users|posts|tags · GET
+/search/suggest?q=
+
+Inbox (grouped) + badge
+
+{ ids?: string[], all?: true }
+
+Register/unregister Expo push token
+
+Per-type push/in-app toggles
+
+Search
+
+GET /trending/tags
+
+Trending hashtags (rolling window)
+
+POST /streak/check-in · GET /streak
+
+Streak (idempotent per local day)
+
+GET /content/videos · GET /content/videos/:id
+
+Home video list
+
+GET /ministries · GET /ministries/:slug ·
+PUT/DELETE /ministries/:slug/membership
+
+Ministries
+
+GET /events?from=&to=
+
+Schedule
+
+GET/POST/PATCH/DELETE /me/highlights…
+
+Highlights CRUD
+
+POST /reports
+
+Report post/profile/media
+
+Method & path
+
+GET /admin/reports · PATCH /admin/reports/:id ·
+POST /admin/users/:id/verify · …/suspend
+
+Purpose
+
+Admin/moderator (role-checked, audited)
+
+7.4 Authorization policy layer (single source of truth)
+Implement canViewProfile(viewer, target) , canViewPost(viewer, post) ,
+canInteract(viewer, post) , canMessage… in policy.ts files and mirror them as SQL predicates
+
+for list queries (a visiblePostsPredicate(viewerId) helper). Rules:
+Soft-deleted/suspended content: invisible (except to moderators).
+Blocks are symmetric in visibility: if A blocks B, neither can see the other's posts/profile in lists,
+and B cannot follow/interact with A. Return 404 , not 403 , to avoid confirming existence.
+visibility = 'followers' content is visible only to accepted followers and the author.
+
+IDOR defense: never accept userId for "me" actions from the body. Derive from the session. For
+resources by id ( /posts/:id ), load, then check policy, then act.
+Authorization tests are mandatory (§17): a matrix of viewer × resource × action.
+
+8. Media pipeline (avatars, covers, post images, highlights)
+Goal: fast, safe uploads that never block the API, and images that render with zero layout shift and
+instant placeholders (this is what makes the profile zoom transition and long-press preview look
+native).
+
+8.1 Upload flow (presigned, direct-to-storage)
+1. App → POST /media/uploads { purpose, mime, bytes, width?, height? } (with
+Idempotency-Key ).
+
+Server validates: purpose allow-list, MIME allow-list ( image/jpeg|png|webp|heic ), size caps
+(avatar 5 MB, post image 10 MB), per-user daily quota, then creates
+media_assets(status='pending') and returns { assetId, uploadUrl, headers, expiresAt
+} . Presigned URL: short TTL (5 to 10 min), content-type and content-length conditions pinned,
+
+key = u/{userId}/{assetId}/original (never user-supplied filenames).
+2. App uploads the bytes straight to the bucket ( PUT ) using expo-file-system 's upload API
+(supports progress and background) or fetch . Show a progress bar in the composer.
+3. App → POST /media/uploads/:assetId/complete . Server HEAD s the object, checks size/type,
+sets status='processing' , enqueues a media job.
+4. Worker (sharp): sniff the real file type (don't trust the client's MIME), reject on
+mismatch/oversize/decompression-bomb limits ( sharp limitInputPixels ), auto-rotate, strip
+EXIF (especially GPS), generate variants (e.g. sm 96 px, md 480 px, lg 1080 px, WebP/AVIF +
+
+JPEG fallback), compute blurhash / thumbhash , store width/height, set status='ready' .
+Failures → rejected with a reason.
+5. App polls GET /media/:id (or receives the status in the notification/WS) until ready , then
+submits the post with mediaAssetIds . A post cannot reference a non-ready asset owned by
+someone else (check owner + status in the create transaction).
+6. Orphan cleanup job: assets pending > 24 h or not attached to any post/profile/highlight for > 48
+h → delete object + row.
+
+8.2 Serving
+Public CDN domain in front of the bucket, Cache-Control: public, max-age=31536000,
+immutable on variant keys (they're content-addressed by asset id + variant).
+
+API returns absolute URLs per variant plus width , height , blurhash/thumbhash . The app
+passes the placeholder to expo-image and reserves the exact aspect ratio in the layout.
+Avatar variants are mandatory: sm (≥ 96 px, for lists), md (≥ 300 px, profile header), lg (≥ 1000
+px, long-press preview).
+Private/ followers content media: use signed CDN URLs with expiry, or keep the bucket private
+and proxy via short-lived signed URLs.
+
+8.3 Video
+The home "videos" list is curated content ( content_items ). Use a managed provider
+(Mux/Cloudflare Stream) or store external playback URLs. Store provider id, duration, and a
+thumbnail asset. Don't build transcoding. User-generated video can wait; if added later, use the
+provider's direct-upload flow and webhooks.
+
+9. The social graph, suggestions, presence, search
+9.1 Follow semantics
+PUT /users/:id/follow runs in one transaction: reject self-follow and blocked pairs → INSERT
+… ON CONFLICT DO NOTHING RETURNING → only if a row was inserted increment
+following_count (follower) and followers_count (followee) → write outbox follow.created
+
+→ return the new relationship + counts. DELETE mirrors it. Private accounts
+( visibility='followers' , if enabled) use status='pending' and an approval flow; counts
+increment on accept.
+Blocking removes follows in both directions (and fixes counters) in the same transaction.
+Anti-abuse: cap follows/hour and total following per day; follow-churn detection (follow/unfollow
+loops don't spam notifications: de-duplicate follow notifications per actor per 24 h).
+
+9.2 "Followed by X, Y and N others" (profile) and "N mutual peers" (suggestion cards)
+
+-- Mutuals for a profile P as seen by viewer V: people V follows who follow P
+select f2.follower_id
+from follows f1
+
+-- V follows U
+
+join follows f2 on f2.follower_id = f1.followee_id and f2.followee_id = $P
+
+-- U
+
+follows P
+where f1.follower_id = $V and f1.status='accepted' and f2.status='accepted'
+order by f2.created_at desc limit 3;
+
+-- preview users
+
+-- total = count(*) of the same join (cap the count at e.g. 99 for speed or maintain
+a cache)
+
+Return followedByPreview: { total, users[0..3] } . For the suggestion carousel compute
+mutualCount in one set-based query for all candidates (join on followee_id =
+ANY($candidateIds) ), never per candidate. Cache results in Redis for a few minutes keyed by
+(viewerId, candidateId) or per viewer page.
+
+9.3 "Who to Follow" (candidate generation → filter → rank)
+Candidates (union, each with a source tag and a score contribution):
+1. Friends-of-friends: followees of the people I follow, ranked by number of mutuals (strong signal).
+2. Same ministry: members of ministries I'm in.
+3. Same department and year (campus affinity).
+4. Popular in the fellowship: high recent follower growth / engagement (cold-start fallback for
+brand-new users).
+5. People who follow me but I don't follow back.
+Filters: exclude self, already-followed, blocked/blocking, muted, dismissed ( follow_dismissals ),
+suspended, unverified-email accounts if you require verification, and users with visibility /privacy
+settings that opt out of suggestions.
+Rank: score = 3·mutuals + 2·sameMinistry + 1·sameDept + 1·sameYear + 0.5·followsMe +
+popularityNorm + recencyOfActivity , then diversify (don't return 10 people from the same
+
+ministry) and add light randomization (seeded per viewer per day) so the carousel feels fresh but is
+stable within a session. Return: UserSummary + fellowshipRole , academicLabel ("Software Eng. •
+4th Yr"), mutualCount , reason ( "mutual"|"ministry"|"department"|… ) and presence.online .
+Endpoints: carousel = GET /suggestions/users?limit=10 ; "View all" = same endpoint with cursor
+pagination; ✕ = DELETE /suggestions/users/:id ; after Follow, the card is removed client-side and
+the list is refetched lazily.
+
+9.4 Presence (the green dot)
+App sends POST /me/presence every ~60 s while foregrounded (and on app start/stop). Server
+sets profiles.last_seen_at = now() (rate-limit to 1 write / 30 s per user; use Redis SET
+
+presence:{id} EX 120 as the hot store and flush to Postgres periodically to avoid write
+
+amplification).
+online = showPresence && now - lastSeen < 2 min . Respect show_presence=false (return
+null ). Don't leak presence of blocked users.
+
+Lists include presence only where the UI shows it (suggestions, followers list).
+
+9.5 Search
+People: ILIKE /trigram on username and unaccent(lower(display_name)) using the GIN
+trigram indexes; rank exact/prefix first, then similarity, then follow-graph proximity (people I follow
+rank higher).
+Posts: Postgres full-text search ( to_tsvector('simple', body) + websearch_to_tsquery )
+with visibility/block filters, recency-weighted. (Use the simple config unless you add languagespecific handling. Amharic isn't covered by built-in stemmers.)
+Hashtags: parse #tags on create into hashtags/post_hashtags ; GET /trending/tags = tag
+counts in the last 24 to 48 h (cached 5 min).
+Autosuggest GET /search/suggest?q= returns top users + tags, debounced on the client, with a
+minimum 2-char query and tight rate limit.
+Add Meilisearch/Typesense only if Postgres search measurably can't keep up.
+
+10. Posts, threads, feeds, and the rest of the content domain
+10.1 Creating posts (the write path)
+POST /posts (Idempotency-Key) in one transaction: validate (length ≤ 500 grapheme-aware, body-
+
+or-media required, max 4 media, replyToId / quotedId visible to the viewer and not blocked) →
+insert post (set root_id for replies) → link media (verify ownership/ ready ) → parse mentions &
+hashtags (resolve usernames → post_mentions ; mentions of users who blocked the author are
+ignored) → increment posts_count (for non-replies) and the parent's reply_count / quoted post's
+quote_count / reposted post's repost_count → outbox post.created (feeds fan-out, notifications
+
+for mentions/replies/quotes, search). Return the hydrated Post .
+Edit: within the edit window only, re-parse mentions/hashtags, set edited_at . Delete: soft delete
++ decrement counters + enqueue cleanup (remove from timelines/notifications/search).
+Reposts: PUT /posts/:id/repost creates a kind='repost' row (unique per user/original).
+Reposting a repost resolves to the original. A repost shows in followers' feeds as "Abenezer
+reposted" with the original post embedded.
+Content rules: profanity/spam heuristics (rate + duplicate-content + link-count checks), per-user
+post limit (e.g. 50/day), shadow-limit on new accounts. Hook for a moderation provider later.
+
+10.2 Thread view
+GET /posts/:id/thread → { ancestors: Post[] (root → parent), focus: Post, replies: {
+items, nextCursor } } . Replies ordered by created_at asc (or "top" by like_count later). Use
+root_id to fetch an entire conversation efficiently. Deleted ancestors/replies appear as tombstones
+
+so threads don't break.
+
+10.3 Feeds (the read path)
+Following feed ( /feed/following ): posts by people I follow + my own, excluding replies,
+blocked/muted authors, deleted, and visibility-restricted content; reposts surface the original
+(dedupe: if both original and repost appear, show once, keeping the earliest relevant time).
+select p.id, p.created_at
+from posts p
+where p.deleted_at is null
+and p.kind in ('post','repost','quote')
+and (p.author_id = $viewer or p.author_id in (select followee_id from follows
+where follower_id = $viewer and status='accepted'))
+and not exists (select 1 from blocks b where (b.blocker_id=$viewer and
+b.blocked_id=p.author_id) or (b.blocker_id=p.author_id and b.blocked_id=$viewer))
+and not exists (select 1 from mutes
+
+m where m.muter_id=$viewer and
+
+m.muted_id=p.author_id)
+and (p.created_at, p.id) < ($cursorTs, $cursorId)
+order by p.created_at desc, p.id desc
+limit $limit + 1;
+
+Two-step: (1) fetch ordered ids, (2) hydrate by id = ANY($ids) (authors, media, counts,
+repost/quote embeds, viewer state with one query each for likes/bookmarks/reposts) and restore
+order. limit+1 tells you hasMore .
+Scaling model (explain it in an ADR): at campus scale, fan-out-on-read (the query above) with the
+posts_author_time index is fast and simple. Put the feed behind a FeedProvider interface so you
+
+can later switch to fan-out-on-write ( timeline_entries(user_id, post_id, created_at) filled by
+the outbox worker, with a hybrid "pull for high-follower accounts" rule) only if measurements show
+p95 > target. Add the measurement (k6 script + EXPLAIN output) to the ADR.
+For You feed ( /feed/for-you ): candidate generation (recent posts from followed users + posts
+from friends-of-friends + high-engagement recent posts from the fellowship) → filter (same
+predicates as above + dismissed/ not interested ) → rank: score = log1p(likes·1 + replies·2
++ reposts·3) · recencyDecay(age, halfLife≈12h) · affinity(author) + a small exploration
+
+term → dedupe/diversify (max 2 consecutive posts per author) → hydrate. Keep ranking in one pure,
+unit-tested function so it's explainable ( debug=1 for admins returns score components). Use a
+stable per-session seed + cursor that encodes the rank snapshot so pagination doesn't reorder.
+
+New-post indicator: GET /feed/head?since=<newest cursor> returns { newCount } (cheap
+count capped at 50) for the "N new posts" pill; the client refetches page 1 on tap or pull-to-refresh.
+
+10.4 Counters, likes, bookmarks (hot path)
+PUT /posts/:id/like : INSERT … ON CONFLICT DO NOTHING RETURNING → if inserted:
+like_count+1 , outbox like.created (notification for the author, de-duped/aggregated: "Hiwot
+
+and 3 others liked your reflection"). DELETE mirrors without notification. Response: { liked:
+true, likeCount } .
+
+Bookmarks are private (never visible to others, count not exposed). Bookmark state is part of
+viewer .
+
+Likes tab privacy: default only the owner sees their likes (configurable).
+
+10.5 Fellowship domain: ministries, events, highlights, content library
+Ministries/events: GET /profiles/:username/ministries returns memberships (name, role,
+"Active" status) and the user's upcoming events (expand recurrence_rule server-side for the
+next N occurrences in the user's timezone; store RRULE, don't store every occurrence).
+Admin/leaders manage ministries/events (role checks). Event reminders connect to the app's
+local-reminders feature via GET /events data; optionally push "starting soon" via a scheduled
+job.
+Highlights: CRUD for the owner (max ~10 highlights, ≤ 20 items each). Items reference posts or
+assets; a cover asset is required. Deleting a post nulls the item ( ON DELETE SET NULL ) and a
+cleanup job removes empty highlights.
+Content library (home videos): GET /content/videos?cursor= ordered by published_at desc ;
+admin-curated; list item = { id, title, description, durationSeconds, thumbnail:
+MediaRef, playbackUrl? } . Cache with ETag + short TTL. Watch progress (optional later).
+
+10.6 Streaks (the flame chip and "32d Streak" badge)
+Definition (put it in an ADR): a qualifying action (daily check-in; optionally opening the app,
+reading a devotional, or posting) counts for the user's local calendar date ( profiles.timezone ,
+default Africa/Addis_Ababa ).
+POST /streak/check-in is idempotent per local day: compute localDate on the server from
+now() + timezone (never trust a client date), INSERT INTO streak_days … ON CONFLICT DO
+NOTHING RETURNING ; if inserted, update user_streaks : current = (last_local_date ==
+localDate - 1) ? current + 1 : 1 , longest = max(longest, current) , last_local_date =
+localDate . Return { current, longest, checkedInToday } .
+
+Reading the streak: if last_local_date < localToday - 1 then the displayed current streak is 0
+(broken) even before the nightly rollup. Optional grace/freeze token as a later feature.
+DST isn't an issue in Ethiopia, but use a proper tz library ( Intl / date-fns-tz / luxon ) so other
+timezones work.
+
+Nightly job: persist broken streaks, award milestone notifications (7/30/100 days).
+
+11. Notifications, push, and background jobs
+11.1 In-app notifications (bell badge + inbox)
+Created only by workers consuming outbox events (never inline in request handlers). Types:
+follow , like , reply , mention , repost , quote , ministry_announcement ,
+streak_milestone , system .
+
+Aggregation: like/repost/follow events upsert on (recipient_id, group_key) (e.g. like:post:
+<id> ), push the actor into actor_ids (cap 5), bump actor_count , set updated_at , and clear
+read_at only if materially new. UI: "Hiwot, Bethelhem and 26 others liked your reflection".
+
+Skip notifications for self-actions, blocked/muted actors, and users who disabled the type.
+GET /notifications (cursor on (updated_at, id) ) hydrates actors/entities in batch. GET
+/notifications/unread-count is O(1)-ish via the partial index (and cached in Redis; bust on
+
+write/read). /me includes the same count so the bell badge costs no extra request.
+POST /notifications/read marks specific/all as read; opening the inbox shouldn't auto-mark
+
+everything read unless that's the product choice.
+
+11.2 Push (Expo Push Service)
+1. App registers: getExpoPushTokenAsync → PUT /me/push-devices { token, platform,
+appVersion, locale } . Upsert by token; re-assign the token if it's now used by a different user
+
+(shared/test devices); remove on sign-out.
+2. Worker builds messages (title/body/ data: { url: '/profile/…' } deep link/ channelId:
+'social' / categoryId ), batches ≤ 100 per request via expo-server-sdk , respects preferences
+
++ quiet hours (user timezone), collapses bursts (don't push 30 likes: send one aggregated push
+per post per 10 min).
+3. Tickets & receipts: store tickets, poll receipts after ~15+ min; on DeviceNotRegistered mark the
+device disabled_at and stop sending. Retry transient errors with exponential backoff.
+4. Android channel(s) must exist on the client (the reminders guide already creates one; add a
+social channel with a lower importance than reminders).
+
+5. Foreground handling on the client: show an in-app banner and bump the unread badge; tapping
+deep-links via data.url (reuse the existing notification response handler).
+6. Push is separate from local reminders (offline-first, already built). Don't mix the channels or the
+preferences.
+
+11.3 Background jobs (BullMQ)
+
+Queue/job
+
+outbox-relay
+
+notify
+
+Trigger
+
+Notes
+
+every 1 to
+
+SELECT … FOR UPDATE SKIP LOCKED , at-least-once, idempotent
+
+2 s poll
+
+consumers
+
+outbox
+events
+
+push-send /
+
+notify /
+
+push-receipts
+
+delayed
+
+media-process
+
+media-orphans
+countersreconcile
+
+streak-rollup
+
+upload
+complete
+hourly
+
+nightly
+
+hourly per
+timezone
+
+create/aggregate notifications, enqueue push
+
+tickets → receipts → prune tokens
+
+§8
+
+delete unattached assets
+recompute followers/following/posts/like/reply/repost
+counts from source tables in batches; log + alert on drift
+
+break streaks, milestones
+
+search-index
+(only if external
+
+outbox
+
+engine)
+
+retention
+
+nightly
+
+account-
+
+user
+
+delete
+
+request
+
+hard-delete soft-deleted content past retention, expired
+idempotency keys, old receipts/outbox
+
+§13
+
+All jobs: idempotent, retried with backoff, dead-letter queue, structured logs with job id, and metrics
+(queue depth, age of oldest job, failure rate).
+
+11.4 Real-time (optional, later)
+Start with pull + push + refetch-on-focus. If product wants live updates, add SSE (simple, one-way)
+for notification.created , feed.new and counters on the open screen, backed by Redis pub/sub.
+Don't add WebSockets until you need bidirectional features (DMs/typing).
+
+

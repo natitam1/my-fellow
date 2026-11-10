@@ -9,6 +9,7 @@ import {
   MediaAssetModel,
   ProfileModel,
 } from "../../models/social.models.js";
+import { UserModel } from "../../models/user.model.js";
 
 const router = Router();
 
@@ -20,9 +21,11 @@ router.post("/media/upload-file", requireAuth, uploadSingle, async (req: AuthReq
       throw AppError.badRequest("No image file provided", "MISSING_FILE");
     }
 
-    const folder = (req.body.folder as string) || "community-posts";
+    const purpose = (req.body.purpose as string) || "post";
+    const isAvatar = purpose === "avatar";
+    const folder = (req.body.folder as string) || (isAvatar ? "profile-images" : "community-posts");
     const fileBuffer = Buffer.from((req.file as Express.Multer.File).buffer);
-    const result = await uploadImageToCloudinary(fileBuffer, { folder });
+    const result = await uploadImageToCloudinary(fileBuffer, { folder, isAvatar });
 
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "doi9bg69o";
     const publicId = result.public_id;
@@ -32,7 +35,7 @@ router.post("/media/upload-file", requireAuth, uploadSingle, async (req: AuthReq
 
     const asset = await MediaAssetModel.create({
       ownerId,
-      purpose: (req.body.purpose as string) || "post",
+      purpose,
       status: "ready",
       storageKey: result.secure_url,
       mime: req.file.mimetype || "image/jpeg",
@@ -40,13 +43,28 @@ router.post("/media/upload-file", requireAuth, uploadSingle, async (req: AuthReq
       width: result.width || 800,
       height: result.height || 600,
       variants: {
-        original: result.secure_url,
-        sm,
-        md,
-        lg,
+        original: result.variants?.original || result.secure_url,
+        sm: result.variants?.sm || sm,
+        md: result.variants?.md || md,
+        lg: result.variants?.lg || lg,
       },
       readyAt: new Date(),
     });
+
+    // If uploading an avatar, immediately sync ProfileModel and UserModel
+    if (isAvatar) {
+      await Promise.all([
+        ProfileModel.updateOne(
+          { userId: ownerId },
+          { $set: { avatarAssetId: asset._id.toString() } },
+          { upsert: true }
+        ),
+        UserModel.updateOne(
+          { _id: ownerId },
+          { $set: { profileImage: result.secure_url } }
+        ),
+      ]);
+    }
 
     return res.status(201).json({
       assetId: asset._id.toString(),
@@ -116,10 +134,16 @@ router.post("/me/avatar", requireAuth, async (req: AuthRequest, res: Response, n
     }).lean();
     if (!asset) throw AppError.notFound("Asset not found", "ASSET_NOT_FOUND");
 
-    await ProfileModel.updateOne(
-      { userId },
-      { $set: { avatarAssetId: assetId } }
-    );
+    await Promise.all([
+      ProfileModel.updateOne(
+        { userId },
+        { $set: { avatarAssetId: assetId } }
+      ),
+      UserModel.updateOne(
+        { _id: userId },
+        { $set: { profileImage: asset.storageKey } }
+      ),
+    ]);
 
     return res.json({ success: true, avatar: serializeMediaAsset(asset) });
   } catch (err) {

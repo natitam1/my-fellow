@@ -7,6 +7,7 @@ export const signUpSchema = z.object({
   department: z.string().optional().nullable(),
   yearOfStudy: z.string().optional().nullable(),
   telegramUserName: z.string().optional().nullable(),
+  profileImage: z.string().optional().nullable(),
   password: z.string().min(6),
 });
 

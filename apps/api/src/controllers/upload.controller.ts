@@ -20,11 +20,12 @@ export class UploadController {
       }
 
       const folder = (req.body.folder as string) || "profile-images";
+      const isAvatar = (req.body.isAvatar === "true" || req.body.isAvatar === true || folder === "profile-images");
 
       // Type-safe: cast req.file to Express.Multer.File
       const fileBuffer = Buffer.from((req.file as Express.Multer.File).buffer);
 
-      const result = await uploadImageToCloudinary(fileBuffer, { folder });
+      const result = await uploadImageToCloudinary(fileBuffer, { folder, isAvatar });
 
       res.status(200).json({
         success: true,
@@ -35,6 +36,7 @@ export class UploadController {
           width: result.width,
           height: result.height,
           bytes: result.bytes,
+          variants: result.variants,
         },
       });
     } catch (error: any) {
@@ -74,8 +76,9 @@ export class UploadController {
         }
       }
 
+      const isAvatar = (req.body.isAvatar === "true" || req.body.isAvatar === true || folder === "profile-images");
       const uploadPromises = files.map((file) =>
-        uploadImageToCloudinary(Buffer.from(file.buffer), { folder }),
+        uploadImageToCloudinary(Buffer.from(file.buffer), { folder, isAvatar }),
       );
 
       const results = await Promise.all(uploadPromises);
@@ -89,6 +92,7 @@ export class UploadController {
           width: result.width,
           height: result.height,
           bytes: result.bytes,
+          variants: result.variants,
         })),
       });
     } catch (error: any) {

@@ -79,6 +79,8 @@ coverage/
 .idea/
 *.sublime-project
 *.sublime-workspace
+.agents/
+.claude/
 
 # Vercel
 .vercel/

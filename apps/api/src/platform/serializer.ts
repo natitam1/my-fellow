@@ -2,6 +2,21 @@ import { MediaRef, UserSummary } from "./types.js";
 
 export function serializeMediaAsset(asset?: any | null, altText?: string | null): MediaRef | null {
   if (!asset) return null;
+  if (typeof asset === "string") {
+    return {
+      id: "media-url",
+      kind: "image",
+      width: 800,
+      height: 800,
+      urls: {
+        sm: asset,
+        md: asset,
+        lg: asset,
+        original: asset,
+      },
+      alt: altText || undefined,
+    };
+  }
   const storageKey = asset.storageKey || "";
   const variants = asset.variants && typeof asset.variants === "object" ? asset.variants : {};
 
@@ -16,7 +31,7 @@ export function serializeMediaAsset(asset?: any | null, altText?: string | null)
       sm: variants.sm || storageKey,
       md: variants.md || storageKey,
       lg: variants.lg || storageKey,
-      original: storageKey,
+      original: variants.original || storageKey,
     },
     alt: altText || undefined,
   };
@@ -35,7 +50,13 @@ export function serializeUserSummary(profile: any, avatarAsset?: any | null): Us
     };
   }
 
-  const avatar = serializeMediaAsset(avatarAsset || profile.avatarAsset);
+  const avatar = serializeMediaAsset(
+    avatarAsset ||
+      profile.avatarAsset ||
+      profile.avatar ||
+      profile.avatarUrl ||
+      profile.profileImage,
+  );
 
   return {
     id: profile.userId,

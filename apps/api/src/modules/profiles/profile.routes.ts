@@ -426,7 +426,40 @@ router.get("/profiles/:username/posts", optionalAuth, async (req: AuthRequest, r
 router.patch("/me/profile", requireAuth, async (req: AuthRequest, res: Response, next) => {
   try {
     const userId = req.user!.sub;
-    const { displayName, bio, location, department, studyYear, fellowshipRole, links } = req.body;
+    const { displayName, bio, location, department, studyYear, fellowshipRole, links, avatarAssetId, profileImage, avatar } = req.body;
+
+    let resolvedAvatarAssetId = avatarAssetId;
+    const directImageUrl = profileImage || (typeof avatar === "string" ? avatar : null);
+
+    if (!resolvedAvatarAssetId && directImageUrl) {
+      try {
+        let asset = await MediaAssetModel.findOne({
+          ownerId: userId,
+          storageKey: directImageUrl,
+        });
+        if (!asset) {
+          asset = await MediaAssetModel.create({
+            ownerId: userId,
+            purpose: "avatar",
+            status: "ready",
+            storageKey: directImageUrl,
+            mime: "image/jpeg",
+            width: 800,
+            height: 800,
+            variants: {
+              original: directImageUrl,
+              sm: directImageUrl,
+              md: directImageUrl,
+              lg: directImageUrl,
+            },
+            readyAt: new Date(),
+          });
+        }
+        resolvedAvatarAssetId = asset._id.toString();
+      } catch (assetErr) {
+        console.warn("Failed to ensure MediaAsset in PATCH /me/profile:", assetErr);
+      }
+    }
 
     const profile = await ProfileModel.findOneAndUpdate(
       { userId },
@@ -439,6 +472,7 @@ router.patch("/me/profile", requireAuth, async (req: AuthRequest, res: Response,
           ...(studyYear !== undefined && { studyYear: Number(studyYear) || null }),
           ...(fellowshipRole !== undefined && { fellowshipRole: String(fellowshipRole).trim() }),
           ...(Array.isArray(links) && { links }),
+          ...(resolvedAvatarAssetId && { avatarAssetId: resolvedAvatarAssetId }),
         },
       },
       { new: true, upsert: true }
@@ -449,6 +483,7 @@ router.patch("/me/profile", requireAuth, async (req: AuthRequest, res: Response,
       if (displayName !== undefined) userUpdates.fullName = String(displayName).trim();
       if (department !== undefined) userUpdates.department = String(department).trim();
       if (studyYear !== undefined) userUpdates.yearOfStudy = String(studyYear).trim();
+      if (directImageUrl) userUpdates.profileImage = directImageUrl;
       if (Object.keys(userUpdates).length > 0) {
         await UserModel.findByIdAndUpdate(userId, { $set: userUpdates }).catch(() => {});
       }
