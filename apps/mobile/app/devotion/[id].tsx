@@ -73,6 +73,13 @@ const DevotionDetail = () => {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [progressBarWidth, setProgressBarWidth] = useState(1);
+  const [bannerLoaded, setBannerLoaded] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
+
+  useEffect(() => {
+    setBannerLoaded(false);
+    setBannerError(false);
+  }, [id, devotion?.image]);
 
   // Synchronously compute initial audio source from bundled assets or devotion audioUrl
   const initialAudioSource = useMemo<AudioSource>(() => {
@@ -476,25 +483,34 @@ const DevotionDetail = () => {
         contentContainerStyle={{ paddingTop: top + 52 }}
       >
         <View
-          className={`w-full h-[280px] items-center justify-center ${
+          style={{ width: "100%", height: 280, position: "relative" }}
+          className={`w-full h-[280px] overflow-hidden items-center justify-center ${
             isDark ? "bg-[#141416]" : "bg-gray-100"
           }`}
         >
-          {devotion.image ? (
-            <ExpoImage
-              source={{ uri: devotion.image }}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              transition={200}
-            />
-          ) : (
-            <Ionicons
-              name="book-outline"
-              size={48}
-              color={isDark ? "#3f3f46" : "#a1a1aa"}
-            />
+          {!bannerLoaded && !bannerError && (
+            <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+              <Placeholder width="100%" height={280} borderRadius={0} />
+            </View>
           )}
+          <ExpoImage
+            source={
+              !bannerError && devotion.image
+                ? typeof devotion.image === "string"
+                  ? { uri: devotion.image }
+                  : (devotion.image as any)
+                : require("@/assets/images/onboarding-devotion.jpg")
+            }
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+            onLoad={() => setBannerLoaded(true)}
+            onError={() => {
+              setBannerError(true);
+              setBannerLoaded(true);
+            }}
+          />
         </View>
 
         <View className="px-5 pt-6">
