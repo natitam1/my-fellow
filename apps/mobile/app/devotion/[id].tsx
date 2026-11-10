@@ -475,14 +475,26 @@ const DevotionDetail = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: top + 52 }}
       >
-        <View className="w-full h-[280px]">
-          <ExpoImage
-            source={{ uri: devotion.image }}
-            className="w-full h-full"
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={200}
-          />
+        <View
+          className={`w-full h-[280px] items-center justify-center ${
+            isDark ? "bg-[#141416]" : "bg-gray-100"
+          }`}
+        >
+          {devotion.image ? (
+            <ExpoImage
+              source={{ uri: devotion.image }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
+            />
+          ) : (
+            <Ionicons
+              name="book-outline"
+              size={48}
+              color={isDark ? "#3f3f46" : "#a1a1aa"}
+            />
+          )}
         </View>
 
         <View className="px-5 pt-6">
@@ -859,7 +871,7 @@ const DevotionDetail = () => {
                       >
                         <ExpoImage
                           source={{ uri: item.image }}
-                          className="w-full h-full"
+                          style={{ width: "100%", height: "100%" }}
                           contentFit="cover"
                           cachePolicy="memory-disk"
                           transition={200}

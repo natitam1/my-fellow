@@ -1,5 +1,4 @@
 import { useTheme } from "@/context/ThemeContext";
-import { useUserStore } from "@/stores/user.store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
@@ -8,7 +7,6 @@ import { SFSymbol, SymbolView } from "expo-symbols";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Dimensions,
-  Image,
   Keyboard,
   LayoutChangeEvent,
   Platform,
@@ -45,34 +43,15 @@ function TabIcon({
   routeName,
   focused,
   color,
-  avatarUri,
 }: {
   routeName: string;
   focused: boolean;
   color: string;
-  avatarUri?: string | null;
 }) {
   const isIOS = Platform.OS === "ios";
   // Home icon is just a tiny bit bigger (31 vs 28)
   const isHome = routeName === "index";
   const iconSize = isHome ? 31 : ICON_SIZE;
-
-  // Profile tab: if custom photo uploaded, render a clean single-ring circular avatar.
-  // Otherwise, render the native platform person glyph — 100% consistent with other tabs, NO double border!
-  if (routeName === "profile" && avatarUri) {
-    return (
-      <Image
-        source={{ uri: avatarUri }}
-        style={[
-          styles.profileAvatarImg,
-          focused && {
-            borderWidth: 2,
-            borderColor: color,
-          },
-        ]}
-      />
-    );
-  }
 
   // 1. Native Apple SF Symbols on iOS
   if (isIOS) {
@@ -207,7 +186,6 @@ export default function AppTabBar(props: any) {
   const insets = passedInsets || contextInsets;
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const { user } = useUserStore();
 
   const isIOS = Platform.OS === "ios";
   // High-contrast, punchy active and inactive colors for maximum visibility
@@ -215,8 +193,6 @@ export default function AppTabBar(props: any) {
   const inactiveColor = isDark
     ? "rgba(255, 255, 255, 0.70)"
     : "rgba(15, 23, 42, 0.65)";
-
-  const avatarUri = user?.profileImage;
 
   const routes = state?.routes || [];
   const numTabs = routes.length || 5;
@@ -406,7 +382,6 @@ export default function AppTabBar(props: any) {
                 routeName={route.name}
                 focused={isFocused}
                 color={isFocused ? activeColor : inactiveColor}
-                avatarUri={avatarUri}
               />
             </TabBarButton>
           );
