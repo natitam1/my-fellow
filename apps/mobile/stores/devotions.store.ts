@@ -1,0 +1,158 @@
+import { devotionsService } from "@/services/devotionsService";
+import { Devotion } from "@/types/devotion.types";
+import { OFFLINE_DEVOTIONS } from "@/constants/offlineDevotions";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+
+interface DevotionsStore {
+  devotionsList: Devotion[];
+  savedDevotions: Devotion[];
+  readDevotions: string[];
+  cachedDevotions: Record<string, Devotion>;
+  setDevotionsList: (devotions: Devotion[]) => void;
+  saveDevotion: (devotion: Devotion) => void;
+  unsaveDevotion: (id: string) => void;
+  isDevotionSaved: (id: string) => boolean;
+  markAsRead: (id: string) => void;
+  isDevotionRead: (id: string) => boolean;
+  cacheDevotion: (devotion: Devotion) => void;
+  getCachedDevotion: (id: string) => Devotion | undefined;
+  createDevotion: (data: FormData | any) => Promise<Devotion>;
+  updateDevotion: (id: string, data: FormData | any) => Promise<Devotion>;
+  deleteDevotion: (id: string) => Promise<boolean>;
+}
+
+export const useDevotionsStore = create<DevotionsStore>()(
+  persist(
+    (set, get) => ({
+      devotionsList: OFFLINE_DEVOTIONS,
+      savedDevotions: [],
+      readDevotions: [],
+      cachedDevotions: OFFLINE_DEVOTIONS.reduce<Record<string, Devotion>>(
+        (acc, item) => {
+          acc[item._id] = item;
+          return acc;
+        },
+        {},
+      ),
+      setDevotionsList: (devotions) => {
+        const nextCached: Record<string, Devotion> = {
+          ...get().cachedDevotions,
+        };
+        // Always ensure OFFLINE_DEVOTIONS are accessible in cache
+        OFFLINE_DEVOTIONS.forEach((d) => {
+          if (d._id) nextCached[d._id] = d;
+        });
+        devotions.forEach((d) => {
+          if (d._id) nextCached[d._id] = d;
+        });
+        set({ devotionsList: devotions, cachedDevotions: nextCached });
+      },
+      saveDevotion: (devotion) => {
+        const { savedDevotions } = get();
+        if (!savedDevotions.find((d) => d._id === devotion._id)) {
+          set({
+            savedDevotions: [...savedDevotions, { ...devotion, isSaved: true }],
+          });
+        }
+      },
+      unsaveDevotion: (id) => {
+        const { savedDevotions } = get();
+        set({
+          savedDevotions: savedDevotions.filter((d) => d._id !== id),
+        });
+      },
+      isDevotionSaved: (id) => {
+        const { savedDevotions } = get();
+        return savedDevotions.some((d) => d._id === id);
+      },
+      markAsRead: (id) => {
+        const { readDevotions } = get();
+        if (!readDevotions.includes(id)) {
+          set({
+            readDevotions: [...readDevotions, id],
+          });
+        }
+      },
+      isDevotionRead: (id) => {
+        const { readDevotions } = get();
+        return readDevotions.includes(id);
+      },
+      cacheDevotion: (devotion) => {
+        if (!devotion?._id) return;
+        set((state) => ({
+          cachedDevotions: {
+            ...state.cachedDevotions,
+            [devotion._id]: devotion,
+          },
+        }));
+      },
+      getCachedDevotion: (id) => {
+        const state = get();
+        if (state.cachedDevotions[id]) return state.cachedDevotions[id];
+        const inList = state.devotionsList.find(
+          (d) => d._id === id || d.title === id,
+        );
+        if (inList) return inList;
+        const inSaved = state.savedDevotions.find(
+          (d) => d._id === id || d.title === id,
+        );
+        if (inSaved) return inSaved;
+        return OFFLINE_DEVOTIONS.find((d) => d._id === id || d.title === id);
+      },
+
+      createDevotion: async (data: FormData | any) => {
+        const newDevotion = await devotionsService.createDevotion(data);
+        set((state) => ({
+          devotionsList: [newDevotion, ...state.devotionsList],
+          cachedDevotions: {
+            ...state.cachedDevotions,
+            [newDevotion._id]: newDevotion,
+          },
+        }));
+        return newDevotion;
+      },
+
+      updateDevotion: async (id: string, data: FormData | any) => {
+        const updated = await devotionsService.updateDevotion(id, data);
+        set((state) => ({
+          devotionsList: state.devotionsList.map((d) =>
+            d._id === id ? updated : d,
+          ),
+          cachedDevotions: {
+            ...state.cachedDevotions,
+            [id]: updated,
+          },
+        }));
+        return updated;
+      },
+
+      deleteDevotion: async (id: string) => {
+        const success = await devotionsService.deleteDevotion(id);
+        if (success) {
+          set((state) => {
+            const nextCached = { ...state.cachedDevotions };
+            delete nextCached[id];
+            return {
+              devotionsList: state.devotionsList.filter((d) => d._id !== id),
+              savedDevotions: state.savedDevotions.filter((d) => d._id !== id),
+              cachedDevotions: nextCached,
+            };
+          });
+        }
+        return success;
+      },
+    }),
+    {
+      name: "devotions-storage",
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        devotionsList: state.devotionsList,
+        savedDevotions: state.savedDevotions,
+        readDevotions: state.readDevotions,
+        cachedDevotions: state.cachedDevotions,
+      }),
+    },
+  ),
+);

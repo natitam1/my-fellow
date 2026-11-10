@@ -1,0 +1,555 @@
+import { useTheme } from "@/context/ThemeContext";
+import api from "@/services/api";
+import { useCommunityStore } from "@/stores/community.store";
+import { useUserStore } from "@/stores/user.store";
+import { getPrefilledAvatar } from "@/utils/avatar";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { CommonActions } from "@react-navigation/native";
+import * as Haptics from "expo-haptics";
+import { Image as ExpoImage } from "expo-image";
+import { router as expoRouter } from "expo-router";
+import { SFSymbol, SymbolView } from "expo-symbols";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  Dimensions,
+  Keyboard,
+  LayoutChangeEvent,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+const INDICATOR_WIDTH = 60;
+const INDICATOR_HEIGHT = 42;
+const INDICATOR_RADIUS = 21;
+const ICON_SIZE = 28;
+
+// Safe native haptic trigger
+const triggerTabHaptic = () => {
+  try {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  } catch {
+    // Unsupported environment fallback
+  }
+};
+
+function extractMediaUrl(media?: any): string | null {
+  if (!media) return null;
+  if (typeof media === "string") return media;
+  if (media.id === "default-cover") return null;
+  return (
+    media.urls?.original ||
+    media.urls?.lg ||
+    media.urls?.md ||
+    media.urls?.sm ||
+    media.uri ||
+    null
+  );
+}
+
+// --- Native Platform Icons: SF Symbols on iOS, Material Design Icons on Android ---
+
+function TabIcon({
+  routeName,
+  focused,
+  color,
+  avatarUri,
+}: {
+  routeName: string;
+  focused: boolean;
+  color: string;
+  avatarUri?: string | null;
+}) {
+  const isIOS = Platform.OS === "ios";
+  // Home icon is just a tiny bit bigger (31 vs 28)
+  const isHome = routeName === "index";
+  const iconSize = isHome ? 31 : ICON_SIZE;
+  const [avatarError, setAvatarError] = useState(false);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [avatarUri]);
+
+  // Profile tab: render circular profile picture with active ring when focused
+  if (routeName === "profile" && avatarUri && !avatarError) {
+    return (
+      <ExpoImage
+        source={{ uri: avatarUri }}
+        style={[
+          styles.profileAvatarImg,
+          focused && {
+            borderWidth: 2,
+            borderColor: color,
+          },
+        ]}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={150}
+        onError={() => setAvatarError(true)}
+      />
+    );
+  }
+
+  // 1. Native Apple SF Symbols on iOS
+  if (isIOS) {
+    let sfName: SFSymbol = "house";
+    switch (routeName) {
+      case "index":
+        sfName = focused ? "house.fill" : "house";
+        break;
+      case "devotions":
+        sfName = focused ? "book.fill" : "book";
+        break;
+      case "community":
+        sfName = focused ? "person.2.fill" : "person.2";
+        break;
+      case "gifts":
+        sfName = focused ? "gift.fill" : "gift";
+        break;
+      case "profile":
+        sfName = focused ? "person.fill" : "person";
+        break;
+      default:
+        sfName = focused ? "house.fill" : "house";
+    }
+
+    return (
+      <SymbolView
+        name={sfName}
+        size={iconSize}
+        tintColor={color}
+        resizeMode="scaleAspectFit"
+        weight={focused ? "bold" : "medium"}
+        style={{ width: iconSize, height: iconSize }}
+      />
+    );
+  }
+
+  // 2. Material Design Icons on Android (Matched Filled/Outline Variants)
+  let materialName: keyof typeof MaterialCommunityIcons.glyphMap = "home-outline";
+  switch (routeName) {
+    case "index":
+      materialName = focused ? "home" : "home-outline";
+      break;
+    case "devotions":
+      materialName = focused
+        ? "book-open-page-variant"
+        : "book-open-page-variant-outline";
+      break;
+    case "community":
+      materialName = focused ? "account-group" : "account-group-outline";
+      break;
+    case "gifts":
+      materialName = focused ? "gift" : "gift-outline";
+      break;
+    case "profile":
+      materialName = focused ? "account" : "account-outline";
+      break;
+    default:
+      materialName = focused ? "home" : "home-outline";
+  }
+
+  return (
+    <MaterialCommunityIcons
+      name={materialName}
+      size={iconSize}
+      color={color}
+    />
+  );
+}
+
+// --- Stable Native Tab Button (Zero visual flash on click, zero bouncing) ---
+
+function TabBarButton({
+  focused,
+  onPress,
+  onLongPress,
+  children,
+  accessibilityLabel,
+  isDark,
+}: {
+  focused: boolean;
+  onPress: () => void;
+  onLongPress: () => void;
+  children: React.ReactNode;
+  accessibilityLabel?: string;
+  isDark: boolean;
+}) {
+  return (
+    <View style={styles.tabButtonColumn}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={focused ? { selected: true } : {}}
+        accessibilityLabel={accessibilityLabel}
+        onPress={() => {
+          triggerTabHaptic();
+          onPress();
+        }}
+        onLongPress={onLongPress}
+        hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
+        android_ripple={{
+          borderless: true,
+          radius: 26,
+          color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+        }}
+        style={({ pressed }) => [
+          styles.tabButtonTouchArea,
+          pressed && Platform.OS === "ios" && { opacity: 0.65 },
+        ]}
+      >
+        <View style={styles.tabPillContainer}>
+          <View style={styles.tabContentCenter}>
+            {children}
+          </View>
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
+// --- Main App Tab Bar Component ---
+
+export default function AppTabBar(props: any) {
+  const {
+    state,
+    descriptors,
+    navigation,
+    emitter,
+    navigateToTab,
+    insets: passedInsets,
+  } = props || {};
+
+  const contextInsets = useSafeAreaInsets();
+  const insets = passedInsets || contextInsets;
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const { user, setUser } = useUserStore();
+  const memberAvatar = useCommunityStore((s) =>
+    user?.id ? s.members[user.id]?.avatar : undefined
+  );
+  const [socialAvatar, setSocialAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id || user.profileImage) return;
+    let active = true;
+    api
+      .get("/v1/meta/me")
+      .then((res) => {
+        if (!active) return;
+        const metaUser = res?.data?.data?.user || res?.data?.user || null;
+        const resolved = extractMediaUrl(metaUser?.avatar);
+        if (resolved) {
+          setSocialAvatar(resolved);
+          const currentUser = useUserStore.getState().user;
+          if (currentUser && !currentUser.profileImage) {
+            setUser({ ...currentUser, profileImage: resolved });
+          }
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [user?.id, user?.profileImage, setUser]);
+
+  const avatarUri =
+    user?.profileImage ||
+    socialAvatar ||
+    memberAvatar ||
+    getPrefilledAvatar(user?.phoneNumber || user?.id || "fellow");
+
+  const isIOS = Platform.OS === "ios";
+  // High-contrast, punchy active and inactive colors for maximum visibility
+  const activeColor = isDark ? "#ffffff" : "#0f172a";
+  const inactiveColor = isDark
+    ? "rgba(255, 255, 255, 0.70)"
+    : "rgba(15, 23, 42, 0.65)";
+
+  const routes = state?.routes || [];
+  const numTabs = routes.length || 5;
+  const [containerWidth, setContainerWidth] = useState(SCREEN_WIDTH);
+
+  // Measure tab bar width on layout
+  const handleTabsLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0) {
+      setContainerWidth(w);
+    }
+  }, []);
+
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(
+    () => Keyboard.isVisible?.() ?? false
+  );
+
+  useEffect(() => {
+    // Follow official React Navigation keyboard handling:
+    // iOS: keyboardWillShow / keyboardWillHide for instantaneous frame-accurate response
+    // Android: keyboardDidShow / keyboardDidHide (reliable native events)
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, () => {
+      setIsKeyboardVisible(true);
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      // Guard: On Android, keyboards can fire temporary hide events while typing
+      // or updating candidate suggestions. If Keyboard.isVisible() is still true, don't unhide.
+      if (Keyboard.isVisible?.()) {
+        return;
+      }
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const currentIndex = state?.index ?? 0;
+
+  // Compute initial position for the sliding active indicator
+  const initialTargetX =
+    (currentIndex + 0.5) * (SCREEN_WIDTH / numTabs) - INDICATOR_WIDTH / 2;
+
+  const translateX = useSharedValue(initialTargetX);
+
+  useEffect(() => {
+    if (containerWidth > 0 && numTabs > 0) {
+      const currentTabWidth = containerWidth / numTabs;
+      const targetX =
+        (currentIndex + 0.5) * currentTabWidth - INDICATOR_WIDTH / 2;
+
+      translateX.value = withSpring(targetX, {
+        damping: 20,
+        stiffness: 220,
+        mass: 0.7,
+      });
+    }
+  }, [currentIndex, containerWidth, numTabs, translateX]);
+
+  const indicatorAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const focusedRoute = state?.routes?.[currentIndex];
+  const focusedDescriptor = descriptors?.[focusedRoute?.key];
+  const focusedOptions = focusedDescriptor?.options;
+
+  // Respect tabBarStyle: { display: 'none' } if set by any screen
+  const isHiddenByStyle = focusedOptions?.tabBarStyle?.display === "none";
+  const shouldHideOnKeyboard = focusedOptions?.tabBarHideOnKeyboard ?? true;
+
+  if (
+    !state ||
+    !routes.length ||
+    isHiddenByStyle ||
+    (shouldHideOnKeyboard && isKeyboardVisible)
+  ) {
+    return null;
+  }
+
+  // Native Material tab bar on all platforms with zero glass overhead
+  return (
+    <View
+      style={[
+        styles.tabBarWrapper,
+        styles.androidContainer,
+        {
+          paddingBottom: Math.max(insets.bottom, 6),
+          height: 60 + Math.max(insets.bottom, 6),
+          backgroundColor: isDark ? "#121212" : "#ffffff",
+          borderTopColor: isDark ? "#262626" : "#e5e7eb",
+        },
+      ]}
+    >
+      {/* Tabs Content Row */}
+      <View style={styles.tabsRow} onLayout={handleTabsLayout}>
+        {/* Animated Sliding Rounded Indicator Capsule */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.slidingIndicator,
+            {
+              backgroundColor: isDark
+                ? isIOS
+                  ? "rgba(255, 255, 255, 0.16)"
+                  : "rgba(255, 255, 255, 0.12)"
+                : isIOS
+                ? "rgba(0, 0, 0, 0.08)"
+                : "rgba(0, 0, 0, 0.06)",
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.22)"
+                : "rgba(0, 0, 0, 0.06)",
+            },
+            indicatorAnimatedStyle,
+          ]}
+        />
+
+        {/* Tab Buttons */}
+        {routes.map((route: any, index: number) => {
+          const descriptor = descriptors?.[route.key];
+          const options = descriptor?.options || {};
+          const isFocused = currentIndex === index;
+
+          const onPress = () => {
+            const event = emitter?.emit
+              ? emitter.emit({
+                  type: "tabPress",
+                  target: route.key,
+                  canPreventDefault: true,
+                })
+              : navigation?.emit?.({
+                  type: "tabPress",
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+
+            if (!isFocused && !event?.defaultPrevented) {
+              if (typeof navigateToTab === "function") {
+                navigateToTab(route.key);
+              } else if (navigation?.dispatch) {
+                navigation.dispatch({
+                  ...CommonActions.navigate(route),
+                  target: state.key,
+                });
+              } else if (navigation?.navigate) {
+                navigation.navigate(route.name);
+              } else {
+                const targetPath =
+                  route.name === "index" ? "/(tabs)" : `/(tabs)/${route.name}`;
+                expoRouter.navigate(targetPath as any);
+              }
+            }
+          };
+
+          const onLongPress = () => {
+            if (emitter?.emit) {
+              emitter.emit({
+                type: "tabLongPress",
+                target: route.key,
+              });
+            } else if (navigation?.emit) {
+              navigation.emit({
+                type: "tabLongPress",
+                target: route.key,
+              });
+            }
+          };
+
+          return (
+            <TabBarButton
+              key={route.key}
+              focused={isFocused}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              accessibilityLabel={options.title || route.name}
+              isDark={isDark}
+            >
+              <TabIcon
+                routeName={route.name}
+                focused={isFocused}
+                color={isFocused ? activeColor : inactiveColor}
+                avatarUri={avatarUri}
+              />
+            </TabBarButton>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  tabBarWrapper: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
+  iosGlassContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    zIndex: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+  },
+  androidContainer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    elevation: 8,
+    zIndex: 100,
+  },
+  tabsRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    position: "relative",
+  },
+  tabButtonColumn: {
+    flex: 1,
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabButtonTouchArea: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabPillContainer: {
+    width: INDICATOR_WIDTH,
+    height: INDICATOR_HEIGHT,
+    borderRadius: INDICATOR_RADIUS,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabContentCenter: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  slidingIndicator: {
+    position: "absolute",
+    top: "50%",
+    marginTop: -INDICATOR_HEIGHT / 2,
+    left: 0,
+    width: INDICATOR_WIDTH,
+    height: INDICATOR_HEIGHT,
+    borderRadius: INDICATOR_RADIUS,
+    borderWidth: 1,
+    pointerEvents: "none",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+      },
+    }),
+  },
+  profileAvatarImg: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+});

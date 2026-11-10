@@ -1,0 +1,163 @@
+import { AlertCard, DeleteConfirmModal, NativeBackButton } from "@/components";
+import { PRIMARY } from "@/constants";
+import { useTheme } from "@/context/ThemeContext";
+import { useAlerts } from "@/hooks/useAlerts";
+import { registerForPushNotificationsAsync } from "@/utils/notificationService";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const RemindersScreen = () => {
+  const { theme } = useTheme();
+  const { top } = useSafeAreaInsets();
+  const isDark = theme === "dark";
+  const { alerts, loading, deleteAlert, toggleAlert } = useAlerts();
+  const router = useRouter();
+  const [deleteModalVisible, setDeleteModalVisible] = React.useState(false);
+  const [alertToDelete, setAlertToDelete] = React.useState<string | null>(null);
+
+  useEffect(() => {
+    registerForPushNotificationsAsync();
+  }, []);
+
+  const handleAddPress = () => {
+    router.push("/reminders/manage");
+  };
+
+  const handleEditPress = (id: string) => {
+    router.push({
+      pathname: "/reminders/manage",
+      params: { id },
+    });
+  };
+
+  const handleDeletePress = (id: string) => {
+    setAlertToDelete(id);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (alertToDelete) {
+      await deleteAlert(alertToDelete);
+      setDeleteModalVisible(false);
+      setAlertToDelete(null);
+    }
+  };
+
+  return (
+    <View className={`flex-1 ${isDark ? "bg-dark" : "bg-background"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+
+      <View className="flex-1" style={{ paddingTop: top + 10 }}>
+        <View className="px-6 mb-8 flex-row justify-between items-center">
+          <View className="flex-row items-center">
+            {router.canGoBack() && (
+              <NativeBackButton style={{ marginRight: 12, marginLeft: -6 }} />
+            )}
+            <View>
+              <Text
+                className={`text-3xl font-black ${isDark ? "text-white" : "text-black"}`}
+              >
+                Alerts
+              </Text>
+              <Text
+                className={`text-sm font-bold mt-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}
+              >
+                {alerts.length} active schedule{alerts.length !== 1 ? "s" : ""}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={handleAddPress}
+            activeOpacity={0.8}
+            className="w-13 h-13 rounded-2xl bg-orange-500 items-center justify-center shadow-lg shadow-orange-500/40 px-3 py-3"
+          >
+            <Ionicons name="add" size={28} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        {loading ? (
+          <View className="flex-1 justify-center items-center">
+            <ActivityIndicator size="large" color={PRIMARY} />
+          </View>
+        ) : (
+          <FlatList
+            data={alerts}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <AlertCard
+                alert={item}
+                isDark={isDark}
+                onToggle={() => toggleAlert(item.id)}
+                onDelete={() => handleDeletePress(item.id)}
+                onEdit={() => handleEditPress(item.id)}
+              />
+            )}
+            contentContainerStyle={{
+              paddingHorizontal: 24,
+              paddingBottom: 120,
+            }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View className="flex-1 items-center justify-center pt-32">
+                <View
+                  className={`w-24 h-24 rounded-[32px] items-center justify-center mb-6 ${
+                    isDark ? "bg-gray-800/50" : "bg-gray-50"
+                  }`}
+                >
+                  <Ionicons
+                    name="notifications-off-outline"
+                    size={48}
+                    color={isDark ? "#4b5563" : "#d1d5db"}
+                  />
+                </View>
+                <Text
+                  className={`text-xl font-black mb-2 text-center ${
+                    isDark ? "text-gray-300" : "text-gray-800"
+                  }`}
+                >
+                  Stay Notified
+                </Text>
+                <Text
+                  className={`text-center px-12 leading-5 ${
+                    isDark ? "text-gray-500" : "text-gray-400"
+                  }`}
+                >
+                  Create reminders for your events and we&apos;ll alert you exactly
+                  when you need.
+                </Text>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleAddPress}
+                  className="mt-8 bg-orange-500/10 px-8 py-4 rounded-2xl"
+                >
+                  <Text className="text-orange-500 font-bold">
+                    Add Your First Alert
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            }
+          />
+        )}
+      </View>
+      <DeleteConfirmModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={confirmDelete}
+        isDark={isDark}
+      />
+    </View>
+  );
+};
+
+export default RemindersScreen;

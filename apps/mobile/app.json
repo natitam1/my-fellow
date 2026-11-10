@@ -1,0 +1,105 @@
+{
+  "expo": {
+    "name": "My Fellow",
+    "slug": "my-fellow",
+    "scheme": "my-fellow",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "icon": "./assets/images/app-icon.png",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.myfellow.app",
+      "icon": "./assets/images/app-icon.png",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio",
+          "remote-notification"
+        ]
+      }
+    },
+    "android": {
+      "package": "com.myfellow.app",
+      "permissions": [
+        "android.permission.WAKE_LOCK",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+        "backgroundColor": "#FF6719"
+      },
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "web": {},
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "extra": {
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "router": {},
+      "eas": {
+        "projectId": "0cd82926-55b4-4421-b89c-5da2ad3f85de"
+      }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-logo.png",
+          "imageWidth": 270,
+          "resizeMode": "contain",
+          "backgroundColor": "#FF6719",
+          "dark": {
+            "image": "./assets/images/splash-logo.png",
+            "backgroundColor": "#FF6719"
+          }
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-asset",
+      "@react-native-community/datetimepicker",
+      "expo-image",
+      "expo-secure-store",
+      "expo-sharing",
+      "expo-status-bar",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/app-icon.png",
+          "color": "#FF6719",
+          "defaultChannel": "reminders"
+        }
+      ]
+    ],
+    "owner": "arat-kilo-fellowship",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/0cd82926-55b4-4421-b89c-5da2ad3f85de"
+    }
+  }
+}

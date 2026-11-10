@@ -1,0 +1,173 @@
+import { ImageSourcePropType } from "react-native";
+import TEAM_LEADERS from "./team-leaders";
+
+export type Leader = {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  phoneNumber: string;
+  telegram: string;
+  isVerified: boolean;
+  image: ImageSourcePropType;
+  type: "Main" | "Team";
+};
+
+export const LEADERS: Leader[] = [
+  {
+    id: "1",
+    name: "Fellowship Leader",
+    role: "Main Leader",
+    bio: "A dedicated 4th-year Statistics student with a passion for serving the fellow.",
+    phoneNumber: "0911000001",
+    telegram: "@fellowship_leader",
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader1.jpg"),
+    type: "Main",
+  },
+  {
+    id: "2",
+    name: "Kefa",
+    role: "Coordinator",
+    bio: "4th year Physics student and fellowship coordinator, committed to leading with wisdom and strengthening the fellowship through service and unity.",
+    phoneNumber: "0911000001",
+    telegram: "@kefa",
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader2.jpg"),
+
+    type: "Main",
+  },
+  {
+    id: "3",
+    name: "Dibora",
+    role: "Prayer Team Lead",
+    bio: "Leading the prayer team and inspiring the youth to grow deeper in faith through consistent prayer and spiritual discipline.",
+    phoneNumber: "0911000001",
+    telegram: "@dibora",
+    isVerified: false,
+    image: require("@/assets/images/leaders/leader3.jpg"),
+
+    type: "Main",
+  },
+  {
+    id: "4",
+    name: "Nahom",
+    role: "Accountant",
+    bio: "Responsible for managing fellowship finances with integrity, accuracy, and transparency to support all ministry activities.",
+    phoneNumber: "0911000001",
+    telegram: "@nahom",
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader4.jpg"),
+    type: "Main",
+  },
+  {
+    id: "5",
+    name: "Lombame",
+    role: "Shepherd",
+    bio: "Serving as a shepherd with a heart for guidance, care, and spiritual growth, supporting members through mentorship and pastoral care.",
+    phoneNumber: "0911000001",
+    telegram: "@lombame",
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader5.jpg"),
+    type: "Main",
+  },
+  {
+    id: "6",
+    name: "Kidist",
+    role: "Writer",
+    bio: "Creating and sharing meaningful content to inspire, educate, and uplift the fellowship through written communication.",
+    phoneNumber: "0911000001",
+    telegram: "@kidist",
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader6.jpg"),
+    type: "Main",
+  },
+  {
+    id: "7",
+    name: "Waqgari",
+    role: "Evangelism",
+    bio: "Inspiring and mobilizing the youth to share the gospel with confidence and conviction.",
+    phoneNumber: "0911000001",
+    telegram: "@waqgari",
+    isVerified: true,
+    image: require("@/assets/images/leaders/image.jpg"),
+    type: "Main",
+  },
+  {
+    id: "8",
+    name: TEAM_LEADERS[0].name,
+    role: TEAM_LEADERS[0].team,
+    bio: TEAM_LEADERS[0].bio,
+    phoneNumber: TEAM_LEADERS[0].phoneNumber,
+    telegram: TEAM_LEADERS[0].telegram,
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader3.jpg"),
+    type: "Team",
+  },
+  {
+    id: "9",
+    name: TEAM_LEADERS[1].name,
+    role: TEAM_LEADERS[1].team,
+    bio: TEAM_LEADERS[1].bio,
+    phoneNumber: TEAM_LEADERS[1].phoneNumber,
+    telegram: TEAM_LEADERS[1].telegram,
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader4.jpg"),
+    type: "Team",
+  },
+  {
+    id: "10",
+    name: TEAM_LEADERS[2].name,
+    role: TEAM_LEADERS[2].team,
+    bio: TEAM_LEADERS[2].bio,
+    phoneNumber: TEAM_LEADERS[2].phoneNumber,
+    telegram: TEAM_LEADERS[2].telegram,
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader1.jpg"),
+    type: "Team",
+  },
+  {
+    id: "11",
+    name: TEAM_LEADERS[3].name,
+    role: TEAM_LEADERS[3].team,
+    bio: TEAM_LEADERS[3].bio,
+    phoneNumber: TEAM_LEADERS[3].phoneNumber,
+    telegram: TEAM_LEADERS[3].telegram,
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader2.jpg"),
+    type: "Team",
+  },
+  {
+    id: "12",
+    name: TEAM_LEADERS[4].name,
+    role: TEAM_LEADERS[4].team,
+    bio: TEAM_LEADERS[4].bio,
+    phoneNumber: TEAM_LEADERS[4].phoneNumber,
+    telegram: TEAM_LEADERS[4].telegram,
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader4.jpg"),
+    type: "Team",
+  },
+  {
+    id: "13",
+    name: TEAM_LEADERS[5].name,
+    role: TEAM_LEADERS[5].team,
+    bio: TEAM_LEADERS[5].bio,
+    phoneNumber: TEAM_LEADERS[5].phoneNumber,
+    telegram: TEAM_LEADERS[5].telegram,
+    isVerified: true,
+    image: require("@/assets/images/leaders/image.jpg"),
+    type: "Team",
+  },
+  {
+    id: "14",
+    name: TEAM_LEADERS[6].name,
+    role: TEAM_LEADERS[6].team,
+    bio: TEAM_LEADERS[6].bio,
+    phoneNumber: TEAM_LEADERS[6].phoneNumber,
+    telegram: TEAM_LEADERS[6].telegram,
+    isVerified: true,
+    image: require("@/assets/images/leaders/leader5.jpg"),
+    type: "Team",
+  },
+];

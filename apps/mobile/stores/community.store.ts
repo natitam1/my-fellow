@@ -1,0 +1,2024 @@
+import { socialApi } from "@/services/socialApi";
+import {
+  ApiPost,
+  PostableActor,
+  ProfileDetail,
+  SuggestedUser,
+} from "@/types/social.types";
+import { formatRelativeTime } from "@/utils/date";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+
+export interface CommunityComment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorName: string;
+  authorHandle: string;
+  authorAvatar?: string | any | null;
+  timestamp: string;
+  content: string;
+  likesCount: number;
+  isLiked?: boolean;
+}
+
+export interface MemberProfile {
+  id: string;
+  fullName: string;
+  handle: string;
+  avatar: string | any;
+  banner: string | any;
+  team: string;
+  department: string;
+  academicYear: string;
+  bio: string;
+  streakDays: number;
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+  isFollowing?: boolean;
+  isVerified?: boolean;
+  isActor?: boolean;
+  actorType?: "user" | "team" | "official";
+  telegramUsername?: string;
+  location?: string;
+  joinedDate?: string;
+  mutualFollowers?: {
+    names: string[];
+    count: number;
+    avatars: string[];
+  };
+}
+
+export interface SuggestedMember {
+  id: string;
+  name: string;
+  role: string;
+  department: string;
+  mutualCount: number;
+  badge?: string;
+  avatar: string;
+}
+
+export type CommunityCategory =
+  | "all"
+  | "prayer"
+  | "worship"
+  | "outreach"
+  | "testimonies"
+  | "academic";
+
+export interface CommunityPost {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorHandle: string;
+  authorAvatar?: string | any | null;
+  authorTeam?: string;
+  isVerified?: boolean;
+  timestamp: string;
+  content: string;
+  image?: any | string | null;
+  category: CommunityCategory;
+  repliesCount: number;
+  repostsCount: number;
+  likesCount: number;
+  isLiked?: boolean;
+  isReposted?: boolean;
+  isBookmarked?: boolean;
+  comments?: CommunityComment[];
+}
+
+export const DEFAULT_SUGGESTED_MEMBERS: SuggestedMember[] = [
+  {
+    id: "m1",
+    name: "Abenezer Bekele",
+    role: "Worship Leader",
+    department: "Software Eng. • 4th Yr",
+    mutualCount: 28,
+    avatar:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+  },
+  {
+    id: "m2",
+    name: "Hiwot Tadesse",
+    role: "Prayer Coordinator",
+    department: "Biomedical Eng. • 3rd Yr",
+    mutualCount: 34,
+    avatar:
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+  },
+  {
+    id: "m3",
+    name: "Yohannes Hailu",
+    role: "Bible Study Lead",
+    department: "Electrical Eng. • 5th Yr",
+    mutualCount: 19,
+    avatar:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+  },
+  {
+    id: "m4",
+    name: "Bethelhem Assefa",
+    role: "Freshman Mentor",
+    department: "Computer Eng. • 4th Yr",
+    mutualCount: 22,
+    avatar:
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+  },
+  {
+    id: "m5",
+    name: "Natnael Tamiru",
+    role: "Media & Tech Lead",
+    department: "Information Systems • 5th Yr",
+    mutualCount: 42,
+    avatar:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+  },
+];
+
+export const INITIAL_MEMBERS: Record<string, MemberProfile> = {
+  fellow: {
+    id: "fellow",
+    fullName: "Fellow",
+    handle: "@fellow",
+    avatar: require("@/assets/images/app-icon.png"),
+    banner:
+      "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80",
+    team: "Official Fellowship",
+    department: "Campus Ministry Leadership",
+    academicYear: "AAU ECSF",
+    bio: "Official account of 4 Kilo Christian Students Fellowship (AAU ECSF). Rooted & Built Up in Him. Col 2:7 ✝️",
+    streakDays: 142,
+    followersCount: 1240,
+    followingCount: 38,
+    postsCount: 56,
+    isFollowing: true,
+    isVerified: true,
+    isActor: true,
+    actorType: "official",
+    telegramUsername: "ECSF4KILO",
+  },
+  "@fellow": {
+    id: "fellow",
+    fullName: "Fellow",
+    handle: "@fellow",
+    avatar: require("@/assets/images/app-icon.png"),
+    banner:
+      "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80",
+    team: "Official Fellowship",
+    department: "Campus Ministry Leadership",
+    academicYear: "AAU ECSF",
+    bio: "Official account of 4 Kilo Christian Students Fellowship (AAU ECSF). Rooted & Built Up in Him. Col 2:7 ✝️",
+    streakDays: 142,
+    followersCount: 1240,
+    followingCount: 38,
+    postsCount: 56,
+    isFollowing: true,
+    isVerified: true,
+    isActor: true,
+    actorType: "official",
+    telegramUsername: "ECSF4KILO",
+  },
+  worship: {
+    id: "worship",
+    fullName: "Worship Team",
+    handle: "@worship",
+    avatar:
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+    team: "Worship Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Acoustic teams, praise, and leading fellowship worship.",
+    streakDays: 45,
+    followersCount: 890,
+    followingCount: 12,
+    postsCount: 34,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+    telegramUsername: "worship_4kilo",
+  },
+  "@worship": {
+    id: "worship",
+    fullName: "Worship Team",
+    handle: "@worship",
+    avatar:
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+    team: "Worship Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Acoustic teams, praise, and leading fellowship worship.",
+    streakDays: 45,
+    followersCount: 890,
+    followingCount: 12,
+    postsCount: 34,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+    telegramUsername: "worship_4kilo",
+  },
+  biblestudy: {
+    id: "biblestudy",
+    fullName: "Bible Study Team",
+    handle: "@biblestudy",
+    avatar:
+      "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80",
+    team: "Bible Study Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Deep scripture study, weekly cell groups & discipleship.",
+    streakDays: 52,
+    followersCount: 780,
+    followingCount: 12,
+    postsCount: 29,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+    telegramUsername: "biblestudy_4kilo",
+  },
+  "@biblestudy": {
+    id: "biblestudy",
+    fullName: "Bible Study Team",
+    handle: "@biblestudy",
+    avatar:
+      "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80",
+    team: "Bible Study Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Deep scripture study, weekly cell groups & discipleship.",
+    streakDays: 52,
+    followersCount: 780,
+    followingCount: 12,
+    postsCount: 29,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+    telegramUsername: "biblestudy_4kilo",
+  },
+  evangelism: {
+    id: "evangelism",
+    fullName: "Evangelism Team",
+    handle: "@evangelism",
+    avatar:
+      "https://images.unsplash.com/photo-1519491050282-cf00c82424b4?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1519491050282-cf00c82424b4?auto=format&fit=crop&w=1200&q=80",
+    team: "Evangelism Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Sharing the Gospel across campus and university outreach.",
+    streakDays: 38,
+    followersCount: 650,
+    followingCount: 12,
+    postsCount: 22,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+  },
+  prayer: {
+    id: "prayer",
+    fullName: "Prayer Team",
+    handle: "@prayer",
+    avatar:
+      "https://images.unsplash.com/photo-1544717302-de2939b7ef71?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1544717302-de2939b7ef71?auto=format&fit=crop&w=1200&q=80",
+    team: "Prayer Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Intercession, morning prayers, and fellowship fasting nights.",
+    streakDays: 60,
+    followersCount: 720,
+    followingCount: 12,
+    postsCount: 31,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+  },
+  i4u: {
+    id: "i4u",
+    fullName: "I4U Team",
+    handle: "@i4u",
+    avatar:
+      "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80",
+    team: "I4U Team",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Care, encouragement, mutual support, and student welfare.",
+    streakDays: 31,
+    followersCount: 540,
+    followingCount: 12,
+    postsCount: 18,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+  },
+  media: {
+    id: "media",
+    fullName: "Media & Literature",
+    handle: "@media",
+    avatar:
+      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+    team: "Media & Literature",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Media, literature, publications, and fellowship media.",
+    streakDays: 40,
+    followersCount: 610,
+    followingCount: 12,
+    postsCount: 26,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+  },
+  freshman: {
+    id: "freshman",
+    fullName: "Freshman Ministry",
+    handle: "@freshman",
+    avatar:
+      "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80",
+    team: "Freshman Ministry",
+    department: "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio: "Welcoming and guiding new campus students in faith and life.",
+    streakDays: 45,
+    followersCount: 520,
+    followingCount: 12,
+    postsCount: 27,
+    isFollowing: false,
+    isVerified: true,
+    isActor: true,
+    actorType: "team",
+  },
+  "user-fellowship": {
+    id: "user-fellowship",
+    fullName: "Fellow",
+    handle: "@fellow",
+    avatar: require("@/assets/images/app-icon.png"),
+    banner:
+      "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80",
+    team: "Official Fellowship",
+    department: "Campus Ministry Leadership",
+    academicYear: "AAU ECSF",
+    bio: "Official account of 4 Kilo Christian Students Fellowship (AAU ECSF). Rooted & Built Up in Him. Col 2:7 ✝️",
+    streakDays: 142,
+    followersCount: 1240,
+    followingCount: 38,
+    postsCount: 56,
+    isFollowing: true,
+    isVerified: true,
+    isActor: true,
+    actorType: "official",
+    telegramUsername: "ECSF4KILO",
+  },
+  "user-worship": {
+    id: "user-worship",
+    fullName: "Worship & Choir",
+    handle: "@4kilo_worship",
+    avatar:
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+    team: "Worship Team",
+    department: "Acoustic & Vocal Ministry",
+    academicYear: "AAU 4 Kilo",
+    bio: "Lifting up holy hands across 4 Kilo campus halls. Rehearsals every Wednesday & Friday at 5:30 PM. 🎸🎹🙌",
+    streakDays: 45,
+    followersCount: 890,
+    followingCount: 64,
+    postsCount: 34,
+    isFollowing: false,
+    telegramUsername: "worship_4kilo",
+  },
+  "user-bethlehem": {
+    id: "user-bethlehem",
+    fullName: "Bethlehem Haile",
+    handle: "@bethlehem_h",
+    avatar:
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=1200&q=80",
+    team: "I4U Ministry",
+    department: "Software Engineering",
+    academicYear: "4th Year",
+    bio: "Saved by grace alone. Passionate about algorithms, prayer walks around Sidist Kilo park, and campus discipleship. ✨",
+    streakDays: 28,
+    followersCount: 342,
+    followingCount: 198,
+    postsCount: 19,
+    isFollowing: false,
+    telegramUsername: "bethlehem_h",
+  },
+  "user-freshman": {
+    id: "user-freshman",
+    fullName: "Freshman Ministry",
+    handle: "@freshman_4k",
+    avatar:
+      "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80",
+    team: "Freshman Outreach",
+    department: "Orientation & Discipleship",
+    academicYear: "AAU ECSF",
+    bio: "Walking alongside newly joined university brothers and sisters! Mentorship, dorm fellowship, and prayer cells. 🌱",
+    streakDays: 62,
+    followersCount: 520,
+    followingCount: 110,
+    postsCount: 27,
+    isFollowing: true,
+    telegramUsername: "freshman_4kilo",
+  },
+  "user-samuel": {
+    id: "user-samuel",
+    fullName: "Samuel Kebede",
+    handle: "@samuelk_worship",
+    avatar:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=1200&q=80",
+    team: "Worship Team",
+    department: "Electrical Engineering",
+    academicYear: "5th Year",
+    bio: "Lead guitarist with 4 Kilo Fellowship. Acoustic worship night is coming! Let all that has breath praise the Lord. 🎵",
+    streakDays: 34,
+    followersCount: 412,
+    followingCount: 156,
+    postsCount: 22,
+    isFollowing: false,
+    telegramUsername: "samuelk_worship",
+  },
+  m1: {
+    id: "m1",
+    fullName: "Abenezer Bekele",
+    handle: "@abenezer_worship",
+    avatar:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+    team: "Worship Team",
+    department: "Software Engineering",
+    academicYear: "4th Year",
+    bio: "Grace upon grace. Acoustic worship coordinator at 4 Kilo Campus Fellowship. Soli Deo Gloria. 🎸✝️",
+    streakDays: 32,
+    followersCount: 480,
+    followingCount: 210,
+    postsCount: 16,
+    isFollowing: false,
+    telegramUsername: "abenezer_worship",
+    location: "4 Kilo Fellowship Hall",
+    joinedDate: "September 2022",
+    mutualFollowers: {
+      names: ["Hiwot", "Bethelhem", "Natnael"],
+      count: 28,
+      avatars: [
+        "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80",
+        "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80",
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80",
+      ],
+    },
+  },
+  m2: {
+    id: "m2",
+    fullName: "Hiwot Tadesse",
+    handle: "@hiwot_prayer",
+    avatar:
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+    banner:
+      "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80",
+    team: "Prayer Ministry",
+    department: "Biomedical Engineering",
+    academicYear: "3rd Year",
+    bio: "Devoted to campus intercession and morning prayer tower watch. 'Pray without ceasing.' 1 Thess 5:17 🙏",
+    streakDays: 45,
+    followersCount: 395,
+    followingCount: 180,
+    postsCount: 12,
+    isFollowing: false,
+    telegramUsername: "hiwot_prayer",
+    location: "Sidist Kilo Prayer Tower",
+    joinedDate: "October 2023",
+    mutualFollowers: {
+      names: ["Abenezer", "Yohannes", "Natnael"],
+      count: 34,
+      avatars: [
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80",
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80",
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80",
+      ],
+    },
+  },
+};
+
+export const INITIAL_FELLOWSHIP_POSTS: CommunityPost[] = [
+  {
+    id: "post-1",
+    authorId: "user-fellowship",
+    authorName: "4 Kilo Fellowship",
+    authorHandle: "@4kilo_fellowship",
+    authorAvatar: require("@/assets/images/app-icon.png"),
+    authorTeam: "Executive Ministry",
+    isVerified: true,
+    timestamp: "2h ago",
+    content:
+      "Introducing the brand-new 4 Kilo Fellowship digital platform! ✨\n\nTrack your daily devotions streak, connect with fellowship ministry teams, listen to acoustic worship sessions, and stay deeply rooted in Christ across campus. 'Let us hold fast the confession of our hope without wavering.' #4KiloECSF #CampusMinistry",
+    image: require("@/assets/images/onboarding-connected.jpg"),
+    category: "all",
+    repliesCount: 3,
+    repostsCount: 84,
+    likesCount: 342,
+    isLiked: false,
+    isReposted: false,
+    isBookmarked: false,
+    comments: [
+      {
+        id: "c-1",
+        postId: "post-1",
+        authorId: "user-bethlehem",
+        authorName: "Bethlehem Haile",
+        authorHandle: "@bethlehem_h",
+        authorAvatar:
+          "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
+        timestamp: "1h ago",
+        content:
+          "Praise God! The streak tracker and prayer requests feature are going to bless so many students in our dorms! 🙏🔥",
+        likesCount: 14,
+        isLiked: true,
+      },
+      {
+        id: "c-2",
+        postId: "post-1",
+        authorId: "user-samuel",
+        authorName: "Samuel Kebede",
+        authorHandle: "@samuelk_worship",
+        authorAvatar:
+          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+        timestamp: "45m ago",
+        content:
+          "Amen! Acoustic session audios sound crystal clear. Huge blessing to our team!",
+        likesCount: 8,
+        isLiked: false,
+      },
+      {
+        id: "c-3",
+        postId: "post-1",
+        authorId: "user-freshman",
+        authorName: "Freshman Ministry",
+        authorHandle: "@freshman_4k",
+        authorAvatar:
+          "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=400&q=80",
+        timestamp: "20m ago",
+        content:
+          "Sharing this with all freshmen dorm group chats immediately! 🎉",
+        likesCount: 5,
+        isLiked: false,
+      },
+    ],
+  },
+  {
+    id: "post-2",
+    authorId: "user-worship",
+    authorName: "Worship & Choir",
+    authorHandle: "@4kilo_worship",
+    authorAvatar:
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80",
+    authorTeam: "Worship Team",
+    isVerified: true,
+    timestamp: "4h ago",
+    content:
+      "“O come, let us sing unto the Lord: let us make a joyful noise to the rock of our salvation.” 🎶\n\nRehearsals for Friday Night Fellowship are officially ongoing at the campus hall. Come with expectant hearts to lift up Jesus together! Bring your roommates and dorm friends. #WorshipNight #AAUChristianFellowship",
+    image: require("@/assets/images/onboarding-community.jpg"),
+    category: "worship",
+    repliesCount: 2,
+    repostsCount: 52,
+    likesCount: 275,
+    isLiked: true,
+    isReposted: false,
+    isBookmarked: true,
+    comments: [
+      {
+        id: "c-4",
+        postId: "post-2",
+        authorId: "user-samuel",
+        authorName: "Samuel Kebede",
+        authorHandle: "@samuelk_worship",
+        authorAvatar:
+          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+        timestamp: "3h ago",
+        content:
+          "We have prepared new Amharic worship songs alongside contemporary pieces. See you all at 6:00 PM! 🎸",
+        likesCount: 12,
+        isLiked: true,
+      },
+    ],
+  },
+  {
+    id: "post-3",
+    authorId: "user-bethlehem",
+    authorName: "Bethlehem Haile",
+    authorHandle: "@bethlehem_h",
+    authorAvatar:
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
+    authorTeam: "I4U Ministry",
+    isVerified: false,
+    timestamp: "6h ago",
+    content:
+      "Late night study break reminder: 'Peace I leave with you; my peace I give you.' John 14:27. Midterm exams are approaching, but our God is steadfast and faithful! Praying over every engineering student preparing in the library tonight. 🙏📚",
+    category: "prayer",
+    repliesCount: 4,
+    repostsCount: 31,
+    likesCount: 189,
+    isLiked: false,
+    isReposted: true,
+    isBookmarked: false,
+    comments: [],
+  },
+];
+
+/**
+ * Adapter from API Post to UI CommunityPost
+ */
+export function apiPostToCommunityPost(p: ApiPost): CommunityPost {
+  let mediaImage: any = null;
+  if (p.media && p.media.length > 0) {
+    const primary = p.media[0];
+    const url =
+      primary.urls?.lg ||
+      primary.urls?.md ||
+      primary.urls?.original ||
+      primary.urls?.sm;
+    if (url) {
+      mediaImage = { uri: url };
+    }
+  } else if (p.image) {
+    mediaImage = typeof p.image === "string" ? { uri: p.image } : p.image;
+  }
+
+  let avatarUrl: any = null;
+  if (typeof p.author?.avatar === "string") {
+    avatarUrl = p.author.avatar;
+  } else if (p.author?.avatar?.urls) {
+    avatarUrl =
+      p.author.avatar.urls.md ||
+      p.author.avatar.urls.sm ||
+      p.author.avatar.urls.lg;
+  }
+
+  const actor = p.authorActor;
+  const authorName =
+    actor?.displayName ||
+    (p.author?.displayName && p.author.displayName !== "Unknown Member"
+      ? p.author.displayName
+      : p.author?.username && p.author.username !== "unknown"
+        ? p.author.username
+        : "Fellowship Member");
+
+  const authorHandle =
+    actor?.handle
+      ? (actor.handle.startsWith("@") ? actor.handle : `@${actor.handle}`)
+      : p.author?.username && p.author.username !== "unknown"
+        ? (p.author.username.startsWith("@") ? p.author.username : `@${p.author.username}`)
+        : "@fellow";
+
+  const authorAvatar = actor?.avatarUrl || avatarUrl;
+  const authorTeam =
+    actor?.type === "official"
+      ? "Official Fellowship"
+      : actor?.displayName ||
+        p.author?.fellowshipRole ||
+        p.author?.ministryBadge ||
+        "Campus Ministry";
+
+  const isVerified = Boolean(actor?.isVerified || p.author?.isVerified);
+
+  return {
+    id: p.id,
+    authorId: actor?.id || p.author?.id || "user-unknown",
+    authorName,
+    authorHandle,
+    authorAvatar,
+    authorTeam,
+    isVerified,
+    timestamp: formatRelativeTime(p.createdAt),
+    content: p.body || "",
+    image: mediaImage,
+    category: ((p as any).category as CommunityCategory) || "all",
+    repliesCount: p.counts?.replies ?? 0,
+    repostsCount: p.counts?.reposts ?? 0,
+    likesCount: p.counts?.likes ?? 0,
+    isLiked: !!p.viewer?.liked,
+    isReposted: !!p.viewer?.reposted,
+    isBookmarked: !!p.viewer?.bookmarked,
+    comments: [],
+  };
+}
+
+/**
+ * Adapter from API Profile to UI MemberProfile
+ */
+export function apiProfileToMemberProfile(p: ProfileDetail): MemberProfile {
+  let avatar: any = null;
+  if (typeof p.avatar === "string") {
+    avatar = p.avatar;
+  } else if (p.avatar?.urls) {
+    avatar = p.avatar.urls.lg || p.avatar.urls.md || p.avatar.urls.sm;
+  }
+
+  let banner: any = null;
+  if (typeof p.cover === "string") {
+    banner = p.cover;
+  } else if (p.cover?.urls) {
+    banner = p.cover.urls.lg || p.cover.urls.md;
+  }
+
+  const mutualPreview = p.followedByPreview || { total: 0, users: [] };
+  const mutualNames = mutualPreview.users.map(
+    (u) => u.displayName || u.username,
+  );
+  const mutualAvatars = mutualPreview.users
+    .map((u) => {
+      if (typeof u.avatar === "string") return u.avatar;
+      if (u.avatar?.urls) return u.avatar.urls.sm || u.avatar.urls.md;
+      return null;
+    })
+    .filter((avatar): avatar is string => Boolean(avatar));
+
+  return {
+    id: p.id,
+    fullName: p.displayName || p.username || "Fellowship Member",
+    handle: p.username?.startsWith("@") ? p.username : `@${p.username || "member"}`,
+    avatar,
+    banner,
+    team: p.fellowshipRole || p.ministryBadge || "",
+    department:
+      p.academic?.department || p.department || "",
+    academicYear:
+      p.academic?.label ||
+      (p.academic?.studyYear
+        ? `${p.academic.studyYear} Year`
+        : p.academicYear || ""),
+    bio: p.bio || "",
+    streakDays: p.streak?.current ?? 0,
+    followersCount: p.counts?.connects ?? 0,
+    followingCount: p.counts?.following ?? 0,
+    postsCount: p.counts?.reflections ?? 0,
+    isFollowing: !!p.viewer?.following,
+    telegramUsername:
+      p.links?.find((l) => l.kind === "telegram")?.handle || p.username,
+    location: p.location || undefined,
+    joinedDate: p.joinedAt ? formatRelativeTime(p.joinedAt) : undefined,
+    mutualFollowers:
+      mutualPreview.total > 0
+        ? {
+            names: mutualNames,
+            count: mutualPreview.total,
+            avatars: mutualAvatars,
+          }
+        : undefined,
+    isVerified: Boolean(p.isVerified),
+  };
+}
+
+/**
+ * Check if a given identifier is a canonical actor handle or ID
+ */
+export function isActorIdOrHandle(idOrHandle?: string | null): boolean {
+  if (!idOrHandle) return false;
+  const clean = idOrHandle.replace(/^@/, "").toLowerCase();
+  const known = [
+    "fellow",
+    "4kilofellowship",
+    "4kilo_fellowship",
+    "user-fellowship",
+    "worship",
+    "biblestudy",
+    "evangelism",
+    "i4u",
+    "media",
+    "prayer",
+    "freshman",
+    "fellowship_ministry",
+  ];
+  return known.includes(clean);
+}
+
+/**
+ * Adapter from PostableActor to UI MemberProfile
+ */
+export function actorToMemberProfile(
+  actor: PostableActor & {
+    followerCount?: number;
+    followersCount?: number;
+    followingCount?: number;
+    postCount?: number;
+    postsCount?: number;
+    isFollowing?: boolean;
+  },
+): MemberProfile {
+  const isOfficial =
+    actor.type === "official" || actor.handle.toLowerCase() === "fellow";
+  const cleanHandle = actor.handle.replace(/^@/, "");
+  const handleWithAt = `@${cleanHandle}`;
+
+  let displayName = actor.displayName;
+  if (isOfficial) {
+    displayName = "Fellow";
+  } else if (
+    !displayName.toLowerCase().includes("team") &&
+    !displayName.toLowerCase().includes("ministry")
+  ) {
+    displayName = `${displayName} Team`;
+  }
+
+  const avatar = isOfficial
+    ? require("@/assets/images/app-icon.png")
+    : actor.avatarUrl ||
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80";
+
+  const banner = isOfficial
+    ? "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80"
+    : actor.avatarUrl ||
+      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80";
+
+  const followersCount =
+    actor.followerCount ??
+    actor.followersCount ??
+    (isOfficial ? 1240 : 890);
+
+  const followingCount =
+    actor.followingCount ?? (isOfficial ? 38 : 12);
+
+  const postsCount =
+    actor.postCount ?? actor.postsCount ?? (isOfficial ? 56 : 0);
+
+  // For the official @fellow account, initial state is Following
+  const isFollowing =
+    actor.isFollowing !== undefined
+      ? Boolean(actor.isFollowing)
+      : isOfficial
+      ? true
+      : false;
+
+  return {
+    id: actor.id || cleanHandle,
+    fullName: displayName,
+    handle: handleWithAt,
+    avatar,
+    banner,
+    team: isOfficial
+      ? "Official Fellowship"
+      : actor.teamId
+      ? `${actor.teamId} Team`
+      : displayName,
+    department: isOfficial
+      ? "Campus Ministry Leadership"
+      : "Fellowship Ministry Team",
+    academicYear: "AAU ECSF",
+    bio:
+      actor.bio ||
+      (isOfficial
+        ? "Official account of 4 Kilo Christian Students Fellowship (AAU ECSF)..."
+        : `${displayName} of 4 Kilo Christian Students Fellowship.`),
+    streakDays: isOfficial ? 142 : 45,
+    followersCount,
+    followingCount,
+    postsCount,
+    isFollowing,
+    isVerified: true,
+    isActor: true,
+    actorType: actor.type || (isOfficial ? "official" : "team"),
+    telegramUsername: isOfficial ? "ECSF4KILO" : `${cleanHandle}_4kilo`,
+  };
+}
+
+/**
+ * Adapter from API SuggestedUser to UI SuggestedMember
+ */
+export function apiSuggestedToSuggestedMember(
+  s: SuggestedUser,
+): SuggestedMember {
+  let avatarUrl = "";
+  if (typeof s.avatar === "string") {
+    avatarUrl = s.avatar;
+  } else if (s.avatar?.urls) {
+    avatarUrl = s.avatar.urls.md || s.avatar.urls.sm || "";
+  }
+
+  let dept = s.department || "";
+  if (s.academicYear) {
+    dept = `${dept} • ${s.academicYear}`;
+  }
+
+  return {
+    id: s.id,
+    name: s.displayName || s.username || "Fellowship Member",
+    role: s.fellowshipRole || "",
+    department: dept,
+    mutualCount: s.mutualCount ?? s.mutualPeersCount ?? 0,
+    avatar: avatarUrl,
+  };
+}
+
+interface CommunityStore {
+  posts: CommunityPost[];
+  forYouPosts: CommunityPost[];
+  followingPosts: CommunityPost[];
+  members: Record<string, MemberProfile>;
+  whoToFollow: SuggestedMember[];
+  selectedCategory: CommunityCategory;
+  feedType: "following" | "foryou";
+  feedCursor: string | null;
+  forYouCursor: string | null;
+  followingCursor: string | null;
+  hasMoreFeed: boolean;
+  hasMoreForYou: boolean;
+  hasMoreFollowing: boolean;
+  isFeedLoading: boolean;
+  isForYouLoading: boolean;
+  isFollowingLoading: boolean;
+  isRefreshing: boolean;
+
+  setSelectedCategory: (cat: CommunityCategory) => void;
+  setFeedType: (type: "following" | "foryou") => void;
+
+  // Persisted search history (mirrors the AI Poster Studio history pattern)
+  searchHistory: string[];
+  addSearchHistory: (term: string) => void;
+  removeSearchHistory: (term: string) => void;
+  clearSearchHistory: () => void;
+
+  // Real async API actions with optimistic updates & rollbacks
+  fetchFeed: (
+    type?: "following" | "foryou",
+    refresh?: boolean,
+  ) => Promise<void>;
+  fetchWhoToFollow: () => Promise<void>;
+  dismissSuggestedMember: (memberId: string) => Promise<void>;
+  toggleLike: (postId: string) => Promise<void>;
+  toggleRepost: (postId: string) => Promise<void>;
+  toggleBookmark: (postId: string) => Promise<void>;
+  toggleFollowMember: (
+    memberId: string,
+    seed?: Partial<MemberProfile>,
+  ) => Promise<void>;
+  postableActors: PostableActor[];
+  fetchPostableActors: () => Promise<PostableActor[]>;
+  createPost: (payload: {
+    body: string;
+    kind?: "post" | "reply" | "quote";
+    parentId?: string;
+    quotedId?: string;
+    image?: any;
+    author?: any;
+    authorActorId?: string;
+    authorActor?: PostableActor;
+  }) => Promise<CommunityPost>;
+  addComment: (
+    postId: string,
+    comment: CommunityComment,
+  ) => Promise<void>;
+  fetchUserProfile: (
+    idOrUsername: string,
+  ) => Promise<MemberProfile | undefined>;
+  fetchActorProfile: (
+    idOrHandle: string,
+  ) => Promise<MemberProfile | undefined>;
+  fetchPostThread: (
+    postId: string,
+  ) => Promise<
+    | {
+        post: CommunityPost;
+        ancestors?: CommunityPost[];
+        replies: CommunityComment[];
+      }
+    | undefined
+  >;
+
+  // Synchronous helpers
+  deletePost: (postId: string) => Promise<void>;
+  addPost: (post: CommunityPost) => void;
+  toggleLikeComment: (postId: string, commentId: string) => void;
+  updateMemberProfile: (
+    memberId: string,
+    updates: Partial<MemberProfile>,
+  ) => void;
+  getPostById: (postId: string) => CommunityPost | undefined;
+  getMemberById: (memberId: string) => MemberProfile | undefined;
+}
+
+export const useCommunityStore = create<CommunityStore>()(
+  persist(
+    (set, get) => ({
+      posts: [],
+      forYouPosts: [],
+      followingPosts: [],
+      members: {},
+      whoToFollow: [],
+      selectedCategory: "all",
+      feedType: "foryou",
+      feedCursor: null,
+      forYouCursor: null,
+      followingCursor: null,
+      hasMoreFeed: true,
+      hasMoreForYou: true,
+      hasMoreFollowing: true,
+      isFeedLoading: false,
+      isForYouLoading: false,
+      isFollowingLoading: false,
+      isRefreshing: false,
+      searchHistory: [],
+      postableActors: [],
+
+      setSelectedCategory: (cat) => set({ selectedCategory: cat }),
+      setFeedType: (type) => set({ feedType: type }),
+
+      addSearchHistory: (term) => {
+        const trimmed = term.trim();
+        if (!trimmed) return;
+        set((state) => {
+          const existing = state.searchHistory || [];
+          const deduped = existing.filter(
+            (item) => item.toLowerCase() !== trimmed.toLowerCase(),
+          );
+          return { searchHistory: [trimmed, ...deduped].slice(0, 10) };
+        });
+      },
+
+      removeSearchHistory: (term) =>
+        set((state) => ({
+          searchHistory: (state.searchHistory || []).filter(
+            (item) => item !== term,
+          ),
+        })),
+
+      clearSearchHistory: () => set({ searchHistory: [] }),
+
+      fetchFeed: async (type = "foryou", refresh = false) => {
+        const isForyou = type === "foryou";
+        const currentCursor = refresh
+          ? undefined
+          : (isForyou ? get().forYouCursor : get().followingCursor) || undefined;
+        set({
+          isFeedLoading: true,
+          ...(isForyou ? { isForYouLoading: true } : { isFollowingLoading: true }),
+          ...(refresh ? { isRefreshing: true } : {}),
+        });
+
+        try {
+          const response = await socialApi.getFeed(type, currentCursor);
+          const adaptedPosts = (response.items || []).map(apiPostToCommunityPost);
+
+          set((state) => {
+            const targetPosts = isForyou
+              ? state.forYouPosts || []
+              : state.followingPosts || [];
+            let mergedPosts: CommunityPost[];
+            if (refresh || !targetPosts.length) {
+              mergedPosts = adaptedPosts;
+            } else {
+              const existingIds = new Set(targetPosts.map((p) => p.id));
+              const newUnique = adaptedPosts.filter((p) => !existingIds.has(p.id));
+              mergedPosts = [...targetPosts, ...newUnique];
+            }
+
+            const updatedMembers = { ...state.members };
+            for (const item of response.items || []) {
+              if (item.author && !updatedMembers[item.author.id]) {
+                const auth = item.author;
+                updatedMembers[auth.id] = {
+                  id: auth.id,
+                  fullName: auth.displayName || auth.username,
+                  handle: auth.username?.startsWith("@")
+                    ? auth.username
+                    : `@${auth.username}`,
+                  avatar:
+                    typeof auth.avatar === "string"
+                      ? auth.avatar
+                      : auth.avatar?.urls?.md || null,
+                  banner: null,
+                  team:
+                    auth.fellowshipRole ||
+                    auth.ministryBadge ||
+                    "",
+                  department: auth.department || "",
+                  academicYear: auth.academicYear || "",
+                  bio: "",
+                  streakDays: 1,
+                  followersCount: 1,
+                  followingCount: 1,
+                  postsCount: 0,
+                  isFollowing: false,
+                };
+              }
+            }
+
+            const mergedPostMap = new Map<string, CommunityPost>();
+            for (const p of mergedPosts) {
+              mergedPostMap.set(p.id, p);
+            }
+            const combinedPosts = [
+              ...mergedPosts,
+              ...state.posts.filter((p) => !mergedPostMap.has(p.id)),
+            ];
+
+            return {
+              posts: combinedPosts,
+              ...(isForyou
+                ? {
+                    forYouPosts: mergedPosts,
+                    forYouCursor: response.nextCursor ?? null,
+                    hasMoreForYou: !!response.hasMore,
+                    isForYouLoading: false,
+                  }
+                : {
+                    followingPosts: mergedPosts,
+                    followingCursor: response.nextCursor ?? null,
+                    hasMoreFollowing: !!response.hasMore,
+                    isFollowingLoading: false,
+                  }),
+              members: updatedMembers,
+              feedCursor: response.nextCursor ?? null,
+              hasMoreFeed: !!response.hasMore,
+              feedType: type,
+              isFeedLoading: false,
+              isRefreshing: false,
+            };
+          });
+        } catch {
+          set({
+            isFeedLoading: false,
+            isForYouLoading: false,
+            isFollowingLoading: false,
+            isRefreshing: false,
+          });
+        }
+      },
+
+      fetchWhoToFollow: async () => {
+        try {
+          const rawSuggestions = await socialApi.getWhoToFollow();
+          if (rawSuggestions && rawSuggestions.length > 0) {
+            const suggestions: SuggestedMember[] = rawSuggestions.map(
+              apiSuggestedToSuggestedMember,
+            );
+            set((state) => {
+              const updatedMembers = { ...state.members };
+              suggestions.forEach((s) => {
+                if (!updatedMembers[s.id]) {
+                  updatedMembers[s.id] = {
+                    id: s.id,
+                    fullName: s.name,
+                    handle: `@${s.name.toLowerCase().replace(/\s+/g, "_")}`,
+                    avatar: s.avatar,
+                    banner:
+                      "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80",
+                    team: s.role,
+                    department: s.department,
+                    academicYear: "AAU 4 Kilo",
+                    bio: "Rooted in Christ, serving in 4 Kilo Fellowship.",
+                    streakDays: 1,
+                    followersCount: 1,
+                    followingCount: 1,
+                    postsCount: 0,
+                    isFollowing: false,
+                  };
+                }
+              });
+              return {
+                whoToFollow: suggestions,
+                members: updatedMembers,
+              };
+            });
+          }
+        } catch {
+          // Keep cached whoToFollow on error
+        }
+      },
+
+      dismissSuggestedMember: async (memberId: string) => {
+        set((state) => ({
+          whoToFollow: state.whoToFollow.filter((m) => m.id !== memberId),
+        }));
+        try {
+          await socialApi.dismissSuggestion(memberId);
+        } catch {
+          // Ignore
+        }
+      },
+
+      toggleLike: async (postId: string) => {
+        const currentPost = get().posts.find((p) => p.id === postId) ||
+          get().forYouPosts.find((p) => p.id === postId) ||
+          get().followingPosts.find((p) => p.id === postId);
+        if (!currentPost) return;
+
+        const previousIsLiked = !!currentPost.isLiked;
+        const previousLikesCount = currentPost.likesCount;
+        const nextIsLiked = !previousIsLiked;
+        const nextLikesCount = nextIsLiked
+          ? previousLikesCount + 1
+          : Math.max(0, previousLikesCount - 1);
+
+        const updatePost = (p: CommunityPost) =>
+          p.id === postId
+            ? { ...p, isLiked: nextIsLiked, likesCount: nextLikesCount }
+            : p;
+
+        // Optimistic update across all feeds
+        set((state) => ({
+          posts: state.posts.map(updatePost),
+          forYouPosts: (state.forYouPosts || []).map(updatePost),
+          followingPosts: (state.followingPosts || []).map(updatePost),
+        }));
+
+        try {
+          if (nextIsLiked) {
+            await socialApi.likePost(postId);
+          } else {
+            await socialApi.unlikePost(postId);
+          }
+        } catch {
+          // Rollback on error
+          const rollbackPost = (p: CommunityPost) =>
+            p.id === postId
+              ? {
+                  ...p,
+                  isLiked: previousIsLiked,
+                  likesCount: previousLikesCount,
+                }
+              : p;
+          set((state) => ({
+            posts: state.posts.map(rollbackPost),
+            forYouPosts: (state.forYouPosts || []).map(rollbackPost),
+            followingPosts: (state.followingPosts || []).map(rollbackPost),
+          }));
+        }
+      },
+
+      toggleRepost: async (postId: string) => {
+        const currentPost = get().posts.find((p) => p.id === postId) ||
+          get().forYouPosts.find((p) => p.id === postId) ||
+          get().followingPosts.find((p) => p.id === postId);
+        if (!currentPost) return;
+
+        const previousIsReposted = !!currentPost.isReposted;
+        const previousRepostsCount = currentPost.repostsCount;
+        const nextIsReposted = !previousIsReposted;
+        const nextRepostsCount = nextIsReposted
+          ? previousRepostsCount + 1
+          : Math.max(0, previousRepostsCount - 1);
+
+        const updatePost = (p: CommunityPost) =>
+          p.id === postId
+            ? {
+                ...p,
+                isReposted: nextIsReposted,
+                repostsCount: nextRepostsCount,
+              }
+            : p;
+
+        // Optimistic update
+        set((state) => ({
+          posts: state.posts.map(updatePost),
+          forYouPosts: (state.forYouPosts || []).map(updatePost),
+          followingPosts: (state.followingPosts || []).map(updatePost),
+        }));
+
+        try {
+          if (nextIsReposted) {
+            await socialApi.repostPost(postId);
+          } else {
+            await socialApi.unrepostPost(postId);
+          }
+        } catch {
+          // Rollback on error
+          const rollbackPost = (p: CommunityPost) =>
+            p.id === postId
+              ? {
+                  ...p,
+                  isReposted: previousIsReposted,
+                  repostsCount: previousRepostsCount,
+                }
+              : p;
+          set((state) => ({
+            posts: state.posts.map(rollbackPost),
+            forYouPosts: (state.forYouPosts || []).map(rollbackPost),
+            followingPosts: (state.followingPosts || []).map(rollbackPost),
+          }));
+        }
+      },
+
+      toggleBookmark: async (postId: string) => {
+        const currentPost = get().posts.find((p) => p.id === postId) ||
+          get().forYouPosts.find((p) => p.id === postId) ||
+          get().followingPosts.find((p) => p.id === postId);
+        if (!currentPost) return;
+
+        const previousIsBookmarked = !!currentPost.isBookmarked;
+        const nextIsBookmarked = !previousIsBookmarked;
+
+        const updatePost = (p: CommunityPost) =>
+          p.id === postId ? { ...p, isBookmarked: nextIsBookmarked } : p;
+
+        // Optimistic update
+        set((state) => ({
+          posts: state.posts.map(updatePost),
+          forYouPosts: (state.forYouPosts || []).map(updatePost),
+          followingPosts: (state.followingPosts || []).map(updatePost),
+        }));
+
+        try {
+          if (nextIsBookmarked) {
+            await socialApi.bookmarkPost(postId);
+          } else {
+            await socialApi.unbookmarkPost(postId);
+          }
+        } catch {
+          // Rollback on error
+          const rollbackPost = (p: CommunityPost) =>
+            p.id === postId ? { ...p, isBookmarked: previousIsBookmarked } : p;
+          set((state) => ({
+            posts: state.posts.map(rollbackPost),
+            forYouPosts: (state.forYouPosts || []).map(rollbackPost),
+            followingPosts: (state.followingPosts || []).map(rollbackPost),
+          }));
+        }
+      },
+
+      toggleFollowMember: async (memberId: string, seed?: Partial<MemberProfile>) => {
+        const cleanId = memberId.replace(/^@/, "").toLowerCase();
+        const target: MemberProfile =
+          get().members[memberId] ||
+          get().members[cleanId] ||
+          get().members[`@${cleanId}`] || {
+            id: memberId,
+            fullName: seed?.fullName || "Fellowship Member",
+            handle: seed?.handle || `@${cleanId || "fellowship_member"}`,
+            avatar: seed?.avatar || null,
+            banner: seed?.banner || null,
+            team: seed?.team || "",
+            department: seed?.department || "",
+            academicYear: seed?.academicYear || "",
+            bio: seed?.bio || "",
+            streakDays: seed?.streakDays ?? 0,
+            followersCount: seed?.followersCount ?? 0,
+            followingCount: seed?.followingCount ?? 0,
+            postsCount: seed?.postsCount ?? 0,
+            isFollowing: !!seed?.isFollowing,
+            isVerified: seed?.isVerified,
+            isActor: seed?.isActor,
+            actorType: seed?.actorType,
+            location: seed?.location,
+            joinedDate: seed?.joinedDate,
+            mutualFollowers: seed?.mutualFollowers,
+          };
+
+        const isActor =
+          isActorIdOrHandle(cleanId) ||
+          Boolean(target.isActor) ||
+          cleanId === "fellow" ||
+          target.handle.toLowerCase().includes("fellow");
+
+        const prevIsFollowing = !!target.isFollowing;
+        const prevFollowersCount = target.followersCount;
+        const nextIsFollowing = !prevIsFollowing;
+        const nextFollowersCount = nextIsFollowing
+          ? prevFollowersCount + 1
+          : Math.max(0, prevFollowersCount - 1);
+
+        const updated: MemberProfile = {
+          ...target,
+          isFollowing: nextIsFollowing,
+          followersCount: nextFollowersCount,
+        };
+
+        // Optimistic update in members (sync all alias keys)
+        set((state) => ({
+          members: {
+            ...state.members,
+            [memberId]: updated,
+            [target.id]: updated,
+            [cleanId]: updated,
+            [target.handle]: updated,
+            [`@${cleanId}`]: updated,
+          },
+        }));
+
+        try {
+          if (isActor) {
+            if (nextIsFollowing) {
+              await socialApi.followActor(cleanId);
+            } else {
+              await socialApi.unfollowActor(cleanId);
+            }
+          } else {
+            if (nextIsFollowing) {
+              await socialApi.followUser(memberId);
+            } else {
+              await socialApi.unfollowUser(memberId);
+            }
+          }
+        } catch {
+          // Rollback on error
+          const rolledBack: MemberProfile = {
+            ...target,
+            isFollowing: prevIsFollowing,
+            followersCount: prevFollowersCount,
+          };
+          set((state) => ({
+            members: {
+              ...state.members,
+              [memberId]: rolledBack,
+              [target.id]: rolledBack,
+              [cleanId]: rolledBack,
+              [target.handle]: rolledBack,
+              [`@${cleanId}`]: rolledBack,
+            },
+          }));
+        }
+      },
+
+      fetchPostableActors: async () => {
+        try {
+          const actors = await socialApi.getPostableActors();
+          set({ postableActors: actors });
+          return actors;
+        } catch (err) {
+          console.warn("[fetchPostableActors] error:", err);
+          return [];
+        }
+      },
+
+      createPost: async (payload) => {
+        const tempId = `temp-${Date.now()}`;
+        const isActor = Boolean(payload.authorActor && payload.authorActor.id !== "me");
+        const authorName = isActor
+          ? payload.authorActor!.displayName
+          : payload.author?.fullName || "Fellowship Member";
+        const authorHandle = isActor
+          ? (payload.authorActor!.handle.startsWith("@") ? payload.authorActor!.handle : `@${payload.authorActor!.handle}`)
+          : payload.author?.telegramUserName
+            ? `@${payload.author.telegramUserName.replace(/^@/, "")}`
+            : `@${(payload.author?.fullName || "member").toLowerCase().replace(/\s+/g, "")}`;
+        const authorAvatar = isActor
+          ? payload.authorActor!.avatarUrl || null
+          : payload.author?.profileImage || null;
+        const authorTeam = isActor
+          ? (payload.authorActor!.type === "official" ? "Official Fellowship" : payload.authorActor!.displayName)
+          : payload.author?.team || "";
+        const isVerified = isActor ? Boolean(payload.authorActor!.isVerified) : false;
+
+        const optimisticPost: CommunityPost = {
+          id: tempId,
+          authorId: payload.authorActorId || payload.author?.id || "user-current",
+          authorName,
+          authorHandle,
+          authorAvatar,
+          authorTeam,
+          isVerified,
+          timestamp: "Just now",
+          content: payload.body,
+          image: payload.image || null,
+          category: "all",
+          repliesCount: 0,
+          repostsCount: 0,
+          likesCount: 0,
+          isLiked: false,
+          isReposted: false,
+          isBookmarked: false,
+          comments: [],
+        };
+
+        // Prepend optimistically across feeds
+        set((state) => ({
+          posts: [optimisticPost, ...state.posts],
+          forYouPosts: [optimisticPost, ...(state.forYouPosts || [])],
+          followingPosts: [optimisticPost, ...(state.followingPosts || [])],
+        }));
+
+        try {
+          let mediaAssetIds: string[] | undefined = undefined;
+          if (payload.image) {
+            const rawUri =
+              typeof payload.image === "string"
+                ? payload.image
+                : (payload.image as any)?.uri;
+            if (rawUri && typeof rawUri === "string" && !rawUri.startsWith("http")) {
+              try {
+                const uploaded = await socialApi.uploadMediaFile(rawUri, "post");
+                if (uploaded?.assetId) {
+                  mediaAssetIds = [uploaded.assetId];
+                  optimisticPost.image = uploaded.url;
+                }
+              } catch (uploadErr) {
+                if (!payload.body?.trim()) {
+                  throw uploadErr;
+                }
+                console.warn("Failed to upload image asset, continuing with text post:", uploadErr);
+              }
+            }
+          }
+
+          const apiResult = await socialApi.createPost({
+            body: payload.body,
+            kind: payload.kind || "post",
+            parentId: payload.parentId,
+            quotedId: payload.quotedId,
+            mediaAssetIds,
+            authorActorId: payload.authorActorId,
+          });
+
+          const realPost = apiPostToCommunityPost(apiResult);
+          if (payload.image && !realPost.image) {
+            realPost.image = optimisticPost.image || payload.image;
+          }
+          if (!realPost.authorAvatar && optimisticPost.authorAvatar) {
+            realPost.authorAvatar = optimisticPost.authorAvatar;
+          }
+          if (
+            (!realPost.authorName ||
+              realPost.authorName === "Fellowship Member" ||
+              realPost.authorName === "Unknown Member") &&
+            optimisticPost.authorName
+          ) {
+            realPost.authorName = optimisticPost.authorName;
+          }
+          if (
+            (!realPost.authorHandle ||
+              realPost.authorHandle === "@fellow" ||
+              realPost.authorHandle === "@unknown") &&
+            optimisticPost.authorHandle
+          ) {
+            realPost.authorHandle = optimisticPost.authorHandle;
+          }
+          if (payload.authorActor && payload.authorActor.id !== "me") {
+            realPost.authorName = payload.authorActor.displayName;
+            realPost.authorHandle = payload.authorActor.handle.startsWith("@")
+              ? payload.authorActor.handle
+              : `@${payload.authorActor.handle}`;
+            realPost.authorAvatar = payload.authorActor.avatarUrl || realPost.authorAvatar;
+            realPost.authorTeam =
+              payload.authorActor.type === "official"
+                ? "Official Fellowship"
+                : payload.authorActor.displayName;
+            realPost.isVerified = Boolean(payload.authorActor.isVerified);
+          }
+
+          // Replace optimistic post with real server post across all feeds
+          set((state) => ({
+            posts: state.posts.map((p) =>
+              p.id === tempId ? realPost : p,
+            ),
+            forYouPosts: (state.forYouPosts || []).map((p) =>
+              p.id === tempId ? realPost : p,
+            ),
+            followingPosts: (state.followingPosts || []).map((p) =>
+              p.id === tempId ? realPost : p,
+            ),
+          }));
+
+          return realPost;
+        } catch (err) {
+          // Rollback optimistic post on error
+          set((state) => ({
+            posts: state.posts.filter((p) => p.id !== tempId),
+            forYouPosts: (state.forYouPosts || []).filter((p) => p.id !== tempId),
+            followingPosts: (state.followingPosts || []).filter((p) => p.id !== tempId),
+          }));
+          throw err;
+        }
+      },
+
+      addComment: async (postId, comment) => {
+        const appendCommentToPost = (p: CommunityPost) =>
+          p.id === postId
+            ? {
+                ...p,
+                repliesCount: p.repliesCount + 1,
+                comments: [...(p.comments || []), comment],
+              }
+            : p;
+
+        // Optimistically append comment across all feeds
+        set((state) => ({
+          posts: state.posts.map(appendCommentToPost),
+          forYouPosts: (state.forYouPosts || []).map(appendCommentToPost),
+          followingPosts: (state.followingPosts || []).map(appendCommentToPost),
+        }));
+
+        try {
+          const createdReply = await socialApi.createPost({
+            body: comment.content,
+            kind: "reply",
+            parentId: postId,
+          });
+
+          if (createdReply?.id) {
+            const replaceSyntheticComment = (p: CommunityPost) =>
+              p.id === postId
+                ? {
+                    ...p,
+                    comments: (p.comments || []).map((c) =>
+                      c.id === comment.id
+                        ? {
+                            ...c,
+                            id: createdReply.id,
+                            timestamp: formatRelativeTime(createdReply.createdAt),
+                            likesCount: createdReply.counts?.likes ?? c.likesCount,
+                            isLiked: !!createdReply.viewer?.liked,
+                          }
+                        : c,
+                    ),
+                  }
+                : p;
+
+            set((state) => ({
+              posts: state.posts.map(replaceSyntheticComment),
+              forYouPosts: (state.forYouPosts || []).map(replaceSyntheticComment),
+              followingPosts: (state.followingPosts || []).map(replaceSyntheticComment),
+            }));
+          }
+        } catch (err) {
+          const rollbackComment = (p: CommunityPost) =>
+            p.id === postId
+              ? {
+                  ...p,
+                  repliesCount: Math.max(0, p.repliesCount - 1),
+                  comments: (p.comments || []).filter(
+                    (c) => c.id !== comment.id,
+                  ),
+                }
+              : p;
+
+          // Rollback on error
+          set((state) => ({
+            posts: state.posts.map(rollbackComment),
+            forYouPosts: (state.forYouPosts || []).map(rollbackComment),
+            followingPosts: (state.followingPosts || []).map(rollbackComment),
+          }));
+          throw err;
+        }
+      },
+
+      fetchActorProfile: async (idOrHandle: string) => {
+        const clean = idOrHandle.replace(/^@/, "").toLowerCase();
+        try {
+          const actor = await socialApi.getActor(idOrHandle);
+          const member = actorToMemberProfile(actor);
+          set((state) => ({
+            members: {
+              ...state.members,
+              [member.id]: member,
+              [idOrHandle]: member,
+              [clean]: member,
+              [member.handle]: member,
+              [`@${clean}`]: member,
+            },
+          }));
+          return member;
+        } catch {
+          return (
+            get().members[idOrHandle] ||
+            get().members[clean] ||
+            get().members[`@${clean}`]
+          );
+        }
+      },
+
+      fetchUserProfile: async (idOrUsername) => {
+        const clean = idOrUsername.replace(/^@/, "").toLowerCase();
+        if (isActorIdOrHandle(clean)) {
+          return get().fetchActorProfile(idOrUsername);
+        }
+        try {
+          const profile = await socialApi.getUserProfile(idOrUsername);
+          const member = apiProfileToMemberProfile(profile);
+          set((state) => ({
+            members: {
+              ...state.members,
+              [member.id]: member,
+              [idOrUsername]: member,
+              [clean]: member,
+              [member.handle]: member,
+              [`@${clean}`]: member,
+            },
+          }));
+          return member;
+        } catch {
+          // If profile endpoint returns 404, fallback to actor lookup
+          try {
+            const actor = await socialApi.getActor(idOrUsername);
+            if (actor) {
+              const member = actorToMemberProfile(actor);
+              set((state) => ({
+                members: {
+                  ...state.members,
+                  [member.id]: member,
+                  [idOrUsername]: member,
+                  [clean]: member,
+                  [member.handle]: member,
+                  [`@${clean}`]: member,
+                },
+              }));
+              return member;
+            }
+          } catch {}
+          return (
+            get().members[idOrUsername] ||
+            get().members[clean] ||
+            get().members[`@${clean}`]
+          );
+        }
+      },
+
+      fetchPostThread: async (postId) => {
+        try {
+          const thread = await socialApi.getPostThread(postId);
+          const rawFocus = (thread as any)?.focus || thread?.post;
+          if (!rawFocus) {
+            throw new Error("Missing focus post in thread response");
+          }
+          const mainPost = apiPostToCommunityPost(rawFocus);
+          const rawReplies: ApiPost[] = Array.isArray(thread?.replies)
+            ? thread.replies
+            : (thread?.replies as any)?.items || [];
+
+          const replies: CommunityComment[] = rawReplies.map(
+            (r) => ({
+              id: r.id,
+              postId: mainPost.id,
+              authorId: r.author?.id || "user-unknown",
+              authorName:
+                r.author?.displayName ||
+                r.author?.username ||
+                "Fellowship Member",
+              authorHandle: r.author?.username?.startsWith("@")
+                ? r.author.username
+                : `@${r.author?.username || "member"}`,
+              authorAvatar:
+                typeof r.author?.avatar === "string"
+                  ? r.author.avatar
+                  : r.author?.avatar?.urls?.md || null,
+              timestamp: formatRelativeTime(r.createdAt),
+              content: r.body || "",
+              likesCount: r.counts?.likes ?? 0,
+              isLiked: !!r.viewer?.liked,
+            }),
+          );
+
+          mainPost.comments = replies;
+          mainPost.repliesCount = Math.max(mainPost.repliesCount, replies.length);
+
+          const ancestors: CommunityPost[] = (thread.ancestors || []).map(
+            apiPostToCommunityPost,
+          );
+
+          const syncMainPost = (list: CommunityPost[]) =>
+            list.map((p) =>
+              p.id === mainPost.id
+                ? { ...p, ...mainPost, comments: replies }
+                : p,
+            );
+
+          set((state) => ({
+            posts: state.posts.some((p) => p.id === mainPost.id)
+              ? syncMainPost(state.posts)
+              : [mainPost, ...state.posts],
+            forYouPosts: syncMainPost(state.forYouPosts || []),
+            followingPosts: syncMainPost(state.followingPosts || []),
+          }));
+
+          return { post: mainPost, ancestors, replies };
+        } catch {
+          const local =
+            get().posts.find((p) => p.id === postId) ||
+            get().forYouPosts.find((p) => p.id === postId) ||
+            get().followingPosts.find((p) => p.id === postId);
+          if (local) {
+            return {
+              post: local,
+              ancestors: [],
+              replies: local.comments || [],
+            };
+          }
+          return undefined;
+        }
+      },
+
+      addPost: (newPost) =>
+        set((state) => ({
+          posts: [newPost, ...state.posts],
+          forYouPosts: [newPost, ...(state.forYouPosts || [])],
+          followingPosts: [newPost, ...(state.followingPosts || [])],
+        })),
+
+      deletePost: async (postId: string) => {
+        // Optimistic removal
+        const prevPosts = get().posts;
+        const prevForYou = get().forYouPosts;
+        const prevFollowing = get().followingPosts;
+
+        set((state) => ({
+          posts: state.posts.filter((p) => p.id !== postId),
+          forYouPosts: (state.forYouPosts || []).filter((p) => p.id !== postId),
+          followingPosts: (state.followingPosts || []).filter((p) => p.id !== postId),
+        }));
+
+        try {
+          await socialApi.deletePost(postId);
+        } catch (err) {
+          // Rollback on failure
+          set({
+            posts: prevPosts,
+            forYouPosts: prevForYou,
+            followingPosts: prevFollowing,
+          });
+          throw err;
+        }
+      },
+
+      toggleLikeComment: async (postId, commentId) => {
+        const post =
+          get().posts.find((p) => p.id === postId) ||
+          get().forYouPosts.find((p) => p.id === postId) ||
+          get().followingPosts.find((p) => p.id === postId);
+        const comment = post?.comments?.find((c) => c.id === commentId);
+        if (!comment) return;
+
+        const prevLiked = !!comment.isLiked;
+        const prevLikesCount = comment.likesCount ?? 0;
+        const nextLiked = !prevLiked;
+        const nextLikesCount = nextLiked
+          ? prevLikesCount + 1
+          : Math.max(0, prevLikesCount - 1);
+
+        const updateCommentInList = (list: CommunityPost[]) =>
+          list.map((p) => {
+            if (p.id !== postId) return p;
+            return {
+              ...p,
+              comments: (p.comments || []).map((c) =>
+                c.id === commentId
+                  ? {
+                      ...c,
+                      isLiked: nextLiked,
+                      likesCount: nextLikesCount,
+                    }
+                  : c,
+              ),
+            };
+          });
+
+        set((state) => ({
+          posts: updateCommentInList(state.posts),
+          forYouPosts: updateCommentInList(state.forYouPosts || []),
+          followingPosts: updateCommentInList(state.followingPosts || []),
+        }));
+
+        // If comment ID is still synthetic (in-flight creation), keep optimistic state
+        if (commentId.startsWith("c-")) return;
+
+        try {
+          if (nextLiked) {
+            await socialApi.likePost(commentId);
+          } else {
+            await socialApi.unlikePost(commentId);
+          }
+        } catch {
+          const rollbackCommentInList = (list: CommunityPost[]) =>
+            list.map((p) => {
+              if (p.id !== postId) return p;
+              return {
+                ...p,
+                comments: (p.comments || []).map((c) =>
+                  c.id === commentId
+                    ? {
+                        ...c,
+                        isLiked: prevLiked,
+                        likesCount: prevLikesCount,
+                      }
+                    : c,
+                ),
+              };
+            });
+
+          // Rollback
+          set((state) => ({
+            posts: rollbackCommentInList(state.posts),
+            forYouPosts: rollbackCommentInList(state.forYouPosts || []),
+            followingPosts: rollbackCommentInList(state.followingPosts || []),
+          }));
+        }
+      },
+
+      updateMemberProfile: (memberId, updates) =>
+        set((state) => {
+          const existing = state.members[memberId] || {
+            id: memberId,
+            fullName: updates.fullName || "Fellowship Member",
+            handle: updates.handle || "@fellowship_member",
+            avatar: updates.avatar || "",
+            banner: updates.banner || "",
+            team: updates.team || "Campus Ministry",
+            department: updates.department || "Addis Ababa University",
+            academicYear: updates.academicYear || "AAU 4 Kilo",
+            bio: updates.bio || "",
+            streakDays: 1,
+            followersCount: 1,
+            followingCount: 1,
+            postsCount: 0,
+            isFollowing: false,
+          };
+
+          const updated = { ...existing, ...updates };
+
+          return {
+            members: {
+              ...state.members,
+              [memberId]: updated,
+            },
+            posts: state.posts.map((p) =>
+              p.authorId === memberId
+                ? {
+                    ...p,
+                    authorName: updates.fullName ?? p.authorName,
+                    authorAvatar: updates.avatar ?? p.authorAvatar,
+                    authorHandle: updates.handle ?? p.authorHandle,
+                    authorTeam: updates.team ?? p.authorTeam,
+                  }
+                : p,
+            ),
+          };
+        }),
+
+      getPostById: (postId) => {
+        return (
+          get().posts.find((p) => p.id === postId) ||
+          get().forYouPosts.find((p) => p.id === postId) ||
+          get().followingPosts.find((p) => p.id === postId)
+        );
+      },
+
+      getMemberById: (memberId) => {
+        return get().members[memberId];
+      },
+    }),
+    {
+      name: "fellowship-community-cache",
+      storage: createJSONStorage(() => AsyncStorage),
+      version: 2,
+      migrate: () => ({
+        posts: [],
+        forYouPosts: [],
+        followingPosts: [],
+        members: {},
+        whoToFollow: [],
+        selectedCategory: "all" as CommunityCategory,
+        feedType: "foryou" as const,
+        feedCursor: null,
+        forYouCursor: null,
+        followingCursor: null,
+        hasMoreFeed: true,
+        hasMoreForYou: true,
+        hasMoreFollowing: true,
+        isFeedLoading: false,
+        isForYouLoading: false,
+        isFollowingLoading: false,
+        isRefreshing: false,
+        searchHistory: [],
+      }),
+      partialize: (state) => ({
+        posts: state.posts,
+        forYouPosts: state.forYouPosts,
+        followingPosts: state.followingPosts,
+        members: state.members,
+        whoToFollow: state.whoToFollow,
+        selectedCategory: state.selectedCategory,
+        searchHistory: state.searchHistory,
+      }),
+    },
+  ),
+);

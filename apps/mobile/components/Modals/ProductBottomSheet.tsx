@@ -1,0 +1,407 @@
+import { AppBottomSheet } from "@/components/AppBottomSheet";
+import { PRIMARY } from "@/constants/colors";
+import {
+  APPAREL_SIZES,
+  ApparelSize,
+  Product,
+  getProductImage,
+  getProductPrice,
+  isApparelProduct,
+} from "@/types/marketplace.types";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import * as Haptics from "expo-haptics";
+import React, { useEffect, useState } from "react";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+interface ProductBottomSheetProps {
+  visible: boolean;
+  onClose: () => void;
+  isDark: boolean;
+  product: Product | null;
+  onAddToCart: (product: Product, quantity: number, size?: string) => void;
+  onBuyNow: (product: Product, quantity: number, size?: string) => void;
+}
+
+export const ProductBottomSheet = ({
+  visible,
+  onClose,
+  isDark,
+  product,
+  onAddToCart,
+  onBuyNow,
+}: ProductBottomSheetProps) => {
+  const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState<ApparelSize>("L");
+
+  const textColor = isDark ? "#FAFAFA" : "#18181B";
+  const subTextColor = isDark ? "#A1A1AA" : "#71717A";
+  const cardBg = isDark ? "#27272A" : "#F4F4F5";
+  const borderColor = isDark ? "#3F3F46" : "#E4E4E7";
+  const qtyBtnBg = isDark ? "#3F3F46" : "#E4E4E7";
+
+  useEffect(() => {
+    if (visible) {
+      setQuantity(1);
+      setSelectedSize("L");
+    }
+  }, [visible]);
+
+  const incrementQty = () => setQuantity((prev) => Math.min(prev + 1, 99));
+  const decrementQty = () => setQuantity((prev) => Math.max(prev - 1, 1));
+
+  if (!product) return null;
+
+  const isApparel = isApparelProduct(product);
+  const chosenSize = isApparel ? selectedSize : undefined;
+  const imageUri = getProductImage(product);
+  const unitPrice = getProductPrice(product);
+  const totalPrice = unitPrice * quantity;
+
+  return (
+    <AppBottomSheet
+      visible={visible}
+      onClose={onClose}
+      isDark={isDark}
+      snapPoints={["half"]}
+    >
+      <View style={styles.sheetContainer}>
+        {/* Product Info Row */}
+        <View style={[styles.productRow, { borderBottomColor: borderColor }]}>
+          <View style={[styles.imageWrapper, { backgroundColor: cardBg }]}>
+            <Image
+              source={{ uri: imageUri }}
+              style={styles.productImage}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+            />
+          </View>
+          <View style={styles.productInfo}>
+            <Text
+              numberOfLines={2}
+              style={[styles.productName, { color: textColor }]}
+            >
+              {product.title || product.name || "Product"}
+            </Text>
+            {product.category && (
+              <Text style={[styles.categoryText, { color: subTextColor }]}>
+                {product.category}
+              </Text>
+            )}
+            <Text style={styles.unitPrice}>{unitPrice.toFixed(2)} ETB</Text>
+          </View>
+          <TouchableOpacity
+            onPress={onClose}
+            style={[styles.closeBtn, { backgroundColor: cardBg }]}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close" size={18} color={subTextColor} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Apparel Size Selector */}
+        {isApparel && (
+          <View
+            style={[styles.quantitySection, { borderBottomColor: borderColor }]}
+          >
+            <Text style={[styles.sectionLabel, { color: subTextColor }]}>
+              SELECT SIZE
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {APPAREL_SIZES.map((size) => {
+                const isSelected = selectedSize === size;
+                return (
+                  <TouchableOpacity
+                    key={size}
+                    onPress={() => {
+                      if (Platform.OS !== "web") {
+                        Haptics.selectionAsync().catch(() => {});
+                      }
+                      setSelectedSize(size);
+                    }}
+                    activeOpacity={0.75}
+                    style={{
+                      flex: 1,
+                      height: 38,
+                      borderRadius: 11,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: isSelected ? PRIMARY : cardBg,
+                      borderWidth: 1,
+                      borderColor: isSelected ? PRIMARY : borderColor,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: "800",
+                        color: isSelected ? "#FFFFFF" : textColor,
+                      }}
+                    >
+                      {size}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Quantity Controller */}
+        <View
+          style={[styles.quantitySection, { borderBottomColor: borderColor }]}
+        >
+          <Text style={[styles.sectionLabel, { color: subTextColor }]}>
+            QUANTITY
+          </Text>
+          <View style={styles.quantityRow}>
+            <View style={styles.quantityControls}>
+              <TouchableOpacity
+                onPress={decrementQty}
+                style={[
+                  styles.qtyBtn,
+                  {
+                    backgroundColor:
+                      quantity <= 1
+                        ? isDark
+                          ? "#27272A"
+                          : "#F4F4F5"
+                        : qtyBtnBg,
+                    opacity: quantity <= 1 ? 0.5 : 1,
+                  },
+                ]}
+                activeOpacity={0.7}
+                disabled={quantity <= 1}
+              >
+                <Ionicons
+                  name="remove"
+                  size={20}
+                  color={quantity <= 1 ? subTextColor : textColor}
+                />
+              </TouchableOpacity>
+
+              <View style={[styles.qtyDisplay, { backgroundColor: cardBg }]}>
+                <Text style={[styles.qtyText, { color: textColor }]}>
+                  {quantity}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={incrementQty}
+                style={[styles.qtyBtn, { backgroundColor: PRIMARY }]}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="add" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.totalPriceContainer}>
+              <Text style={[styles.totalLabel, { color: subTextColor }]}>
+                Total
+              </Text>
+              <Text style={[styles.totalPrice, { color: textColor }]}>
+                {totalPrice.toFixed(2)} ETB
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionSection}>
+          <TouchableOpacity
+            onPress={() => {
+              if (Platform.OS !== "web") {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+                  () => {},
+                );
+              }
+              onAddToCart(product, quantity, chosenSize);
+              onClose();
+            }}
+            activeOpacity={0.7}
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: cardBg,
+                borderColor: borderColor,
+                borderWidth: 1.5,
+              },
+            ]}
+          >
+            <Ionicons name="cart-outline" size={19} color={PRIMARY} />
+            <Text
+              numberOfLines={1}
+              style={[styles.actionButtonText, { color: textColor }]}
+            >
+              Add to Cart
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => {
+              if (Platform.OS !== "web") {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+                  () => {},
+                );
+              }
+              onBuyNow(product, quantity, chosenSize);
+              onClose();
+            }}
+            activeOpacity={0.8}
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: PRIMARY,
+              },
+            ]}
+          >
+            <Ionicons name="flash" size={17} color="#FFFFFF" />
+            <Text
+              numberOfLines={1}
+              style={[styles.actionButtonText, { color: "#FFFFFF" }]}
+            >
+              Buy Now
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </AppBottomSheet>
+  );
+};
+
+const styles = StyleSheet.create({
+  sheetContainer: {
+    width: "100%",
+    paddingBottom: Platform.OS === "ios" ? 16 : 12,
+  },
+  productRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingBottom: 16,
+    marginBottom: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  imageWrapper: {
+    width: 68,
+    height: 68,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  productImage: {
+    width: "100%",
+    height: "100%",
+  },
+  productInfo: {
+    flex: 1,
+    marginLeft: 14,
+    justifyContent: "center",
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 2,
+    letterSpacing: -0.3,
+  },
+  categoryText: {
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  unitPrice: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#ff6719",
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quantitySection: {
+    paddingBottom: 16,
+    marginBottom: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  quantityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  quantityControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  qtyBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qtyDisplay: {
+    width: 44,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qtyText: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  totalPriceContainer: {
+    alignItems: "flex-end",
+  },
+  totalLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  totalPrice: {
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  actionSection: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 10,
+    marginBottom: Platform.OS === "android" ? 6 : 2,
+  },
+  actionButton: {
+    flex: 1,
+    height: 52,
+    borderRadius: 9999,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    overflow: "hidden",
+  },
+  actionButtonText: {
+    fontSize: 14.5,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+});
+
+export default ProductBottomSheet;

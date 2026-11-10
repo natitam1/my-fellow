@@ -1,0 +1,338 @@
+import {
+  AdminActionButton,
+  AdminEditTrigger,
+  Placeholder,
+  ScreenHeader,
+} from "@/components";
+import { PRIMARY } from "@/constants";
+import { useTheme } from "@/context/ThemeContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useLocationsStore } from "@/stores/locations.store";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { Stack, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect } from "react";
+import {
+  FlatList,
+  Linking,
+  Platform,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+interface Props {
+  item: any;
+  isDark: boolean;
+  isAdmin?: boolean;
+  onEdit?: (item: any) => void;
+}
+
+const LocationCard = ({ item, isDark, isAdmin, onEdit }: Props) => {
+  const handleOpenMaps = () => {
+    const scheme = Platform.select({ ios: "maps:", android: "geo:" });
+    const latLng =
+      item.coordinates &&
+      item.coordinates.latitude &&
+      item.coordinates.longitude
+        ? `${item.coordinates.latitude},${item.coordinates.longitude}`
+        : null;
+    const label = item.name;
+
+    let url = item.googleMapsUrl;
+
+    if (!url && latLng) {
+      url = Platform.select({
+        ios: `${scheme}?q=${label}&ll=${latLng}`,
+        android: `${scheme}0,0?q=${latLng}(${label})`,
+      });
+    }
+
+    if (url) {
+      Linking.openURL(url);
+    }
+  };
+
+  const imageSource =
+    typeof item.image === "string" ? { uri: item.image } : item.image;
+
+  return (
+    <View
+      className={`mb-5 rounded-[24px] overflow-hidden border ${
+        isDark ? "bg-[#111] border-[#222]" : "bg-[#f9fafb] border-gray-200"
+      }`}
+    >
+      <View style={{ position: "relative" }}>
+        <Image
+          source={imageSource}
+          style={{ width: "100%", height: 160 }}
+          contentFit="cover"
+          transition={300}
+        />
+        {isAdmin && onEdit && (
+          <View style={{ position: "absolute", top: 14, right: 14 }}>
+            <AdminEditTrigger
+              size={38}
+              onPress={() => onEdit(item)}
+            />
+          </View>
+        )}
+      </View>
+      <View className="p-5">
+        <Text
+          className={`text-lg font-bold mb-1 ${
+            isDark ? "text-white" : "text-gray-900"
+          }`}
+        >
+          {item.name}
+        </Text>
+        <View className="flex-row items-center mb-4">
+          <Ionicons
+            name="location-sharp"
+            size={14}
+            color={isDark ? "#6b7280" : "#9ca3af"}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            className={`text-[13px] font-medium ${
+              isDark ? "text-gray-500" : "text-gray-500"
+            }`}
+          >
+            {item.address}
+          </Text>
+        </View>
+
+        {/* Service Times */}
+        {item.serviceTimes &&
+          Array.isArray(item.serviceTimes) &&
+          item.serviceTimes.length > 0 && (
+            <View
+              className={`rounded-xl p-3.5 mb-5 border ${
+                isDark
+                  ? "bg-[#1a1a1a] border-[#222]"
+                  : "bg-white border-gray-100"
+              }`}
+            >
+              {item.serviceTimes.map((time: string, index: number) => (
+                <View
+                  key={index}
+                  className={`flex-row items-center ${index > 0 ? "mt-2" : ""}`}
+                >
+                  <View
+                    className={`w-7 h-7 rounded-full items-center justify-center mr-3 ${
+                      isDark ? "bg-[#222]" : "bg-orange-50"
+                    }`}
+                  >
+                    <Ionicons name="time-outline" size={14} color={PRIMARY} />
+                  </View>
+                  <Text
+                    className={`text-[13px] font-medium ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    {time}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+        <TouchableOpacity
+          onPress={handleOpenMaps}
+          activeOpacity={0.7}
+          className={`py-3 rounded-xl flex-row items-center justify-center border ${
+            isDark ? "bg-[#1C1C1E] border-[#333]" : "bg-white border-gray-200"
+          }`}
+        >
+          <Ionicons
+            name="navigate"
+            size={18}
+            color={PRIMARY}
+            style={{ marginRight: 8 }}
+          />
+          <Text
+            className={`font-bold text-[14px] ${
+              isDark ? "text-white" : "text-gray-800"
+            }`}
+          >
+            Get Directions
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+export default function LocationsScreen() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const router = useRouter();
+  const { top } = useSafeAreaInsets();
+  const isAdmin = useIsAdmin();
+
+  const { locations, loading, refreshing, error, loadLocations } =
+    useLocationsStore();
+
+  useEffect(() => {
+    loadLocations();
+  }, []);
+
+  const onRefresh = () => {
+    loadLocations(true);
+  };
+
+  return (
+    <>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+      />
+      <StatusBar style={isDark ? "light" : "dark"} />
+
+      <View className={`flex-1 ${isDark ? "bg-dark" : "bg-white"}`}>
+        {/* Header */}
+        <ScreenHeader
+          title="Locations"
+          rightAction={
+            isAdmin ? (
+              <AdminActionButton
+                label="Add"
+                onPress={() => router.push("/locations/manage")}
+              />
+            ) : null
+          }
+          containerStyle={{
+            backgroundColor: isDark ? "#0A0A0A" : "#ffffff",
+            borderBottomColor: isDark ? "#1f2937" : "#e5e7eb",
+          }}
+        />
+
+        {loading && locations.length === 0 ? (
+          <View
+            className={`px-5 pt-6 flex-1 ${isDark ? "bg-dark" : "bg-white"}`}
+          >
+            <Placeholder
+              height={20}
+              width="100%"
+              borderRadius={4}
+              style={{ marginBottom: 20 }}
+            />
+            {[1, 2, 3].map((_, i) => (
+              <View
+                key={i}
+                className={`mb-5 rounded-[24px] overflow-hidden border ${
+                  isDark
+                    ? "bg-[#111] border-[#222]"
+                    : "bg-[#f9fafb] border-gray-200"
+                }`}
+              >
+                <Placeholder height={160} width="100%" borderRadius={0} />
+                <View className="p-5">
+                  <Placeholder
+                    height={22}
+                    width="60%"
+                    borderRadius={4}
+                    style={{ marginBottom: 10 }}
+                  />
+                  <View className="flex-row items-center mb-4">
+                    <Placeholder
+                      height={14}
+                      width={14}
+                      borderRadius={2}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Placeholder height={14} width="80%" borderRadius={4} />
+                  </View>
+
+                  <View
+                    className={`rounded-xl p-3.5 mb-5 border ${
+                      isDark
+                        ? "bg-[#1a1a1a] border-[#222]"
+                        : "bg-white border-gray-100"
+                    }`}
+                  >
+                    <View className="flex-row items-center">
+                      <Placeholder
+                        width={28}
+                        height={28}
+                        borderRadius={14}
+                        style={{ marginRight: 12 }}
+                      />
+                      <Placeholder width="70%" height={14} borderRadius={4} />
+                    </View>
+                    <View className="flex-row items-center mt-2">
+                      <Placeholder
+                        width={28}
+                        height={28}
+                        borderRadius={14}
+                        style={{ marginRight: 12 }}
+                      />
+                      <Placeholder width="50%" height={14} borderRadius={4} />
+                    </View>
+                  </View>
+
+                  <Placeholder height={46} width="100%" borderRadius={12} />
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : error ? (
+          <View className="flex-1 items-center justify-center p-5">
+            <Ionicons name="alert-circle-outline" size={64} color={PRIMARY} />
+            <Text
+              className={`text-lg font-bold mt-4 text-center ${isDark ? "text-white" : "text-gray-900"}`}
+            >
+              {error}
+            </Text>
+            <TouchableOpacity
+              onPress={() => loadLocations(true)}
+              className="mt-6 bg-primary px-8 py-3 rounded-full"
+            >
+              <Text className="text-white font-bold">Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={locations}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <LocationCard
+                item={item}
+                isDark={isDark}
+                isAdmin={isAdmin}
+                onEdit={(loc) => router.push(`/locations/manage?id=${loc.id}`)}
+              />
+            )}
+            contentContainerStyle={{
+              padding: 20,
+              paddingBottom: 40,
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={PRIMARY}
+                colors={[PRIMARY]}
+              />
+            }
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              <Text
+                className={`text-base mb-6 ${
+                  isDark ? "text-gray-400" : "text-gray-600"
+                }`}
+              >
+                Find us at these locations for worship and fellowship. We can&apos;t
+                wait to see you!
+              </Text>
+            }
+          />
+        )}
+      </View>
+    </>
+  );
+}

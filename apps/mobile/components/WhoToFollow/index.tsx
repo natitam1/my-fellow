@@ -1,0 +1,429 @@
+import { NativeViewAllButton } from "@/components/NativeViewAllButton";
+import { PRIMARY } from "@/constants/colors";
+import { useCommunityStore } from "@/stores/community.store";
+import { Ionicons } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
+import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
+import React from "react";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+
+export interface SuggestedMember {
+  id: string;
+  name: string;
+  role: string;
+  department: string;
+  mutualCount: number;
+  badge?: string;
+  avatar: string;
+}
+
+interface WhoToFollowSectionProps {
+  isDark?: boolean;
+}
+
+export const WhoToFollowSection: React.FC<WhoToFollowSectionProps> = ({ isDark = false }) => {
+  const router = useRouter();
+  const members = useCommunityStore((s) => s.whoToFollow);
+  const fetchWhoToFollow = useCommunityStore((s) => s.fetchWhoToFollow);
+  const toggleFollowMember = useCommunityStore((s) => s.toggleFollowMember);
+  const dismissSuggestedMember = useCommunityStore((s) => s.dismissSuggestedMember);
+  const communityMembers = useCommunityStore((s) => s.members);
+
+  React.useEffect(() => {
+    fetchWhoToFollow();
+  }, [fetchWhoToFollow]);
+
+  const toggleFollow = (id: string) => {
+    if (Platform.OS !== "web") {
+      try {
+        Haptics.selectionAsync();
+      } catch {}
+    }
+    toggleFollowMember(id);
+  };
+
+  const dismissMember = (id: string) => {
+    if (Platform.OS !== "web") {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {}
+    }
+    dismissSuggestedMember(id);
+  };
+
+  if (members.length === 0) return null;
+
+  const cardRippleColor = isDark
+    ? "rgba(255, 255, 255, 0.12)"
+    : "rgba(0, 0, 0, 0.08)";
+
+  return (
+    <View style={styles.sectionContainer}>
+      {/* Header Row with View all button on the right */}
+      <View style={styles.headerRow}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: isDark ? "#ffffff" : "#0f172a" },
+          ]}
+        >
+          Who to Follow
+        </Text>
+        <NativeViewAllButton
+          label="View all"
+          onPress={() => {
+            router.push("/community/search" as any);
+          }}
+          isDark={isDark}
+          accessibilityLabel="View all suggested fellowship members"
+        />
+      </View>
+
+      {/* Horizontal Carousel of Recommended Cards */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        overScrollMode="never"
+        contentContainerStyle={styles.scrollContent}
+        decelerationRate="fast"
+        snapToInterval={230}
+        snapToAlignment="start"
+      >
+        {members.map((member) => {
+          const isFollowing = !!(communityMembers[member.id]?.isFollowing ?? (member as any).isFollowing);
+
+          return (
+            <View
+              key={member.id}
+              style={[
+                styles.memberCardContainer,
+                {
+                  backgroundColor: isDark ? "#18181b" : "#ffffff",
+                  borderColor: isDark ? "#27272a" : "#e2e8f0",
+                },
+              ]}
+            >
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS !== "web") {
+                    try {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    } catch {}
+                  }
+                  router.push(`/community/user/${member.id}` as any);
+                }}
+                unstable_pressDelay={0}
+                android_ripple={{
+                  color: cardRippleColor,
+                  borderless: false,
+                  foreground: true,
+                }}
+                style={({ pressed }) => [
+                  styles.memberCardPressable,
+                  Platform.OS === "ios" && pressed && { opacity: 0.9 },
+                ]}
+              >
+                {/* Dismiss "X" Button */}
+                <Pressable
+                  hitSlop={8}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    dismissMember(member.id);
+                  }}
+                  android_ripple={{ color: "rgba(0,0,0,0.12)", borderless: true, radius: 14 }}
+                  style={styles.dismissBtn}
+                >
+                  <Ionicons
+                    name="close"
+                    size={16}
+                    color={isDark ? "#71717a" : "#94a3b8"}
+                  />
+                </Pressable>
+
+                {/* Avatar with Status Ring */}
+                <View style={styles.avatarWrap}>
+                  <ExpoImage
+                    source={{ uri: member.avatar }}
+                    style={styles.avatar}
+                    contentFit="cover"
+                    transition={150}
+                  />
+                  <View
+                    style={[
+                      styles.onlineDot,
+                      { borderColor: isDark ? "#18181b" : "#ffffff" },
+                    ]}
+                  />
+                </View>
+
+                {/* Name & Role */}
+                <Text
+                  numberOfLines={1}
+                  style={[styles.memberName, { color: isDark ? "#ffffff" : "#0f172a" }]}
+                >
+                  {member.name}
+                </Text>
+
+                <Text numberOfLines={1} style={styles.memberRole}>
+                  {member.role}
+                </Text>
+
+                <Text
+                  numberOfLines={1}
+                  style={[styles.memberDept, { color: isDark ? "#94a3b8" : "#64748b" }]}
+                >
+                  {member.department}
+                </Text>
+
+                {/* Centered Social Proof Pill Badge */}
+                <View
+                  style={[
+                    styles.socialProofWrap,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.06)"
+                        : "rgba(0, 0, 0, 0.04)",
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="people"
+                    size={13}
+                    color={isDark ? "#94a3b8" : "#64748b"}
+                  />
+                  <Text
+                    style={[
+                      styles.socialProofText,
+                      { color: isDark ? "#94a3b8" : "#64748b" },
+                    ]}
+                  >
+                    {member.mutualCount} mutual peers
+                  </Text>
+                </View>
+
+                {/* Primary Action Button: Solid Rounded Pill */}
+                <View
+                  style={[
+                    styles.followBtnContainer,
+                    {
+                      backgroundColor: isFollowing
+                        ? isDark
+                          ? "#27272a"
+                          : "#f1f5f9"
+                        : PRIMARY,
+                      borderColor: isFollowing
+                        ? isDark
+                          ? "#3f3f46"
+                          : "#cbd5e1"
+                        : "transparent",
+                      borderWidth: isFollowing ? 1 : 0,
+                    },
+                    !isFollowing && styles.followBtnShadow,
+                  ]}
+                >
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      toggleFollow(member.id);
+                    }}
+                    unstable_pressDelay={0}
+                    android_ripple={{
+                      color: isFollowing
+                        ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)")
+                        : "rgba(255,255,255,0.3)",
+                      borderless: false,
+                      foreground: true,
+                    }}
+                    style={({ pressed }) => [
+                      styles.followBtnPressable,
+                      Platform.OS === "ios" && pressed && { opacity: 0.8 },
+                    ]}
+                  >
+                    <View style={styles.followBtnContent}>
+                      <Ionicons
+                        name={isFollowing ? "checkmark" : "person-add"}
+                        size={14}
+                        color={isFollowing ? (isDark ? "#e2e8f0" : "#334155") : "#ffffff"}
+                      />
+                      <Text
+                        style={[
+                          styles.followBtnText,
+                          {
+                            color: isFollowing
+                              ? isDark
+                                ? "#e2e8f0"
+                                : "#334155"
+                              : "#ffffff",
+                          },
+                        ]}
+                      >
+                        {isFollowing ? "Following" : "Follow"}
+                      </Text>
+                    </View>
+                  </Pressable>
+                </View>
+              </Pressable>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  sectionContainer: {
+    marginTop: 24,
+    marginBottom: 10,
+  },
+  headerRow: {
+    paddingHorizontal: 20,
+    marginBottom: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    gap: 14,
+    paddingBottom: 12,
+  },
+  memberCardContainer: {
+    width: 216,
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: "hidden",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+  },
+  memberCardPressable: {
+    width: "100%",
+    paddingTop: 22,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dismissBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  avatarWrap: {
+    width: 60,
+    height: 60,
+    position: "relative",
+    marginTop: 14,
+    marginBottom: 10,
+    alignSelf: "center",
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#22c55e",
+    borderWidth: 2,
+  },
+  memberName: {
+    fontSize: 15,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 3,
+    paddingHorizontal: 4,
+    width: "100%",
+  },
+  memberRole: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: PRIMARY,
+    textAlign: "center",
+    marginBottom: 3,
+  },
+  memberDept: {
+    fontSize: 11.5,
+    textAlign: "center",
+    marginBottom: 10,
+    paddingHorizontal: 4,
+    width: "100%",
+  },
+  socialProofWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 3.5,
+    borderRadius: 9999,
+    gap: 5,
+    marginBottom: 16,
+  },
+  socialProofText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  followBtnContainer: {
+    width: 180,
+    height: 38,
+    borderRadius: 9999,
+    overflow: "hidden",
+    alignSelf: "center",
+    marginBottom: 22,
+  },
+  followBtnShadow: Platform.select({
+    ios: {
+      shadowColor: "#ff6719",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 3,
+    },
+    default: {},
+  }) as any,
+  followBtnPressable: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 9999,
+  },
+  followBtnContent: {
+    width: "100%",
+    height: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  followBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+});
+
+export default WhoToFollowSection;
