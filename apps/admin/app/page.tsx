@@ -180,10 +180,10 @@ export default function LandingPage() {
 
             {/* Direct Console Entry */}
             <Link
-              href={mounted && isAuth ? "/dashboard" : "/signin"}
+              href={isAuth ? "/dashboard" : "/signin"}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-[#ff6719] hover:bg-[#e55a15] transition-all shadow-sm hover:shadow-md hover:shadow-orange-500/20 active:scale-[0.98]"
             >
-              <span>{mounted && isAuth ? "Dashboard" : "Sign In"}</span>
+              <span>{isAuth ? "Dashboard" : "Sign In"}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -242,10 +242,10 @@ export default function LandingPage() {
             className="mt-10 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
           >
             <Link
-              href={mounted && isAuth ? "/dashboard" : "/signin"}
+              href={isAuth ? "/dashboard" : "/signin"}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-semibold text-white bg-[#ff6719] hover:bg-[#e55a15] transition-all shadow-md hover:shadow-lg hover:shadow-orange-500/25 active:scale-[0.98] text-base"
             >
-              <span>{mounted && isAuth ? "Enter Admin Console" : "Sign In to Admin"}</span>
+              <span>{isAuth ? "Enter Admin Console" : "Sign In to Admin"}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
 
