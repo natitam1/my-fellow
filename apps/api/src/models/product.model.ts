@@ -38,7 +38,8 @@ const ProductSchema = new Schema<IProductDocument>(
 );
 
 ProductSchema.index({ createdAt: -1 });
-ProductSchema.index({ category: 1 });
+ProductSchema.index({ category: 1, createdAt: -1 });
+ProductSchema.index({ isActive: 1, createdAt: -1 });
 
 export const Product: Model<IProductDocument> =
   mongoose.models.Product ||

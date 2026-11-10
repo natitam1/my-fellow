@@ -5,6 +5,7 @@ import cors from "cors";
 import express, { NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import mongoose from "mongoose";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./auth.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -194,7 +195,13 @@ app.use("/api/support", supportRoutes);
 // 4K Social Platform v1 API
 app.use("/api/v1", v1Router);
 
-app.get("/health", (req, res) => res.json({ ok: true }));
+app.get("/health", (req, res) => {
+  const dbReady = mongoose.connection.readyState === 1;
+  if (!dbReady && process.env.NODE_ENV === "production") {
+    return res.status(503).json({ ok: false, error: "Database disconnected" });
+  }
+  return res.json({ ok: true, db: dbReady ? "connected" : "connecting" });
+});
 
 // RFC 9457 Centralized Error Middleware
 app.use(errorMiddleware);

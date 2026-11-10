@@ -170,6 +170,7 @@ const FollowSchema = new Schema<IFollowDocument>(
 
 FollowSchema.index({ followerId: 1, followeeId: 1 }, { unique: true });
 FollowSchema.index({ followeeId: 1, createdAt: -1 });
+FollowSchema.index({ followerId: 1, createdAt: -1 });
 
 export const FollowModel: Model<IFollowDocument> =
   mongoose.models.Follow ||
@@ -287,8 +288,9 @@ const PostSchema = new Schema<IPostDocument>(
 );
 
 PostSchema.index({ createdAt: -1 });
-PostSchema.index({ authorId: 1, createdAt: -1 });
-PostSchema.index({ authorActorId: 1, createdAt: -1 });
+PostSchema.index({ deletedAt: 1, visibility: 1, kind: 1, createdAt: -1 });
+PostSchema.index({ authorId: 1, deletedAt: 1, createdAt: -1 });
+PostSchema.index({ authorActorId: 1, deletedAt: 1, createdAt: -1 });
 PostSchema.index({ kind: 1, createdAt: -1 });
 PostSchema.index({ body: "text" });
 
@@ -612,6 +614,7 @@ const OutboxEventSchema = new Schema<IOutboxEvent & Document>(
   },
   { timestamps: true }
 );
+OutboxEventSchema.index({ processedAt: 1, createdAt: 1 });
 export const OutboxEventModel = mongoose.models.OutboxEvent || mongoose.model("OutboxEvent", OutboxEventSchema);
 
 export interface IIdempotencyKey {
@@ -632,6 +635,7 @@ const IdempotencyKeySchema = new Schema<IIdempotencyKey & Document>(
   { timestamps: true }
 );
 IdempotencyKeySchema.index({ userId: 1, key: 1 }, { unique: true });
+IdempotencyKeySchema.index({ createdAt: 1 }, { expireAfterSeconds: 172800 });
 export const IdempotencyKeyModel = mongoose.models.IdempotencyKey || mongoose.model("IdempotencyKey", IdempotencyKeySchema);
 
 // -------------------------------------------------------------

@@ -239,22 +239,6 @@ export async function isFellowshipLeaderOrAdmin(
         return true;
       }
     }
-
-    const profileDoc = await ProfileModel.findOne({ userId: user.sub }).lean();
-    if (profileDoc?.fellowshipRole) {
-      const fRole = profileDoc.fellowshipRole.toLowerCase();
-      if (
-        fRole.includes("executive") ||
-        fRole.includes("president") ||
-        fRole.includes("general secretary") ||
-        fRole.includes("fellowship leader") ||
-        fRole.includes("campus leader") ||
-        fRole.includes("main leader") ||
-        fRole.includes("director")
-      ) {
-        return true;
-      }
-    }
   } catch {
     return false;
   }
@@ -305,18 +289,6 @@ export async function isUserTeamLeaderAny(userId: string, userRole?: string): Pr
           userDoc?.role === "team_leader")
       ) {
         return true;
-      }
-
-      const profileDoc = await ProfileModel.findOne({ userId }).lean();
-      if (profileDoc?.fellowshipRole) {
-        const fRole = profileDoc.fellowshipRole.toLowerCase();
-        if (
-          fRole.includes("team leader") ||
-          fRole.includes("lead") ||
-          fRole.includes("coordinator")
-        ) {
-          return true;
-        }
       }
     }
   } catch {
@@ -392,19 +364,6 @@ export async function isUserLeaderOfTeam(userId: string, actor: IActorDocument, 
             (actor.teamId && userDoc.team.toLowerCase() === actor.teamId.toLowerCase()) ||
             actor.displayName.toLowerCase().includes(userDoc.team.toLowerCase()) ||
             userDoc.team.toLowerCase().includes(actor.displayName.toLowerCase()))
-        ) {
-          return true;
-        }
-      }
-
-      const profileDoc = await ProfileModel.findOne({ userId }).lean();
-      if (profileDoc?.fellowshipRole) {
-        const fRole = profileDoc.fellowshipRole.toLowerCase();
-        const actorName = (actor.displayName || "").toLowerCase().replace(/ team$/i, "");
-        const teamIdName = (actor.teamId || "").toLowerCase().replace(/ team$/i, "");
-        if (
-          (actorName && fRole.includes(actorName) && (fRole.includes("leader") || fRole.includes("lead") || fRole.includes("coordinator"))) ||
-          (teamIdName && fRole.includes(teamIdName) && (fRole.includes("leader") || fRole.includes("lead") || fRole.includes("coordinator")))
         ) {
           return true;
         }
@@ -701,11 +660,24 @@ export async function syncAllUsersFollowOfficialActor(): Promise<number> {
   });
   if (!officialActor) return 0;
 
-  const users = await UserModel.find({ deletedAt: null }).select("_id").lean();
+  const existingFollows = await FollowModel.find({
+    followeeActorId: officialActor._id,
+  }).select("followerId").lean();
+  const followedUserIds = new Set(existingFollows.map((f) => f.followerId));
+
+  const users = await UserModel.find({}).select("_id").lean();
+  const pendingUsers = users.filter((u) => !followedUserIds.has(u._id.toString()));
+
   let count = 0;
-  for (const user of users) {
-    const followed = await ensureFollowOfficialActor(user._id);
-    if (followed) count++;
+  const CHUNK_SIZE = 50;
+  for (let i = 0; i < pendingUsers.length; i += CHUNK_SIZE) {
+    const chunk = pendingUsers.slice(i, i + CHUNK_SIZE);
+    await Promise.all(
+      chunk.map(async (user) => {
+        const followed = await ensureFollowOfficialActor(user._id);
+        if (followed) count++;
+      })
+    );
   }
   return count;
 }

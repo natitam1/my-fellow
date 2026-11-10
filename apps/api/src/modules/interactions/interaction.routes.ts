@@ -28,8 +28,12 @@ router.put("/posts/:id/like", requireAuth, async (req: AuthRequest, res: Respons
     }
 
     await LikeModel.create({ userId, postId });
-    post.likeCount = (post.likeCount || 0) + 1;
-    await post.save();
+    const updatedPost = await PostModel.findByIdAndUpdate(
+      postId,
+      { $inc: { likeCount: 1 } },
+      { new: true }
+    );
+    const likeCount = updatedPost?.likeCount ?? ((post.likeCount || 0) + 1);
 
     if (post.authorId !== userId) {
       await OutboxEventModel.create({
@@ -43,7 +47,7 @@ router.put("/posts/:id/like", requireAuth, async (req: AuthRequest, res: Respons
       });
     }
 
-    return res.json({ liked: true, likeCount: post.likeCount });
+    return res.json({ liked: true, likeCount });
   } catch (err) {
     next(err);
   }
@@ -61,12 +65,14 @@ router.delete("/posts/:id/like", requireAuth, async (req: AuthRequest, res: Resp
       return res.json({ liked: false, likeCount: (p as any)?.likeCount || 0 });
     }
 
-    const post = await PostModel.findById(postId);
-    let newCount = 0;
-    if (post) {
-      post.likeCount = Math.max(0, (post.likeCount || 0) - 1);
-      await post.save();
-      newCount = post.likeCount;
+    const updated = await PostModel.findByIdAndUpdate(
+      postId,
+      { $inc: { likeCount: -1 } },
+      { new: true }
+    );
+    const newCount = Math.max(0, updated?.likeCount ?? 0);
+    if ((updated?.likeCount ?? 0) < 0) {
+      await PostModel.findByIdAndUpdate(postId, { $set: { likeCount: 0 } });
     }
 
     return res.json({ liked: false, likeCount: newCount });
@@ -90,8 +96,7 @@ router.put("/posts/:id/bookmark", requireAuth, async (req: AuthRequest, res: Res
     }
 
     await BookmarkModel.create({ userId, postId });
-    post.bookmarkCount = (post.bookmarkCount || 0) + 1;
-    await post.save();
+    await PostModel.findByIdAndUpdate(postId, { $inc: { bookmarkCount: 1 } });
 
     return res.json({ bookmarked: true });
   } catch (err) {
@@ -107,10 +112,13 @@ router.delete("/posts/:id/bookmark", requireAuth, async (req: AuthRequest, res: 
 
     const deleted = await BookmarkModel.findOneAndDelete({ userId, postId });
     if (deleted) {
-      const post = await PostModel.findById(postId);
-      if (post) {
-        post.bookmarkCount = Math.max(0, (post.bookmarkCount || 0) - 1);
-        await post.save();
+      const updated = await PostModel.findByIdAndUpdate(
+        postId,
+        { $inc: { bookmarkCount: -1 } },
+        { new: true }
+      );
+      if ((updated?.bookmarkCount ?? 0) < 0) {
+        await PostModel.findByIdAndUpdate(postId, { $set: { bookmarkCount: 0 } });
       }
     }
 

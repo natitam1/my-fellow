@@ -11,6 +11,7 @@ export interface IOrderItem {
   productId: string;
   quantity: number;
   unitPrice: number;
+  size?: string;
   product?: {
     id: string;
     title: string;
@@ -36,6 +37,7 @@ const OrderItemSchema = new Schema<IOrderItem>(
     productId: { type: String, required: true },
     quantity: { type: Number, required: true, min: 1 },
     unitPrice: { type: Number, required: true, min: 0 },
+    size: { type: String, required: false },
     product: {
       id: { type: String },
       title: { type: String },

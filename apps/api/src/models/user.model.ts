@@ -47,6 +47,10 @@ const UserSchema = new Schema<IUserDocument>(
   { timestamps: true },
 );
 
+UserSchema.index({ createdAt: -1 });
+UserSchema.index({ team: 1, role: 1 });
+UserSchema.index({ role: 1 });
+
 UserSchema.pre<IUserDocument>("save", async function () {
   if (!this.isModified("password") || !this.password) return;
 

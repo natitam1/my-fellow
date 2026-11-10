@@ -15,7 +15,7 @@ export class PaymentController {
   static async initializeJami(req: AuthRequest, res: Response) {
     try {
       const parsed = paymentInitSchema.parse(req.body);
-      const { amount, email, phone, reason, returnUrl } = parsed;
+      const { amount, email, phone, reason, returnUrl, orderId } = parsed;
       const userId = req.user?.sub;
 
       if (!userId) {
@@ -35,7 +35,7 @@ export class PaymentController {
       const resolvedEmail =
         email?.trim() ||
         (user as any)?.email?.trim() ||
-        "206413681+natitam1@users.noreply.github.com";
+        "finance@4kilofellowship.org";
 
       const targetPhone = phone || user.phoneNumber;
 
@@ -48,6 +48,7 @@ export class PaymentController {
         returnUrl: returnUrl || process.env.JAMI_RETURN_URL,
         userId,
         tx_ref,
+        orderId,
       });
 
       let checkoutUrl =
@@ -79,6 +80,7 @@ export class PaymentController {
         amount,
         reason: reason || "Donation",
         status: TransactionStatus.PENDING,
+        ...(orderId ? { orderId } : {}),
       });
 
       return res.status(200).json({
@@ -125,6 +127,18 @@ export class PaymentController {
         return res
           .status(404)
           .json({ success: false, message: "Transaction not found" });
+      }
+
+      if (
+        req.user?.sub &&
+        transaction.userId.toString() !== req.user.sub &&
+        req.user.role !== "admin" &&
+        req.user.role !== "super_admin"
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden: You cannot access transactions belonging to another member",
+        });
       }
 
       // If already succeeded via webhook, return immediately
@@ -216,6 +230,16 @@ export class PaymentController {
       }
 
       const event = await jamiService.verifyWebhook(rawPayload, signature);
+
+      if (
+        process.env.NODE_ENV === "production" &&
+        (event as any).livemode === false
+      ) {
+        console.warn("[Jami Webhook] Rejecting testmode event in production");
+        return res
+          .status(400)
+          .json({ error: "Testmode webhook rejected in production" });
+      }
 
       if (event.type === "order.completed" || event.type === "order.created") {
         const orderData = event.data;

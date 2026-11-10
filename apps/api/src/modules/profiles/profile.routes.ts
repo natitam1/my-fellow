@@ -444,6 +444,16 @@ router.patch("/me/profile", requireAuth, async (req: AuthRequest, res: Response,
       { new: true, upsert: true }
     ).lean();
 
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      const userUpdates: Record<string, string> = {};
+      if (displayName !== undefined) userUpdates.fullName = String(displayName).trim();
+      if (department !== undefined) userUpdates.department = String(department).trim();
+      if (studyYear !== undefined) userUpdates.yearOfStudy = String(studyYear).trim();
+      if (Object.keys(userUpdates).length > 0) {
+        await UserModel.findByIdAndUpdate(userId, { $set: userUpdates }).catch(() => {});
+      }
+    }
+
     return res.json({ success: true, profile });
   } catch (err) {
     next(err);

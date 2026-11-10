@@ -6,6 +6,7 @@ export const paymentInitSchema = z.object({
   phone: z.string().optional(),
   reason: z.string().optional().default("Donation"),
   returnUrl: z.string().url().optional(),
+  orderId: z.string().optional(),
 });
 
 export type PaymentInitInput = z.infer<typeof paymentInitSchema>;

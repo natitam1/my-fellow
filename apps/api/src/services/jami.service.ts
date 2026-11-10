@@ -14,6 +14,7 @@ export interface InitializeCheckoutParams {
   returnUrl?: string;
   userId: string;
   tx_ref: string;
+  orderId?: string;
 }
 
 export class JamiService {
@@ -89,7 +90,7 @@ export class JamiService {
     }
 
     const customerEmail =
-      params.email?.trim() || "206413681+natitam1@users.noreply.github.com";
+      params.email?.trim() || "finance@4kilofellowship.org";
 
     const checkout = await this.getClient().createCheckout({
       amount: amountSantim,
@@ -104,6 +105,7 @@ export class JamiService {
         tx_ref: params.tx_ref,
         userId: params.userId,
         reason: description,
+        ...(params.orderId ? { orderId: params.orderId } : {}),
       },
       successUrl,
     });

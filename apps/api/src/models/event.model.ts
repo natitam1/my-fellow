@@ -36,6 +36,10 @@ const EventSchema = new Schema<IEvent>(
   { timestamps: true },
 );
 
+EventSchema.index({ isDeleted: 1, isPublished: 1, endDate: 1 });
+EventSchema.index({ startDate: 1 });
+EventSchema.index({ createdAt: -1 });
+
 export const EventModel: Model<IEvent> =
   mongoose.models.Event || mongoose.model<IEvent>("Event", EventSchema);
 

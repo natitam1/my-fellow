@@ -217,14 +217,6 @@ export class AuthService {
     const safeUser = {
       id: user._id,
       fullName: user.fullName,
-      phoneNumber: user.phoneNumber,
-      role: user.role,
-      team: user.team,
-      department: user.department,
-      yearOfStudy: user.yearOfStudy,
-      telegramUserName: user.telegramUserName,
-      profileImage: user.profileImage,
-      createdAt: user.createdAt,
     };
 
     return { user: safeUser, token };
@@ -243,14 +235,6 @@ export class AuthService {
     const safeUser = {
       id: user._id,
       fullName: user.fullName,
-      phoneNumber: user.phoneNumber,
-      role: user.role,
-      team: user.team,
-      department: user.department,
-      yearOfStudy: user.yearOfStudy,
-      telegramUserName: user.telegramUserName,
-      profileImage: user.profileImage,
-      createdAt: user.createdAt,
     };
 
     return { user: safeUser };
@@ -395,6 +379,7 @@ export class AuthService {
     }
 
     user.password = dto.newPassword;
+    user.authVersion = (user.authVersion || 0) + 1;
     await user.save();
 
     return {
@@ -745,6 +730,7 @@ export class AuthService {
     }
 
     user.password = newPassword;
+    user.authVersion = (user.authVersion || 0) + 1;
     await user.save();
 
     // Consume the token so it cannot be used again

@@ -46,11 +46,11 @@ function maskedPhone(phone: string): string {
 
 export class OtpService {
   static isDevelopmentOtpEnabled(): boolean {
-    const raw = process.env.OTP_DEV_MODE?.trim().toLowerCase();
-    if (raw === "false" || raw === "0" || raw === "no" || raw === "off") {
+    if (process.env.NODE_ENV === "production") {
       return false;
     }
-    return true;
+    const raw = process.env.OTP_DEV_MODE?.trim().toLowerCase();
+    return raw === "true" || raw === "1" || raw === "yes" || raw === "on";
   }
 
   static developmentCode(): string {
@@ -59,6 +59,9 @@ export class OtpService {
   }
 
   static isDevBypassCode(input: string): boolean {
+    if (!OtpService.isDevelopmentOtpEnabled()) {
+      return false;
+    }
     const trimmed = input.trim();
     const devCode = OtpService.developmentCode();
     return (
@@ -115,9 +118,22 @@ export class OtpService {
     const localPhone = toLocalPhone(phoneNumber);
     const apiKey = process.env.GEEZ_API_KEY?.trim() || "";
 
-    if (OtpService.isDevelopmentOtpEnabled() || !apiKey) {
+    if (!apiKey) {
+      if (process.env.NODE_ENV === "production") {
+        console.error(
+          `[GeezSMS] CRITICAL: GEEZ_API_KEY is not configured in production. Cannot send SMS to ${maskedPhone(localPhone)}.`,
+        );
+        return;
+      }
       console.info(
-        `[OTP] SMS gateway ${apiKey ? "in dev mode" : "not configured"} for ${maskedPhone(localPhone)} (${purpose}). Code: ${code}`,
+        `[OTP] SMS gateway not configured (dev mode). Code for ${maskedPhone(localPhone)}: ${code}`,
+      );
+      return;
+    }
+
+    if (OtpService.isDevelopmentOtpEnabled()) {
+      console.info(
+        `[OTP] Dev mode active for ${maskedPhone(localPhone)} (${purpose}). Code: ${code}`,
       );
       return;
     }
@@ -132,29 +148,7 @@ export class OtpService {
     else if (cleaned.startsWith("0")) cleaned = "251" + cleaned.slice(1);
     else if (!cleaned.startsWith("251")) cleaned = "251" + cleaned;
 
-    // Try GET request first (canonical GeezSMS endpoint)
-    try {
-      const params = new URLSearchParams({
-        token: apiKey,
-        phone: cleaned,
-        msg: message,
-      });
-      if (SHORTCODE_ID) {
-        params.append("shortcode_id", SHORTCODE_ID);
-      }
-
-      const res = await fetch(`https://api.geezsms.com/api/v1/sms/send?${params.toString()}`);
-      const data = (await res.json().catch(() => null)) as any;
-      if (res.ok && (!data || !data.error)) {
-        console.info(`[GeezSMS] Successfully sent OTP to ${maskedPhone(localPhone)}`);
-        return;
-      }
-      console.warn(`[GeezSMS] GET request returned: ${res.status}, falling back to POST`);
-    } catch (err) {
-      console.warn("[GeezSMS] GET request failed, falling back to POST:", err);
-    }
-
-    // Fallback: POST
+    // Prefer POST to keep token out of query strings / access logs
     try {
       const payload: Record<string, string> = {
         token: apiKey,
@@ -171,16 +165,33 @@ export class OtpService {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const raw = await res.text().catch(() => "");
-        console.error(
-          `GeezSMS rejected POST SMS to ${maskedPhone(localPhone)}: HTTP ${res.status} ${raw}`,
-        );
-      } else {
-        console.info(
-          `[GeezSMS] POST successfully sent OTP to ${maskedPhone(localPhone)}`,
-        );
+      if (res.ok) {
+        console.info(`[GeezSMS] Successfully sent OTP to ${maskedPhone(localPhone)}`);
+        return;
       }
+      console.warn(`[GeezSMS] POST returned ${res.status}, falling back to GET`);
+    } catch (err) {
+      console.warn("[GeezSMS] POST request failed, falling back to GET:", err);
+    }
+
+    // Fallback: GET request
+    try {
+      const params = new URLSearchParams({
+        token: apiKey,
+        phone: cleaned,
+        msg: message,
+      });
+      if (SHORTCODE_ID) {
+        params.append("shortcode_id", SHORTCODE_ID);
+      }
+
+      const res = await fetch(`https://api.geezsms.com/api/v1/sms/send?${params.toString()}`);
+      const data = (await res.json().catch(() => null)) as any;
+      if (res.ok && (!data || !data.error)) {
+        console.info(`[GeezSMS] Successfully sent OTP to ${maskedPhone(localPhone)} via fallback`);
+        return;
+      }
+      console.error(`[GeezSMS] GET fallback returned HTTP ${res.status}`);
     } catch (err: any) {
       console.error(
         `GeezSMS network error for ${maskedPhone(localPhone)}:`,

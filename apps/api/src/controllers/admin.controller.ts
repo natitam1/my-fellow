@@ -24,16 +24,21 @@ export class AdminController {
         1,
         parseInt((req.query.limit as string) || "20", 10),
       );
-      const { search, team, department, yearOfStudy, role } = req.query;
+      const search = typeof req.query.search === "string" ? req.query.search.trim() : undefined;
+      const team = typeof req.query.team === "string" ? req.query.team.trim() : undefined;
+      const department = typeof req.query.department === "string" ? req.query.department.trim() : undefined;
+      const yearOfStudy = typeof req.query.yearOfStudy === "string" ? req.query.yearOfStudy.trim() : undefined;
+      const role = typeof req.query.role === "string" ? req.query.role.trim() : undefined;
       const skip = (page - 1) * limit;
 
       const query: any = {};
 
       if (search) {
+        const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         query.$or = [
-          { fullName: { $regex: search, $options: "i" } },
-          { phoneNumber: { $regex: search, $options: "i" } },
-          { telegramUserName: { $regex: search, $options: "i" } },
+          { fullName: { $regex: escaped, $options: "i" } },
+          { phoneNumber: { $regex: escaped, $options: "i" } },
+          { telegramUserName: { $regex: escaped, $options: "i" } },
         ];
       }
 
@@ -108,15 +113,18 @@ export class AdminController {
         1,
         parseInt((req.query.limit as string) || "10", 10),
       );
-      const { eventId, userId, search } = req.query;
+      const eventId = typeof req.query.eventId === "string" ? req.query.eventId.trim() : undefined;
+      const userId = typeof req.query.userId === "string" ? req.query.userId.trim() : undefined;
+      const search = typeof req.query.search === "string" ? req.query.search.trim() : undefined;
       const skip = (page - 1) * limit;
 
       const pipeline: any[] = [];
 
       const match: any = {};
-      if (eventId)
-        match.eventId = new mongoose.Types.ObjectId(eventId as string);
-      if (userId) match.userId = new mongoose.Types.ObjectId(userId as string);
+      if (eventId && mongoose.isValidObjectId(eventId))
+        match.eventId = new mongoose.Types.ObjectId(eventId);
+      if (userId && mongoose.isValidObjectId(userId))
+        match.userId = new mongoose.Types.ObjectId(userId);
 
       if (Object.keys(match).length > 0) {
         pipeline.push({ $match: match });
@@ -221,7 +229,8 @@ export class AdminController {
         1,
         parseInt((req.query.limit as string) || "10", 10),
       );
-      const { search, status } = req.query;
+      const search = typeof req.query.search === "string" ? req.query.search.trim() : undefined;
+      const status = typeof req.query.status === "string" ? req.query.status.trim() : undefined;
       const skip = (page - 1) * limit;
 
       const pipeline: any[] = [];
@@ -356,7 +365,7 @@ export class AdminController {
         1,
         parseInt((req.query.limit as string) || "20", 10),
       );
-      const { status } = req.query;
+      const status = typeof req.query.status === "string" ? req.query.status.trim() : undefined;
       const skip = (page - 1) * limit;
 
       const query: any = {};

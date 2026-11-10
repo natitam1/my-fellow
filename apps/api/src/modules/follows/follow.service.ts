@@ -190,8 +190,12 @@ export async function followTarget(
       { userId: followerId },
       { $inc: { followingCount: 1 } }
     );
-    targetProfile.followersCount = (targetProfile.followersCount || 0) + 1;
-    await targetProfile.save();
+    const updated = await ProfileModel.findOneAndUpdate(
+      { userId: followeeId },
+      { $inc: { followersCount: 1 } },
+      { new: true }
+    );
+    const newFollowersCount = updated?.followersCount ?? ((targetProfile.followersCount || 0) + 1);
 
     await OutboxEventModel.create({
       type: "follow.created",
@@ -208,8 +212,8 @@ export async function followTarget(
       following: true,
       isFollowing: true,
       status: initialStatus,
-      followersCount: targetProfile.followersCount,
-      followerCount: targetProfile.followersCount,
+      followersCount: newFollowersCount,
+      followerCount: newFollowersCount,
       isActor: false,
     };
   }

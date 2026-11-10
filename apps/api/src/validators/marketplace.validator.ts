@@ -89,6 +89,7 @@ export const createOrderSchema = z.object({
             .number({ message: "Quantity must be a number" })
             .int("Quantity must be an integer")
             .min(1, "Quantity must be at least 1"),
+          size: z.string().optional(),
         }),
       )
       .min(1, "At least one item is required"),

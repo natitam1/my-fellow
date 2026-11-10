@@ -5,46 +5,61 @@ import { UserModel } from "../models/user.model.js";
 interface OrderItemInput {
   productId: string;
   quantity: number;
+  size?: string;
 }
 
 export class OrderService {
   static async create(userId: string, items: OrderItemInput[]) {
     let totalAmount = 0;
     const orderItemsData: IOrderItem[] = [];
+    const decremented: { productId: string; quantity: number }[] = [];
 
-    // Verify stock and calculate line totals
-    for (const item of items) {
-      const product = await Product.findById(item.productId);
-
-      if (!product) {
-        throw new Error(`Product not found: ${item.productId}`);
-      }
-
-      if (product.stock < item.quantity) {
-        throw new Error(
-          `Insufficient stock for "${product.title}". Available: ${product.stock}, requested: ${item.quantity}`,
+    try {
+      // Verify stock atomically and calculate line totals
+      for (const item of items) {
+        const product = await Product.findOneAndUpdate(
+          { _id: item.productId, stock: { $gte: item.quantity } },
+          { $inc: { stock: -item.quantity } },
+          { new: true },
         );
+
+        if (!product) {
+          const exists = await Product.findById(item.productId);
+          if (!exists) {
+            throw new Error(`Product not found: ${item.productId}`);
+          }
+          throw new Error(
+            `Insufficient stock for "${exists.title}". Available: ${exists.stock}, requested: ${item.quantity}`,
+          );
+        }
+
+        decremented.push({ productId: item.productId, quantity: item.quantity });
+
+        const lineTotal = product.price * item.quantity;
+        totalAmount += lineTotal;
+
+        orderItemsData.push({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: product.price,
+          size: item.size,
+          product: {
+            id: (product._id as any).toString(),
+            title: product.title,
+            price: product.price,
+            imageUrls: product.imageUrls,
+            category: product.category,
+          },
+        });
       }
-
-      // Decrement stock
-      product.stock -= item.quantity;
-      await product.save();
-
-      const lineTotal = product.price * item.quantity;
-      totalAmount += lineTotal;
-
-      orderItemsData.push({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: product.price,
-        product: {
-          id: (product._id as any).toString(),
-          title: product.title,
-          price: product.price,
-          imageUrls: product.imageUrls,
-          category: product.category,
-        },
-      });
+    } catch (err) {
+      // Roll back any previously decremented stock on error
+      for (const dec of decremented) {
+        await Product.findByIdAndUpdate(dec.productId, {
+          $inc: { stock: dec.quantity },
+        }).catch(() => {});
+      }
+      throw err;
     }
 
     const order = await Order.create({

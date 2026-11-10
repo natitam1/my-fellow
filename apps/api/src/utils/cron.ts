@@ -32,17 +32,17 @@ export async function sweepExpiredEvents(): Promise<number> {
 
 const job = new CronJob("*/9 * * * *", async () => {
   if (process.env.API_URL) {
-    https
-      .get(`${process.env.API_URL}/health`, (res) => {
-        if (res.statusCode === 200) {
-          console.log("GET request sent successfully");
-        } else {
-          console.log("GET request failed", res.statusCode);
-        }
-      })
-      .on("error", (e) => {
-        console.error("Error while sending request", e);
-      });
+    try {
+      const res = await fetch(`${process.env.API_URL}/health`);
+      await res.text(); // Drain stream to prevent connection/socket leak
+      if (res.ok) {
+        console.log("[KeepAlive] Health ping sent successfully");
+      } else {
+        console.warn(`[KeepAlive] Health ping returned status ${res.status}`);
+      }
+    } catch (e) {
+      console.error("[KeepAlive] Error sending health ping:", e);
+    }
   }
 
   // Automatically sweep and unpublish any events whose endDate has passed
