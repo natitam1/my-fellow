@@ -1,0 +1,62 @@
+import { z } from "zod";
+
+export const signUpSchema = z.object({
+  fullName: z.string().min(3),
+  phoneNumber: z.string().min(8).max(13),
+  team: z.string().optional().nullable(),
+  department: z.string().optional().nullable(),
+  yearOfStudy: z.string().optional().nullable(),
+  telegramUserName: z.string().optional().nullable(),
+  password: z.string().min(6),
+});
+
+export const signInSchema = z.object({
+  phoneNumber: z.string().min(9).max(15),
+  password: z.string().min(6),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(6),
+});
+
+export const updateProfileSchema = z.object({
+  fullName: z.string().min(2).optional(),
+  phoneNumber: z.string().min(8).max(15).optional(),
+  team: z.string().optional().nullable(),
+  department: z.string().optional().nullable(),
+  yearOfStudy: z.string().optional().nullable(),
+  telegramUserName: z.string().optional().nullable(),
+});
+
+export const sendPhoneAuthOtpSchema = z.object({
+  phoneNumber: z.string().min(8).max(15),
+});
+
+export const verifyPhoneAuthOtpSchema = z.object({
+  phoneNumber: z.string().min(8).max(15),
+  code: z.string().min(2).max(6),
+});
+
+export const updatePhoneSchema = z.object({
+  phoneNumber: z.string().min(8).max(13),
+  password: z.string().min(6),
+});
+
+export const requestOtpSchema = z.object({
+  phoneNumber: z.string().min(8).max(15),
+  purpose: z.enum(["signup", "reset-password"]).default("signup"),
+});
+
+export const verifyOtpSchema = z.object({
+  phoneNumber: z.string().min(8).max(15),
+  code: z.string().min(2).max(6),
+  purpose: z.enum(["signup", "reset-password"]).default("signup"),
+});
+
+export const resetPasswordSchema = z.object({
+  phoneNumber: z.string().min(8).max(15),
+  verificationToken: z.string().min(10),
+  newPassword: z.string().min(6),
+});
+

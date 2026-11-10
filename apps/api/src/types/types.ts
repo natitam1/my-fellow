@@ -1,0 +1,22 @@
+// type safety for signing-up
+export interface SignUpDTO {
+  fullName: string;
+  phoneNumber: string;
+  team?: string | null;
+  department?: string | null;
+  yearOfStudy?: string | null;
+  telegramUserName?: string | null;
+  password: string;
+}
+
+// type safety for signing-in
+export interface SignInDTO {
+  phoneNumber: string;
+  password: string;
+}
+
+// type safety for updating phone number
+export interface UpdatePhoneDTO {
+  phoneNumber: string;
+  password: string;
+}

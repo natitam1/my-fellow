@@ -1,0 +1,48 @@
+import mongoose, { Schema, Document, Model } from "mongoose";
+
+export enum TransactionStatus {
+  PENDING = "pending",
+  SUCCESS = "success",
+  FAILED = "failed",
+}
+
+export interface ITransaction {
+  userId: mongoose.Types.ObjectId;
+  tx_ref: string;
+  sessionId?: string;
+  orderId?: string;
+  provider?: "jami";
+  amount: number;
+  reason: string;
+  status: TransactionStatus;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface ITransactionDocument extends ITransaction, Document {}
+
+const TransactionSchema = new Schema<ITransactionDocument>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    tx_ref: { type: String, required: true, unique: true },
+    sessionId: { type: String, sparse: true, index: true },
+    orderId: { type: String, sparse: true },
+    provider: { type: String, enum: ["jami"], default: "jami" },
+    amount: { type: Number, required: true },
+    reason: { type: String, default: "donation" },
+    status: {
+      type: String,
+      enum: Object.values(TransactionStatus),
+      default: TransactionStatus.PENDING,
+    },
+  },
+  { timestamps: true },
+);
+
+TransactionSchema.index({ userId: 1, createdAt: -1 });
+TransactionSchema.index({ status: 1, createdAt: -1 });
+TransactionSchema.index({ createdAt: -1 });
+
+export const TransactionModel: Model<ITransactionDocument> =
+  mongoose.models.Transaction ||
+  mongoose.model<ITransactionDocument>("Transaction", TransactionSchema);

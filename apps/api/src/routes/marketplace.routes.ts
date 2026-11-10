@@ -1,0 +1,76 @@
+import { Router } from "express";
+import {
+  requireAuth,
+  requireMinimumRole,
+} from "../middleware/auth.middleware.js";
+import { validate } from "../middleware/validate.middleware.js";
+import { uploadProductImages } from "../middleware/upload.middleware.js";
+import { handleMulterError } from "../middleware/multerError.middleware.js";
+import {
+  createProductSchema,
+  updateProductSchema,
+  createOrderSchema,
+  updateOrderStatusSchema,
+} from "../validators/marketplace.validator.js";
+import ProductController from "../controllers/product.controller.js";
+import OrderController from "../controllers/order.controller.js";
+
+const router = Router();
+
+router.get("/products", ProductController.getAll);
+router.get("/products/:id", ProductController.getById);
+
+router.post(
+  "/products",
+  requireAuth,
+  requireMinimumRole("coordinator"),
+  uploadProductImages,
+  handleMulterError,
+  validate(createProductSchema),
+  ProductController.create,
+);
+
+router.put(
+  "/products/:id",
+  requireAuth,
+  requireMinimumRole("coordinator"),
+  uploadProductImages,
+  handleMulterError,
+  validate(updateProductSchema),
+  ProductController.update,
+);
+
+router.delete(
+  "/products/:id",
+  requireAuth,
+  requireMinimumRole("coordinator"),
+  ProductController.remove,
+);
+
+router.post(
+  "/orders",
+  requireAuth,
+  validate(createOrderSchema),
+  OrderController.create,
+);
+
+router.get("/orders/my", requireAuth, OrderController.getMyOrders);
+
+router.get(
+  "/orders",
+  requireAuth,
+  requireMinimumRole("coordinator"),
+  OrderController.getAll,
+);
+
+router.get("/orders/:id", requireAuth, OrderController.getById);
+
+router.patch(
+  "/orders/:id/status",
+  requireAuth,
+  requireMinimumRole("coordinator"),
+  validate(updateOrderStatusSchema),
+  OrderController.updateStatus,
+);
+
+export default router;

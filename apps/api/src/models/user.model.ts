@@ -1,0 +1,68 @@
+import bcrypt from "bcrypt";
+import mongoose, { Document, Model, Schema } from "mongoose";
+import { ROLES, Role } from "../rbac/permissions.js";
+
+export interface IUser {
+  fullName: string;
+  phoneNumber: string;
+  team?: string | null;
+  department?: string | null;
+  yearOfStudy?: string | null;
+  telegramUserName?: string | null;
+  profileImage?: string | null;
+  password?: string | null;
+  role: Role | "admin" | "user";
+  authVersion: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface IUserDocument extends IUser, Document {
+  comparePassword(candidate: string): Promise<boolean>;
+}
+
+const UserSchema = new Schema<IUserDocument>(
+  {
+    fullName: { type: String, default: "", trim: true },
+    phoneNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      index: true,
+    },
+    team: { type: Schema.Types.ObjectId, ref: "Team", default: null },
+    department: { type: String, default: null },
+    yearOfStudy: { type: String, default: null },
+    telegramUserName: { type: String, default: null },
+    profileImage: { type: String, default: null },
+    password: { type: String, required: false, default: null },
+    role: {
+      type: String,
+      enum: [...ROLES, "admin", "user"],
+      default: "member",
+    },
+    authVersion: { type: Number, default: 0 },
+  },
+  { timestamps: true },
+);
+
+UserSchema.index({ createdAt: -1 });
+UserSchema.index({ team: 1, role: 1 });
+UserSchema.index({ role: 1 });
+
+UserSchema.pre<IUserDocument>("save", async function () {
+  if (!this.isModified("password") || !this.password) return;
+
+  // hash the password
+  const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || "12", 10);
+  this.password = await bcrypt.hash(this.password, saltRounds);
+});
+
+UserSchema.methods.comparePassword = function (candidate: string) {
+  if (!this.password) return Promise.resolve(false);
+  return bcrypt.compare(candidate, this.password);
+};
+
+export const UserModel: Model<IUserDocument> =
+  mongoose.models.User || mongoose.model<IUserDocument>("User", UserSchema);

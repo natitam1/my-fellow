@@ -1,0 +1,47 @@
+import mongoose, { Document, Model, Schema } from "mongoose";
+
+export interface IProduct {
+  title: string;
+  shortDescription: string;
+  price: number;
+  imageUrls: string[];
+  category?: string;
+  stock: number;
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface IProductDocument extends IProduct, Document {}
+
+const ProductSchema = new Schema<IProductDocument>(
+  {
+    title: { type: String, required: true, trim: true, maxlength: 200 },
+    shortDescription: { type: String, required: true, trim: true, maxlength: 3000 },
+    price: { type: Number, required: true, min: 0 },
+    imageUrls: { type: [String], default: [] },
+    category: { type: String, default: "other", trim: true },
+    stock: { type: Number, default: 0, min: 0 },
+    isActive: { type: Boolean, default: true },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform: (_, ret: any) => {
+        ret.id = ret._id.toString();
+        delete ret.__v;
+        return ret;
+      },
+    },
+  },
+);
+
+ProductSchema.index({ createdAt: -1 });
+ProductSchema.index({ category: 1, createdAt: -1 });
+ProductSchema.index({ isActive: 1, createdAt: -1 });
+
+export const Product: Model<IProductDocument> =
+  mongoose.models.Product ||
+  mongoose.model<IProductDocument>("Product", ProductSchema);
+export default Product;
