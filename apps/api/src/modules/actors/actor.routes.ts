@@ -80,8 +80,8 @@ async function findActorByIdOrHandle(idOrHandle: string) {
   return actor;
 }
 
-// GET /api/v1/me/postable-actors
-router.get("/me/postable-actors", requireAuth, async (req: AuthRequest, res: Response, next) => {
+// GET /api/v1/me/postable-actors & /api/v1/actors/postable
+router.get(["/me/postable-actors", "/actors/postable"], requireAuth, async (req: AuthRequest, res: Response, next) => {
   try {
     const user = {
       sub: req.user!.sub,

@@ -75,12 +75,14 @@ router.get("/feed/following", requireAuth, async (req: AuthRequest, res: Respons
   }
 });
 
-// GET /api/v1/feed/foryou
-router.get("/feed/foryou", optionalAuth, async (req: AuthRequest, res: Response, next) => {
+// GET /api/v1/feed, /api/v1/feed/foryou, /api/v1/posts
+router.get(["/feed", "/feed/foryou", "/posts"], optionalAuth, async (req: AuthRequest, res: Response, next) => {
   try {
     const viewerId = req.user?.sub;
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = decodeCursor(req.query.cursor as string);
+    const tab = String(req.query.tab || "").toLowerCase();
+    const tag = req.query.tag ? String(req.query.tag).toLowerCase().replace(/^#/, "") : null;
 
     let excludedAuthorIds = new Set<string>();
     if (viewerId) {
@@ -111,6 +113,35 @@ router.get("/feed/foryou", optionalAuth, async (req: AuthRequest, res: Response,
           ],
         },
       ];
+    }
+
+    if (tab === "following") {
+      if (viewerId) {
+        const followRows = await FollowModel.find({ followerId: viewerId, status: "accepted" })
+          .select("followeeId")
+          .lean();
+        const followedIds = [viewerId, ...followRows.map((f: any) => f.followeeId)].filter(
+          (id) => !excludedAuthorIds.has(id)
+        );
+        query.$or = [
+          { authorId: { $in: followedIds } },
+          { authorActorId: { $in: followedIds } },
+        ];
+      }
+    } else if (tab === "announcements") {
+      query.$or = [
+        { authorActorId: { $ne: null } },
+        { body: { $regex: /#(announcement|announcements|official|fellowship)\b/i } },
+      ];
+    } else if (tab === "prayer" || tab === "prayer_requests" || tab === "prayers") {
+      query.$or = [
+        { body: { $regex: /#(prayer|prayers|prayerrequest|intercession|ጸሎት)\b/i } },
+        { authorActorId: { $in: ["prayer", "Prayer"] } },
+      ];
+    }
+
+    if (tag) {
+      query.body = { $regex: new RegExp(`#${tag}\\b`, "i") };
     }
 
     if (cursor) {

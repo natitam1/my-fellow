@@ -11,6 +11,7 @@
     "lint": "turbo lint",
     "check-types": "turbo check-types",
     "dev:mobile": "bun --filter my-fellow start",
+    "dev:web": "bun --filter my-fellow-web dev",
     "dev:api": "bun --filter my-fellow-api dev",
     "dev:admin": "bun --filter my-fellow-admin dev",
     "dev:website": "bun --filter my-fellow-website dev",
