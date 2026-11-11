@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/context/AuthContext";
@@ -8,10 +8,10 @@ import { Footer } from "@/components/layout/Footer";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { Toaster } from "sonner";
 
-const poppins = Poppins({
-  weight: ["300", "400", "500", "600", "700"],
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-poppins",
+  display: "swap",
+  variable: "--font-inter",
 });
 
 export const viewport: Viewport = {
@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "4 Kilo Fellowship | AAU ECSF",
   description:
-    "The official digital platform of the 4 Kilo Christian Students Fellowship (AAU ECSF). Devotionals, community, programs, giving, and leadership.",
+    "The official digital platform of the 4 Kilo Christian Students Fellowship (AAU ECSF). Devotionals, student community, programs, giving, and leadership.",
   icons: {
     icon: "/images/logo-primary.png",
     apple: "/images/logo-primary.png",
@@ -38,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${poppins.variable} font-sans min-h-screen bg-background text-foreground antialiased flex flex-col`}>
+      <body className={`${inter.variable} font-sans min-h-screen bg-background text-foreground antialiased flex flex-col selection:bg-primary/20 selection:text-foreground`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
