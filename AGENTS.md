@@ -10,8 +10,7 @@ This repository hosts the complete open-source digital ecosystem for the **4 Kil
 | :--- | :--- | :--- | :--- |
 | **`apps/mobile`** | Expo SDK 58, React Native 0.88, NativeWind, Bun | Cross-platform mobile client (Android & iOS) | Expo Dev Server (`8081`) / EAS |
 | **`apps/api`** | Node.js (v24), Express 5, Prisma 7, PostgreSQL, MongoDB, Bun | Backend REST API server | Port `3000` / Render |
-| **`apps/admin`** | Next.js 16 (App Router), React 19, Tailwind CSS v4, Bun | Fellowship administrative dashboard | Next.js Dev (`3000`) / Vercel |
-| **`apps/website`** | Next.js 16 (App Router), React 19, Tailwind CSS v4, Bun | Public landing, legal, and portal website | Next.js Dev (`3001`) / Vercel |
+| **`apps/web`** | Next.js 16 (App Router), React 19, Tailwind CSS v4, shadcn/ui, Bun | Unified public web app, student portal, and admin dashboard | Next.js Dev (`3000`) / Vercel |
 | **`apps/bot`** | Grammy.js, TypeScript, Axios, Bun | Telegram community automation bot | Long Polling / Webhook / Render |
 | **`packages/shared`** | TypeScript (Workspace Package) | Shared contracts, types, and validators | Monorepo internal |
 | **`docs/`** | Markdown Documentation | Architecture, Environment, Deployment, API | Specification reference |
@@ -26,9 +25,8 @@ The entire monorepo strictly standardizes on **Bun** as the package manager with
 - Run individual applications:
   ```bash
   bun run dev:mobile   # Starts Expo dev server
+  bun run dev:web      # Starts Next.js unified web app & admin portal
   bun run dev:api      # Starts API server with hot-reload
-  bun run dev:admin    # Starts Next.js admin dashboard
-  bun run dev:website  # Starts public website
   bun run dev:bot      # Starts Telegram bot
   ```
 - **Do not commit** per-application lockfiles (`bun.lock`, `package-lock.json`, `yarn.lock`).
