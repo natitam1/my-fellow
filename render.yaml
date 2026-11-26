@@ -5,12 +5,30 @@ services:
     plan: free
     region: oregon
     rootDir: apps/api
-    buildCommand: curl -fsSL https://bun.sh/install | bash && export PATH="$HOME/.bun/bin:$PATH" && cd ../.. && bun install && cd apps/api && bun run build
+    buildCommand: curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.4" && export PATH="$HOME/.bun/bin:$PATH" && cd ../.. && bun install --frozen-lockfile && cd apps/api && bun run build
     startCommand: node dist/server.js
     healthCheckPath: /health
     autoDeploy: true
     buildFilter:
       paths:
         - apps/api/**
+        - packages/shared/**
+        - package.json
+        - bun.lock
+
+  - type: web
+    name: my-fellow-bot
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: apps/bot
+    buildCommand: curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.4" && export PATH="$HOME/.bun/bin:$PATH" && cd ../.. && bun install --frozen-lockfile && cd apps/bot && bun run build
+    startCommand: node dist/index.js
+    healthCheckPath: /health
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - apps/bot/**
+        - packages/shared/**
         - package.json
         - bun.lock

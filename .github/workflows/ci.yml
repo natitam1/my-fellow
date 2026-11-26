@@ -7,10 +7,15 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-typecheck:
-    name: Lint & Typecheck
+    name: Lint, Typecheck & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -23,39 +28,33 @@ jobs:
       - name: Install Dependencies
         run: bun install --frozen-lockfile
 
-      - name: API Tests
-        run: bun --filter my-fellow-api test
+      - name: Shared Typecheck
+        run: bun --filter @my-fellow/shared check-types
+
+      - name: API Typecheck & Tests
+        run: |
+          bun --filter my-fellow-api check-types
+          bun --filter my-fellow-api test
+          bun --filter my-fellow-api build
         env:
           NODE_ENV: test
           MONGO_URI: mongodb://localhost:27017/my_fellow_test
           JWT_SECRET: ci-test-jwt-secret-placeholder-for-tests
           DATABASE_URL: postgresql://test:test@localhost:5432/test
 
-      - name: API Build
-        run: bun --filter my-fellow-api build
-        env:
-          NODE_ENV: test
-          MONGO_URI: mongodb://localhost:27017/my_fellow_test
-          JWT_SECRET: ci-test-jwt-secret-placeholder-for-tests
-          DATABASE_URL: postgresql://test:test@localhost:5432/test
-
-      - name: Admin Build & Lint
+      - name: Web Typecheck, Lint & Build
         run: |
-          bun --filter my-fellow-admin lint
-          bun --filter my-fellow-admin build
+          bun --filter my-fellow-web check-types
+          bun --filter my-fellow-web lint
+          bun --filter my-fellow-web build
 
-      - name: Website Build & Lint
+      - name: Bot Typecheck & Build
         run: |
-          bun --filter my-fellow-website lint
-          bun --filter my-fellow-website build
-
-      - name: Bot Build & Lint
-        run: |
-          bun --filter my-fellow-bot lint
+          bun --filter my-fellow-bot check-types
           bun --filter my-fellow-bot build
 
-      - name: Mobile Lint & Typecheck
+      - name: Mobile Tests, Lint & Typecheck
         run: |
-          cd apps/mobile
-          bun run lint
-          bunx tsc --noEmit
+          bun --filter my-fellow-mobile test
+          bun --filter my-fellow-mobile lint
+          bun --filter my-fellow-mobile check-types

@@ -10,7 +10,7 @@
     "test": "turbo test",
     "lint": "turbo lint",
     "check-types": "turbo check-types",
-    "dev:mobile": "bun --filter my-fellow start",
+    "dev:mobile": "bun --filter my-fellow-mobile start",
     "dev:web": "bun --filter my-fellow-web dev",
     "dev:api": "bun --filter my-fellow-api dev",
     "dev:bot": "bun --filter my-fellow-bot dev"
