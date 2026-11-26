@@ -23,9 +23,11 @@ import { useUserStore } from "@/stores/user.store";
 import { ProfileDetail } from "@/types/social.types";
 import { getPrefilledAvatar } from "@/utils/avatar";
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useMemo, useRef, useState } from "react";
@@ -946,12 +948,14 @@ export default function ProfileScreen() {
             <View style={styles.postActionsRow}>
               <Pressable
                 onPress={() => router.push(`/community/${item.id}` as any)}
-                hitSlop={6}
-                style={styles.postActionBtn}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Reply to reflection"
+                style={[styles.postActionBtn, { minHeight: 38, minWidth: 38 }]}
               >
                 <Ionicons
                   name="chatbubble-outline"
-                  size={16}
+                  size={19}
                   color={textSecondary}
                 />
                 <Text style={[styles.postActionCount, { color: textSecondary }]}>
@@ -961,12 +965,14 @@ export default function ProfileScreen() {
 
               <Pressable
                 onPress={() => handleToggleLike(item)}
-                hitSlop={6}
-                style={styles.postActionBtn}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={item.isLiked ? "Unlike reflection" : "Like reflection"}
+                style={[styles.postActionBtn, { minHeight: 38, minWidth: 38 }]}
               >
                 <Ionicons
                   name={item.isLiked ? "heart" : "heart-outline"}
-                  size={17}
+                  size={20}
                   color={item.isLiked ? "#f91880" : textSecondary}
                 />
                 <Text
@@ -981,12 +987,14 @@ export default function ProfileScreen() {
 
               <Pressable
                 onPress={() => handleToggleBookmark(item)}
-                hitSlop={6}
-                style={styles.postActionBtn}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={item.isBookmarked ? "Remove bookmark" : "Bookmark reflection"}
+                style={[styles.postActionBtn, { minHeight: 38, minWidth: 38 }]}
               >
                 <Ionicons
                   name={item.isBookmarked ? "bookmark" : "bookmark-outline"}
-                  size={16}
+                  size={19}
                   color={item.isBookmarked ? PRIMARY : textSecondary}
                 />
               </Pressable>
@@ -998,12 +1006,14 @@ export default function ProfileScreen() {
                     message: `"${item.content}" — ${displayName} on 4 Kilo Fellowship`,
                   });
                 }}
-                hitSlop={6}
-                style={styles.postActionBtn}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Share reflection"
+                style={[styles.postActionBtn, { minHeight: 38, minWidth: 38 }]}
               >
                 <Ionicons
                   name="share-outline"
-                  size={16}
+                  size={19}
                   color={textSecondary}
                 />
               </Pressable>
@@ -1642,7 +1652,7 @@ export default function ProfileScreen() {
             4 Kilo Christian Students Fellowship
           </Text>
           <Text style={[styles.footerVersionText, { color: textTertiary }]}>
-            AAU ECSF · Version 1.0.0
+            AAU ECSF · Version {Constants.expoConfig?.version || "2.0.0"}
           </Text>
         </View>
       </View>
@@ -1706,11 +1716,15 @@ export default function ProfileScreen() {
               transition={200}
             />
           ) : (
-            <View
-              style={[
-                styles.bannerEmptyDoom,
-                { backgroundColor: isDark ? "#18181b" : "#e2e8f0" },
-              ]}
+            <LinearGradient
+              colors={
+                isDark
+                  ? ["#431407", "#7c2d12", "#18181b"]
+                  : ["#ff8547", "#ff6719", "#c2410c"]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.bannerEmptyDoom}
             />
           )}
 
@@ -2163,7 +2177,8 @@ export default function ProfileScreen() {
             styles.floatingComposeBtn,
             {
               backgroundColor: PRIMARY,
-              bottom: insets.bottom + 75,
+              bottom: 60 + Math.max(insets.bottom, 8) + 16,
+              zIndex: 50,
               opacity: pressed ? 0.85 : 1,
             },
           ]}
@@ -2602,14 +2617,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
-    height: 40,
+    paddingHorizontal: 15,
+    height: 38,
     borderRadius: 9999,
     borderWidth: 1.5,
     overflow: "hidden",
   },
   secondaryPillText: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: "700",
     letterSpacing: -0.2,
   },
@@ -2617,14 +2632,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 22,
-    height: 40,
+    paddingHorizontal: 16,
+    height: 38,
     borderRadius: 9999,
     borderWidth: 1.5,
     overflow: "hidden",
   },
   primaryPillText: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: "700",
     letterSpacing: -0.2,
   },

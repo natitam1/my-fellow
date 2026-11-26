@@ -1,7 +1,6 @@
 import { InfoModal, ScreenHeader } from "@/components";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -16,7 +15,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,8 +24,7 @@ const updatePhoneSchema = z.object({
   newPhoneNumber: z
     .string()
     .min(1, "Phone number is required")
-    .regex(/^(09|07)\d{8}$/, "Enter a valid phone number"),
-  password: z.string().min(1, "Password is required"),
+    .regex(/^(09|07)\d{8}$/, "Enter a valid Ethiopian phone number (09... or 07...)"),
 });
 
 type UpdatePhoneFormValues = z.infer<typeof updatePhoneSchema>;
@@ -57,7 +54,6 @@ export default function UpdatePhoneScreen() {
     resolver: zodResolver(updatePhoneSchema),
     defaultValues: {
       newPhoneNumber: "",
-      password: "",
     },
   });
 
@@ -67,7 +63,7 @@ export default function UpdatePhoneScreen() {
     try {
       await updatePhone({
         phoneNumber,
-        password: data.password,
+        password: "",
       });
       setModalConfig({
         title: "Success",
@@ -75,11 +71,12 @@ export default function UpdatePhoneScreen() {
         type: "success",
       });
       setModalVisible(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update phone number.";
       setModalConfig({
         title: "Error",
-        message:
-          error.message || "Failed to update phone number.",
+        message: errorMessage,
         type: "error",
       });
       setModalVisible(true);
@@ -121,9 +118,9 @@ export default function UpdatePhoneScreen() {
             <Text
               style={[styles.infoText, { color: isDark ? "#9ca3af" : "#666" }]}
             >
-              Enter your new phone number and your current password to
-              confirm the change. You&apos;ll need to use your new number to sign
-              in next time.
+              Enter your new Ethiopian mobile number below. You&apos;ll use this
+              new number to receive SMS verification codes when signing in next
+              time.
             </Text>
 
             <View style={styles.inputGroup}>
@@ -175,45 +172,6 @@ export default function UpdatePhoneScreen() {
                 <Text style={styles.errorText}>
                   {errors.newPhoneNumber.message}
                 </Text>
-              )}
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text
-                style={[
-                  styles.inputLabel,
-                  { color: isDark ? "#9ca3af" : "#666" },
-                ]}
-              >
-                Password
-              </Text>
-              <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        color: isDark ? "#fff" : "#000",
-                        borderColor: errors.password
-                          ? "#ef4444"
-                          : isDark
-                            ? "#333"
-                            : "#e5e7eb",
-                      },
-                    ]}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    secureTextEntry
-                    placeholder="Current password"
-                    placeholderTextColor={isDark ? "#4b5563" : "#9ca3af"}
-                  />
-                )}
-              />
-              {errors.password && (
-                <Text style={styles.errorText}>{errors.password.message}</Text>
               )}
             </View>
 

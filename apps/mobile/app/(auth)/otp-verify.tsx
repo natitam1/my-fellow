@@ -27,7 +27,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const CODE_LENGTH = 6;
-const DEV_BYPASS_CODES = ["00", "000000"];
 const DEFAULT_RESEND_SECONDS = 60;
 
 export default function OtpVerifyScreen() {
@@ -156,17 +155,15 @@ export default function OtpVerifyScreen() {
 
   const handleVerify = async (candidateCode?: string) => {
     const rawCode = (candidateCode ?? code).trim();
-    const isDevBypass = DEV_BYPASS_CODES.includes(rawCode);
     if (
-      (!isDevBypass && rawCode.length !== CODE_LENGTH) ||
+      rawCode.length !== CODE_LENGTH ||
       submittingRef.current ||
       loading
     ) {
       return;
     }
 
-    // Pad "00" to "000000" if talking to an older deployed API that strictly requires 6 chars
-    const finalCode = rawCode === "00" ? "000000" : rawCode;
+    const finalCode = rawCode;
 
     submittingRef.current = true;
     setError(null);
@@ -264,7 +261,7 @@ export default function OtpVerifyScreen() {
       <View style={styles.headerBar}>
         <NativeBackButton
           onPress={handleEditPhone}
-          variant="light"
+          variant={isDark ? "dark" : "light"}
           accessibilityLabel="Back to Phone Number"
         />
       </View>
@@ -353,7 +350,7 @@ export default function OtpVerifyScreen() {
                 </Text>
               </Pressable>
 
-              {/* Unified Clean OTP Input Box */}
+              {/* 6-Digit Visual OTP Cells backed by single reliable TextInput (manual typing + paste) */}
               <Animated.View
                 style={[
                   styles.otpWrapper,
@@ -363,30 +360,68 @@ export default function OtpVerifyScreen() {
                 <Pressable
                   onPress={() => inputRef.current?.focus()}
                   accessible={false}
-                  style={[
-                    styles.inputWrapper,
-                    {
-                      backgroundColor: isDark ? "#18181B" : "#FFFFFF",
-                      borderColor: isDark ? "#27272A" : "#E2E8F0",
-                    },
-                    isFocused && [
-                      styles.inputWrapperFocused,
-                      {
-                        borderColor: PRIMARY,
-                        backgroundColor: isDark ? "#18181B" : "#FFFFFF",
-                      },
-                    ],
-                    Boolean(error) && [
-                      styles.inputWrapperError,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(239, 68, 68, 0.08)"
-                          : "#FEF2F2",
-                      },
-                    ],
-                    loading && styles.inputWrapperDisabled,
-                  ]}
+                  style={styles.otpCellsPressable}
                 >
+                  <View style={styles.otpCellsRow}>
+                    {Array.from({ length: CODE_LENGTH }).map((_, index) => {
+                      const digit = code[index] || "";
+                      const isCurrentCell =
+                        isFocused &&
+                        (index === code.length ||
+                          (code.length === CODE_LENGTH &&
+                            index === CODE_LENGTH - 1));
+                      const hasDigit = digit.length > 0;
+
+                      return (
+                        <View
+                          key={index}
+                          style={[
+                            styles.otpCell,
+                            {
+                              backgroundColor: isDark ? "#18181B" : "#FFFFFF",
+                              borderColor: error
+                                ? "#EF4444"
+                                : isCurrentCell
+                                  ? PRIMARY
+                                  : hasDigit
+                                    ? isDark
+                                      ? "#52525B"
+                                      : "#CBD5E1"
+                                    : isDark
+                                      ? "#27272A"
+                                      : "#E2E8F0",
+                            },
+                            isCurrentCell && styles.otpCellActive,
+                            Boolean(error) && {
+                              backgroundColor: isDark
+                                ? "rgba(239, 68, 68, 0.08)"
+                                : "#FEF2F2",
+                            },
+                            loading && styles.inputWrapperDisabled,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.otpCellDigit,
+                              {
+                                color: error
+                                  ? "#EF4444"
+                                  : isDark
+                                    ? "#FFFFFF"
+                                    : "#0F172A",
+                              },
+                            ]}
+                          >
+                            {digit}
+                          </Text>
+                          {isCurrentCell && !hasDigit && (
+                            <View style={styles.otpCursor} />
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+
                   <TextInput
                     ref={inputRef}
                     value={code}
@@ -396,36 +431,35 @@ export default function OtpVerifyScreen() {
                         .slice(0, CODE_LENGTH);
                       setCode(cleaned);
                       if (error) setError(null);
-                      if (
-                        cleaned.length === CODE_LENGTH ||
-                        DEV_BYPASS_CODES.includes(cleaned)
-                      ) {
-                        void handleVerify(cleaned);
-                      }
                     }}
-                    placeholder="Code"
-                    placeholderTextColor={isDark ? "#71717A" : "#94A3B8"}
                     keyboardType="number-pad"
                     inputMode="numeric"
                     textContentType="oneTimeCode"
                     autoComplete="one-time-code"
+                    returnKeyType="done"
+                    onSubmitEditing={() => {
+                      if (code.length === CODE_LENGTH) {
+                        void handleVerify(code);
+                      }
+                    }}
                     maxLength={CODE_LENGTH}
                     editable={!loading}
-                    selectTextOnFocus
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
-                    selectionColor={PRIMARY}
-                    cursorColor={PRIMARY}
-                    style={[
-                      styles.input,
-                      { color: isDark ? "#FFFFFF" : "#0F172A" },
-                      code.length > 0
-                        ? styles.inputWithDigits
-                        : styles.inputEmpty,
-                      Boolean(error) && styles.inputError,
-                    ]}
+                    caretHidden
+                    accessibilityLabel="6-digit verification code"
+                    style={styles.hiddenOtpInput}
                   />
                 </Pressable>
+
+                <Text
+                  style={[
+                    styles.otpHelperHint,
+                    { color: isDark ? "#71717A" : "#64748B" },
+                  ]}
+                >
+                  Type or paste your 6-digit SMS code, then tap Verify
+                </Text>
 
                 {Boolean(error) && (
                   <View style={styles.errorRow}>
@@ -446,23 +480,13 @@ export default function OtpVerifyScreen() {
                     Keyboard.dismiss();
                     void handleVerify();
                   }}
-                  disabled={
-                    loading ||
-                    (code.length !== CODE_LENGTH &&
-                      !DEV_BYPASS_CODES.includes(code))
-                  }
+                  disabled={loading || code.length !== CODE_LENGTH}
                   style={({ pressed }) => [
                     styles.verifyButton,
-                    (loading ||
-                      (code.length !== CODE_LENGTH &&
-                        !DEV_BYPASS_CODES.includes(code))) &&
+                    (loading || code.length !== CODE_LENGTH) &&
                       styles.verifyButtonDisabled,
                     pressed &&
-                      !(
-                        loading ||
-                        (code.length !== CODE_LENGTH &&
-                          !DEV_BYPASS_CODES.includes(code))
-                      ) && {
+                      !(loading || code.length !== CODE_LENGTH) && {
                         opacity: 0.9,
                         transform: [{ scale: 0.99 }],
                       },
@@ -634,8 +658,68 @@ const styles = StyleSheet.create({
   otpWrapper: {
     width: "100%",
     alignItems: "center",
-    marginTop: 16,
-    marginBottom: 20,
+    marginTop: 12,
+    marginBottom: 22,
+  },
+  otpCellsPressable: {
+    width: "100%",
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  otpCellsRow: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  otpCell: {
+    flex: 1,
+    height: 58,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  otpCellActive: {
+    borderWidth: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: PRIMARY,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.16,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  otpCellDigit: {
+    fontSize: 24,
+    fontWeight: "800",
+    includeFontPadding: false,
+  },
+  otpCursor: {
+    position: "absolute",
+    width: 2,
+    height: 22,
+    borderRadius: 1,
+    backgroundColor: PRIMARY,
+  },
+  hiddenOtpInput: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.01,
+    fontSize: 20,
+  },
+  otpHelperHint: {
+    fontSize: 12,
+    marginTop: 10,
+    textAlign: "center",
   },
   inputWrapper: {
     width: "100%",

@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
 import React, { useRef } from "react";
 import {
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -38,8 +38,8 @@ function DevotionCard({ item, isDark, onPress }: DevotionCardProps) {
     } catch {}
     if (onPress) {
       onPress();
-    } else {
-      Alert.alert("Coming Soon", "Devotions will be available soon.");
+    } else if (item.id) {
+      router.push(`/devotion/${item.id}` as any);
     }
   };
 

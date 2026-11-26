@@ -16,7 +16,11 @@ export default function LegalScreen() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
-  const { section } = useLocalSearchParams<{ section?: string }>();
+  const { doc, section } = useLocalSearchParams<{
+    doc?: string;
+    section?: string;
+  }>();
+  const targetSection = doc || section;
   const scrollViewRef = useRef<ScrollViewInstance>(null);
   const privacyRef = useRef<ViewInstance>(null);
   const termsRef = useRef<ViewInstance>(null);
@@ -25,12 +29,12 @@ export default function LegalScreen() {
   const [termsY, setTermsY] = React.useState(0);
 
   useEffect(() => {
-    if (section === "privacy" && privacyY > 0) {
+    if (targetSection === "privacy" && privacyY > 0) {
       scrollViewRef.current?.scrollTo({ y: privacyY, animated: true });
-    } else if (section === "terms" && termsY > 0) {
+    } else if (targetSection === "terms" && termsY > 0) {
       scrollViewRef.current?.scrollTo({ y: termsY, animated: true });
     }
-  }, [section, privacyY, termsY]);
+  }, [targetSection, privacyY, termsY]);
 
   const renderSectionHeader = (title: string) => (
     <Text
@@ -66,19 +70,22 @@ export default function LegalScreen() {
         >
           {renderSectionHeader("Terms of Use")}
           {renderContentText(
-            "Welcome to My Fellow. By using our application, you agree to comply with and be bound by the following terms and conditions of use.",
+            "Welcome to My Fellow, the digital platform for the 4 Kilo Christian Students Fellowship (AAU ECSF). By using our application, you agree to comply with and be bound by the following terms and conditions of use.",
           )}
           {renderContentText(
             "1. Acceptance of Terms: By accessing this app, you signify your agreement to these Terms of Use. If you do not agree, please do not use the app.",
           )}
           {renderContentText(
-            "2. Use License: Permission is granted to temporarily download one copy of the materials on My Fellow&apos;s app for personal, non-commercial transitory viewing only.",
+            "2. Community Conduct & Moderation: Members must communicate respectfully and refrain from harassment, hate speech, spam, or objectionable content. We maintain zero tolerance for abusive behavior. Users can report objectionable posts or block abusive accounts directly from the community feed, and fellowship leaders review moderation reports within 24 hours.",
           )}
           {renderContentText(
-            "3. Disclaimer: The materials on My Fellow&apos;s app are provided on an &apos;as is&apos; basis. My Fellow makes no warranties, expressed or implied.",
+            "3. Use License: Permission is granted to temporarily download one copy of the materials on My Fellow's app for personal, non-commercial transitory viewing only.",
           )}
           {renderContentText(
-            "4. Limitations: In no event shall My Fellow or its suppliers be liable for any damages arising out of the use or inability to use the materials.",
+            "4. Disclaimer: The materials on My Fellow's app are provided on an 'as is' basis. My Fellow makes no warranties, expressed or implied.",
+          )}
+          {renderContentText(
+            "5. Limitations: In no event shall My Fellow or its suppliers be liable for any damages arising out of the use or inability to use the materials.",
           )}
         </View>
 
@@ -89,19 +96,22 @@ export default function LegalScreen() {
         >
           {renderSectionHeader("Privacy Policy")}
           {renderContentText(
-            "Your privacy is important to us. It is My Fellow&apos;s policy to respect your privacy regarding any information we may collect from you through our app.",
+            "Your privacy is important to us. It is My Fellow's policy to respect your privacy regarding any information we collect from you through the 4 Kilo Christian Students Fellowship mobile application.",
           )}
           {renderContentText(
-            "We only ask for personal information when we truly need it to provide a service to you. We collect it by fair and lawful means, with your knowledge and consent.",
+            "1. Phone Number Authentication (GeezSMS): To verify your identity and sign you in without passwords, we collect your Ethiopian mobile phone number (+251 format) and transmit one-time verification codes (OTP) via GeezSMS. Your phone number is used strictly for account authentication, security, and fellowship profile management.",
           )}
           {renderContentText(
-            "We don’t share any personally identifying information publicly or with third-parties, except when required to by law.",
+            "2. Profile & Media Uploads (Cloudinary): Optional profile information (full name, bio, academic department, year of study, ministry team, and Telegram username) as well as profile photos, community post images, and support attachments you choose to upload are stored securely using Cloudinary media storage and our fellowship servers.",
           )}
           {renderContentText(
-            "Our app may link to external sites that are not operated by us. Please be aware that we have no control over the content and practices of these sites.",
+            "3. Push Notifications: With your permission, we collect a device push token to deliver fellowship announcements, event updates, and devotion alerts. You can revoke notification permissions at any time in your device system settings.",
           )}
           {renderContentText(
-            "You are free to refuse our request for your personal information, with the understanding that we may be unable to provide you with some of your desired services.",
+            "4. Data Sharing & Security: We do not sell your personal data or share personally identifying information with third-party advertisers. Data is only processed by essential infrastructure providers (such as GeezSMS for SMS OTP delivery and Cloudinary for media hosting) or when required by law.",
+          )}
+          {renderContentText(
+            "5. In-App Account Deletion & Data Rights: You have full control over your account. You may permanently delete your account and associated personal data at any time directly inside the app via Settings -> Account Actions -> Delete Account.",
           )}
         </View>
       </ScrollView>

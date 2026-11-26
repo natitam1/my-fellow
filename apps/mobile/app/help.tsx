@@ -1,5 +1,6 @@
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { InfoModal } from "@/components/Modals/InfoModal";
+import { FELLOWSHIP_CONFIG } from "@/constants/fellowship";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import api from "@/services/api";
@@ -83,11 +84,12 @@ export default function HelpScreen() {
   });
 
   const handlePhoneCall = () => {
-    Linking.openURL("tel:0911000002");
+    if (!FELLOWSHIP_CONFIG.hotlinePhone) return;
+    Linking.openURL(`tel:${FELLOWSHIP_CONFIG.hotlinePhone}`);
   };
 
   const handleTelegram = async () => {
-    await WebBrowser.openBrowserAsync("https://t.me/natitam1");
+    await WebBrowser.openBrowserAsync(FELLOWSHIP_CONFIG.telegramUrl);
   };
 
   const pickImage = async () => {
@@ -233,50 +235,54 @@ export default function HelpScreen() {
           </View>
 
           <View style={styles.minimalList}>
-            <Pressable
-              onPress={handlePhoneCall}
-              style={styles.minimalItem}
-              android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-            >
-              <View
-                style={[
-                  styles.iconBox,
-                  { backgroundColor: isDark ? "#1a1a1a" : "#f1f5f9" },
-                ]}
-              >
-                <Ionicons name="call-outline" size={20} color="#ff6619" />
-              </View>
-              <View style={styles.itemContent}>
-                <Text
-                  style={[
-                    styles.itemLabel,
-                    { color: isDark ? "#475569" : "#94a3b8" },
-                  ]}
+            {FELLOWSHIP_CONFIG.hotlinePhone ? (
+              <>
+                <Pressable
+                  onPress={handlePhoneCall}
+                  style={styles.minimalItem}
+                  android_ripple={{ color: "rgba(0,0,0,0.05)" }}
                 >
-                  Phone Number
-                </Text>
-                <Text
-                  style={[
-                    styles.itemValue,
-                    { color: isDark ? "#f8fafc" : "#1e293b" },
-                  ]}
-                >
-                  0911000002
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={isDark ? "#334155" : "#cbd5e1"}
-              />
-            </Pressable>
+                  <View
+                    style={[
+                      styles.iconBox,
+                      { backgroundColor: isDark ? "#1a1a1a" : "#f1f5f9" },
+                    ]}
+                  >
+                    <Ionicons name="call-outline" size={20} color="#ff6619" />
+                  </View>
+                  <View style={styles.itemContent}>
+                    <Text
+                      style={[
+                        styles.itemLabel,
+                        { color: isDark ? "#475569" : "#94a3b8" },
+                      ]}
+                    >
+                      Fellowship Hotline
+                    </Text>
+                    <Text
+                      style={[
+                        styles.itemValue,
+                        { color: isDark ? "#f8fafc" : "#1e293b" },
+                      ]}
+                    >
+                      {FELLOWSHIP_CONFIG.hotlinePhone}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={isDark ? "#334155" : "#cbd5e1"}
+                  />
+                </Pressable>
 
-            <View
-              style={[
-                styles.divider,
-                { backgroundColor: isDark ? "#1e293b" : "#f1f5f9" },
-              ]}
-            />
+                <View
+                  style={[
+                    styles.divider,
+                    { backgroundColor: isDark ? "#1e293b" : "#f1f5f9" },
+                  ]}
+                />
+              </>
+            ) : null}
 
             <Pressable
               onPress={handleTelegram}
@@ -310,7 +316,7 @@ export default function HelpScreen() {
                     { color: isDark ? "#f8fafc" : "#1e293b" },
                   ]}
                 >
-                  @natitam1
+                  {FELLOWSHIP_CONFIG.telegramLabel}
                 </Text>
               </View>
               <Ionicons

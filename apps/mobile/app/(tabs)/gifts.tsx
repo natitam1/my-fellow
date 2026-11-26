@@ -22,7 +22,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import * as Linking from "expo-linking";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -47,7 +47,6 @@ const Gifts = () => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const router = useRouter();
-  const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const [reasonModalVisible, setReasonModalVisible] = useState(false);
   const [celebrationVisible, setCelebrationVisible] = useState(false);
@@ -61,14 +60,6 @@ const Gifts = () => {
   const isVerifyingRef = useRef(false);
   const [pendingDonationData, setPendingDonationData] =
     useState<DonationForm | null>(null);
-
-  const isTyping = isAmountFocused;
-
-  useEffect(() => {
-    navigation.setOptions({
-      tabBarStyle: isTyping ? { display: "none" } : undefined,
-    });
-  }, [navigation, isTyping]);
 
   const [infoModal, setInfoModal] = useState<{
     visible: boolean;

@@ -44,7 +44,6 @@ import {
   RefreshControl,
   ScrollView,
   Text,
-  ToastAndroid,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -603,7 +602,12 @@ const Home = () => {
                 overScrollMode="never"
                 contentContainerStyle={{ paddingHorizontal: 20 }}
               >
-                {QUICK_ACTIONS.map((action, index) => (
+                {QUICK_ACTIONS.filter(
+                  (action) =>
+                    action.id !== "challenges" &&
+                    action.id !== "alumni" &&
+                    action.id !== "pcs",
+                ).map((action) => (
                   <QuickAction
                     key={action.id}
                     item={action as any}
@@ -619,18 +623,6 @@ const Home = () => {
                         router.push("/marketplace");
                       } else if (action.id === "4") {
                         router.push("/teams");
-                      } else if (action.id === "challenges") {
-                        if (Platform.OS === "android") {
-                          ToastAndroid.show("Challenges coming soon!", ToastAndroid.SHORT);
-                        }
-                      } else if (action.id === "alumni") {
-                        if (Platform.OS === "android") {
-                          ToastAndroid.show("Alumni coming soon!", ToastAndroid.SHORT);
-                        }
-                      } else if (action.id === "pcs") {
-                        if (Platform.OS === "android") {
-                          ToastAndroid.show("PCS coming soon!", ToastAndroid.SHORT);
-                        }
                       } else if (action.id === "5") {
                         Linking.openURL("https://t.me/AAU_4Killo_Fellowship");
                       } else if (action.id === "6") {

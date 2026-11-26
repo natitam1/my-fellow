@@ -1,17 +1,16 @@
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/context/ThemeContext";
-import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function AboutScreen() {
   const { theme } = useTheme();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const isDark = theme === "dark";
+  const appVersion = Constants.expoConfig?.version || "2.0.0";
 
   return (
     <View
@@ -58,7 +57,7 @@ export default function AboutScreen() {
                 { color: isDark ? "#94a3b8" : "#64748b" },
               ]}
             >
-              VERSION v1.1.0 (STABLE)
+              {`VERSION v${appVersion} (STABLE)`}
             </Text>
           </View>
         </View>

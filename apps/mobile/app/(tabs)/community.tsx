@@ -4,16 +4,18 @@ import { MainTabHeader } from "@/components/MainTabHeader";
 import { ProfileLink } from "@/components/profile/ProfileLink";
 import { PRIMARY } from "@/constants/colors";
 import { useTheme } from "@/context/ThemeContext";
+import api from "@/services/api";
 import { useUserStore } from "@/stores/user.store";
 import {
   CommunityPost,
   useCommunityStore,
 } from "@/stores/community.store";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -21,6 +23,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Linking,
   Platform,
   Pressable,
   RefreshControl,
@@ -34,6 +37,7 @@ import { Route, TabBar, TabView } from "react-native-tab-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+const BLOCKED_USERS_STORAGE_KEY = "my_fellow_blocked_user_ids";
 
 function CommunityFeedSkeleton({
   isDark,
@@ -178,11 +182,96 @@ export default function CommunityScreen() {
   const [refreshingForYou, setRefreshingForYou] = useState<boolean>(false);
   const [refreshingFollowing, setRefreshingFollowing] = useState<boolean>(false);
   const [expandedPostIds, setExpandedPostIds] = useState<Record<string, boolean>>({});
+  const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    AsyncStorage.getItem(BLOCKED_USERS_STORAGE_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setBlockedUserIds(
+            parsed.filter((id): id is string => typeof id === "string"),
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchFeed("foryou", true);
     fetchFeed("following", true);
   }, [fetchFeed]);
+
+  const blockedSet = useMemo(() => new Set(blockedUserIds), [blockedUserIds]);
+
+  const visibleForYouPosts = useMemo(() => {
+    const source = forYouPosts && forYouPosts.length > 0 ? forYouPosts : posts;
+    if (blockedSet.size === 0) return source;
+    return source.filter((p) => !p.authorId || !blockedSet.has(p.authorId));
+  }, [forYouPosts, posts, blockedSet]);
+
+  const visibleFollowingPosts = useMemo(() => {
+    if (blockedSet.size === 0) return followingPosts;
+    return followingPosts.filter((p) => !p.authorId || !blockedSet.has(p.authorId));
+  }, [followingPosts, blockedSet]);
+
+  const handleReportPost = useCallback(async (post: CommunityPost) => {
+    setSheetVisible(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    try {
+      await api.post("/support/tickets", {
+        subject: `Community Post Report: ${post.id}`,
+        category: "moderation",
+        message: `Reported post ${post.id} by ${post.authorName} (${post.authorId || "unknown"}): "${post.content.slice(0, 280)}"`,
+        metadata: {
+          postId: post.id,
+          authorId: post.authorId,
+          authorName: post.authorName,
+        },
+      });
+    } catch {
+      // Fall back gracefully to local confirmation if ticket API is unreachable
+    }
+    Alert.alert(
+      "Report Submitted",
+      "Thank you for notifying fellowship leaders. Our ministry team will review this content within 24 hours.",
+    );
+  }, []);
+
+  const handleBlockUser = useCallback(
+    (authorId: string, authorName: string) => {
+      Alert.alert(
+        "Block User",
+        `Block ${authorName}? You will immediately stop seeing their posts in your community feed.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Block",
+            style: "destructive",
+            onPress: async () => {
+              setSheetVisible(false);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+              setBlockedUserIds((prev) => {
+                if (prev.includes(authorId)) return prev;
+                const next = [...prev, authorId];
+                AsyncStorage.setItem(
+                  BLOCKED_USERS_STORAGE_KEY,
+                  JSON.stringify(next),
+                ).catch(() => {});
+                return next;
+              });
+              Alert.alert(
+                "User Blocked",
+                `${authorName} has been blocked and their posts have been hidden from your feed.`,
+              );
+            },
+          },
+        ],
+      );
+    },
+    [],
+  );
 
   // Three-dots bottom sheet state
   const [activePostForSheet, setActivePostForSheet] = useState<CommunityPost | null>(null);
@@ -255,9 +344,9 @@ export default function CommunityScreen() {
     setExpandedPostIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const textColor = isDark ? "#e7e9ea" : "#0f1419";
-  const mutedColor = isDark ? "#71767b" : "#536471";
-  const borderColor = isDark ? "#2f3336" : "#eff3f4";
+  const textColor = isDark ? "#f4f4f5" : "#0f172a";
+  const mutedColor = isDark ? "#a1a1aa" : "#475569";
+  const borderColor = isDark ? "#27272a" : "#e2e8f0";
   const bg = isDark ? "#000000" : "#ffffff";
   const TWITTER_BLUE = "#1d9bf0";
 
@@ -277,7 +366,7 @@ export default function CommunityScreen() {
     return cleaned;
   };
 
-  // Helper to render styled tweet text with highlighted hashtags, mentions, and links
+  // Helper to render styled tweet text with clickable hashtags, mentions, and links
   const renderFormattedText = (text: string, isExpanded: boolean, postId: string) => {
     const isLong = text.length > 280;
     const displayText = isLong && !isExpanded ? text.slice(0, 280) + "..." : text;
@@ -286,19 +375,84 @@ export default function CommunityScreen() {
     return (
       <Text style={[styles.postText, { color: textColor }]}>
         {words.map((word, idx) => {
-          if (
-            word.startsWith("@") ||
-            word.startsWith("#") ||
-            word.startsWith("http") ||
-            word.startsWith("youtu.be") ||
-            /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/\S*)?$/.test(word)
-          ) {
+          const cleanWord = word.replace(/[.,!?;:)\]]+$/, "");
+          if (cleanWord.startsWith("#") && cleanWord.length > 1) {
             return (
-              <Text key={idx} style={{ color: TWITTER_BLUE }}>
+              <Text
+                key={idx}
+                style={{ color: TWITTER_BLUE }}
+                onPress={() => {
+                  Haptics.selectionAsync().catch(() => {});
+                  router.push({
+                    pathname: "/community/search",
+                    params: { q: cleanWord },
+                  } as any);
+                }}
+              >
                 {word}
               </Text>
             );
           }
+
+          if (cleanWord.startsWith("@") && cleanWord.length > 1) {
+            const handle = cleanWord.slice(1);
+            return (
+              <Text
+                key={idx}
+                style={{ color: TWITTER_BLUE }}
+                onPress={() => {
+                  Haptics.selectionAsync().catch(() => {});
+                  const cachedMembers = Object.values(
+                    useCommunityStore.getState().members,
+                  );
+                  const matched = cachedMembers.find(
+                    (m) =>
+                      m.handle?.replace(/^@/, "").toLowerCase() ===
+                      handle.toLowerCase(),
+                  );
+                  router.push({
+                    pathname: "/community/user/[id]",
+                    params: {
+                      id: matched?.id || handle,
+                      username: handle,
+                      ...(matched?.fullName ? { name: matched.fullName } : {}),
+                    },
+                  } as any);
+                }}
+              >
+                {word}
+              </Text>
+            );
+          }
+
+          if (
+            cleanWord.startsWith("http://") ||
+            cleanWord.startsWith("https://") ||
+            cleanWord.startsWith("youtu.be/") ||
+            /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/\S*)?$/.test(cleanWord)
+          ) {
+            const targetUrl = /^https?:\/\//i.test(cleanWord)
+              ? cleanWord
+              : `https://${cleanWord}`;
+            return (
+              <Text
+                key={idx}
+                style={{ color: TWITTER_BLUE, textDecorationLine: "underline" }}
+                onPress={() => {
+                  Haptics.selectionAsync().catch(() => {});
+                  Linking.openURL(targetUrl).catch(() => {
+                    Alert.alert(
+                      "Unable to Open Link",
+                      "Could not open this URL on your device.",
+                    );
+                  });
+                }}
+              >
+                {word}
+              </Text>
+            );
+          }
+
           return word;
         })}
         {isLong && (
@@ -447,7 +601,7 @@ export default function CommunityScreen() {
             >
               <Ionicons
                 name="ellipsis-vertical"
-                size={16}
+                size={19}
                 color={mutedColor}
               />
             </Pressable>
@@ -495,7 +649,7 @@ export default function CommunityScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Action Row: Reply, Like, Bookmark, Share (matching Twitter/X layout, NO repost, NO grok, NO views) */}
+          {/* Action Row: Reply, Like, Bookmark, Share — accessible 40px+ touch targets & crisp contrast */}
           <View style={styles.tweetActionBar}>
             {/* Reply / Comment */}
             <TouchableOpacity
@@ -504,12 +658,14 @@ export default function CommunityScreen() {
                 Haptics.selectionAsync().catch(() => {});
                 router.push(`/community/${item.id}` as any);
               }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Reply to post"
               style={styles.tweetActionBtn}
             >
               <Ionicons
                 name="chatbubble-outline"
-                size={17}
+                size={20}
                 color={mutedColor}
               />
               {replyCountStr ? (
@@ -525,12 +681,14 @@ export default function CommunityScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => handleToggleLike(item.id)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={item.isLiked ? "Unlike post" : "Like post"}
               style={styles.tweetActionBtn}
             >
               <Ionicons
                 name={item.isLiked ? "heart" : "heart-outline"}
-                size={18}
+                size={21}
                 color={item.isLiked ? "#f91880" : mutedColor}
               />
               {likeCountStr ? (
@@ -539,6 +697,7 @@ export default function CommunityScreen() {
                     styles.tweetActionCount,
                     {
                       color: item.isLiked ? "#f91880" : mutedColor,
+                      fontWeight: item.isLiked ? "600" : "500",
                     },
                   ]}
                 >
@@ -551,13 +710,15 @@ export default function CommunityScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => handleToggleBookmark(item.id)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={item.isBookmarked ? "Remove bookmark" : "Bookmark post"}
               style={styles.tweetActionBtn}
             >
               <Ionicons
                 name={item.isBookmarked ? "bookmark" : "bookmark-outline"}
-                size={18}
-                color={item.isBookmarked ? TWITTER_BLUE : mutedColor}
+                size={20}
+                color={item.isBookmarked ? PRIMARY : mutedColor}
               />
             </TouchableOpacity>
 
@@ -565,12 +726,14 @@ export default function CommunityScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => handleShare(item)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Share post"
               style={styles.tweetActionBtn}
             >
               <Ionicons
                 name={Platform.OS === "ios" ? "share-outline" : "share-social-outline"}
-                size={18}
+                size={20}
                 color={mutedColor}
               />
             </TouchableOpacity>
@@ -580,11 +743,46 @@ export default function CommunityScreen() {
     );
   };
 
+  const renderQuickComposeHeader = () => (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        router.push("/community/compose");
+      }}
+      accessibilityRole="button"
+      accessibilityLabel="Write a new fellowship reflection"
+      style={({ pressed }) => [
+        styles.quickComposeRow,
+        {
+          borderBottomColor: borderColor,
+          backgroundColor: isDark ? "#09090b" : "#ffffff",
+          opacity: pressed ? 0.85 : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.quickComposeAvatar,
+          { backgroundColor: isDark ? "#27272a" : "#fff7ed" },
+        ]}
+      >
+        <Ionicons name="create-outline" size={18} color={PRIMARY} />
+      </View>
+      <Text style={[styles.quickComposePrompt, { color: mutedColor }]} numberOfLines={1}>
+        Share a reflection or prayer request...
+      </Text>
+      <View style={[styles.quickComposePill, { backgroundColor: PRIMARY }]}>
+        <Text style={styles.quickComposePillText}>Post</Text>
+      </View>
+    </Pressable>
+  );
+
   const renderForYouScene = () => {
     return (
       <FlatList
-        data={forYouPosts && forYouPosts.length > 0 ? forYouPosts : posts}
+        data={visibleForYouPosts}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderQuickComposeHeader}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: insets.bottom + 100,
@@ -659,7 +857,7 @@ export default function CommunityScreen() {
   const renderFollowingScene = () => {
     return (
       <FlatList
-        data={followingPosts}
+        data={visibleFollowingPosts}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -815,7 +1013,7 @@ export default function CommunityScreen() {
           <View style={styles.sheetHandle} />
 
           {activePostForSheet && (
-            <View style={styles.sheetHeader}>
+            <View style={[styles.sheetHeader, { borderBottomColor: borderColor }]}>
               <Text numberOfLines={1} style={[styles.sheetPostAuthor, { color: textColor }]}>
                 {activePostForSheet.authorName}’s Post
               </Text>
@@ -944,15 +1142,36 @@ export default function CommunityScreen() {
             </TouchableOpacity>
           )}
 
+          {activePostForSheet &&
+            activePostForSheet.authorId &&
+            activePostForSheet.authorId !== user?.id && (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() =>
+                  handleBlockUser(
+                    activePostForSheet.authorId!,
+                    activePostForSheet.authorName,
+                  )
+                }
+                style={styles.sheetActionItem}
+              >
+                <View style={[styles.sheetActionIcon, { backgroundColor: isDark ? "#27272a" : "#fef2f2" }]}>
+                  <Ionicons name="ban-outline" size={20} color="#ef4444" />
+                </View>
+                <Text style={[styles.sheetActionLabel, { color: "#ef4444" }]}>
+                  Block {activePostForSheet.authorName}
+                </Text>
+              </TouchableOpacity>
+            )}
+
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {
-              setSheetVisible(false);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-              Alert.alert(
-                "Report Submitted",
-                "Thank you for notifying fellowship leaders. Our ministry team will review this shortly."
-              );
+              if (activePostForSheet) {
+                handleReportPost(activePostForSheet);
+              } else {
+                setSheetVisible(false);
+              }
             }}
             style={styles.sheetActionItem}
           >
@@ -1124,9 +1343,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   tweetMoreBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -1155,20 +1374,55 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 12,
+    marginTop: 10,
     maxWidth: 340,
-    paddingRight: 16,
+    paddingRight: 8,
   },
   tweetActionBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingVertical: 2,
-    paddingHorizontal: 2,
+    minHeight: 38,
+    minWidth: 38,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
   },
   tweetActionCount: {
+    fontSize: 13.5,
+    fontWeight: "500",
+  },
+  quickComposeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  quickComposeAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickComposePrompt: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  quickComposePill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    minHeight: 34,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quickComposePillText: {
+    color: "#ffffff",
     fontSize: 13,
-    fontWeight: "400",
+    fontWeight: "700",
   },
   fabBtn: {
     position: "absolute",

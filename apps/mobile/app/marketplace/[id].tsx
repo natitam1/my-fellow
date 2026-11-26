@@ -22,6 +22,7 @@ import React, { useEffect, useState } from "react";
 import {
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -176,6 +177,21 @@ export default function ProductDetailScreen() {
     setCartVisible(true);
   };
 
+  const handleShare = async () => {
+    if (!product) return;
+    try {
+      if (Platform.OS !== "web") {
+        Haptics.selectionAsync().catch(() => {});
+      }
+      await Share.share({
+        title: displayName,
+        message: `Check out ${displayName} (${price.toFixed(2)} ETB) on the 4 Kilo Fellowship Store!\nmy-fellow://marketplace/${id}`,
+      });
+    } catch {
+      // Ignore share dismissal
+    }
+  };
+
   const incrementQuantity = () => setQuantity((q) => q + 1);
   const decrementQuantity = () => setQuantity((q) => Math.max(1, q - 1));
 
@@ -225,14 +241,7 @@ export default function ProductDetailScreen() {
         onEdit={() => router.push(`/marketplace/manage?id=${id}`)}
         cartCount={cartCount}
         onCart={() => setCartVisible(true)}
-        onShare={() => {
-          setInfoModal({
-            visible: true,
-            title: "Share",
-            message: "Share feature coming soon!",
-            type: "info",
-          });
-        }}
+        onShare={handleShare}
       />
 
       <ScrollView

@@ -92,15 +92,62 @@ export default function ManageVideoScreen() {
   };
 
   if (!canPublish) {
+    const handleGoBack = () => {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)");
+      }
+    };
+
     return (
-      <View className={`flex-1 items-center justify-center px-8 ${isDark ? "bg-black" : "bg-slate-50"}`}>
-        <Ionicons name="lock-closed-outline" size={38} color={PRIMARY} />
-        <Text className={`mt-4 text-center text-xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-          Leader access required
-        </Text>
-        <Text className={`mt-2 text-center ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-          Only Leaders and Super Admins can publish fellowship videos.
-        </Text>
+      <View
+        style={{
+          flex: 1,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        }}
+        className={isDark ? "bg-black" : "bg-slate-50"}
+      >
+        <View className="flex-row items-center px-4 py-3">
+          <Pressable
+            onPress={handleGoBack}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            className={`h-10 w-10 items-center justify-center rounded-full ${
+              isDark ? "bg-white/10" : "bg-black/5"
+            }`}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons
+              name={Platform.OS === "ios" ? "chevron-back" : "arrow-back"}
+              size={24}
+              color={isDark ? "#fff" : "#111827"}
+            />
+          </Pressable>
+        </View>
+
+        <View className="flex-1 items-center justify-center px-8" style={{ marginTop: -40 }}>
+          <View
+            className={`mb-4 h-16 w-16 items-center justify-center rounded-full ${
+              isDark ? "bg-white/5" : "bg-orange-50"
+            }`}
+          >
+            <Ionicons name="lock-closed-outline" size={32} color={PRIMARY} />
+          </View>
+          <Text className={`text-center text-xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
+            Leader access required
+          </Text>
+          <Text className={`mt-2 text-center text-sm leading-5 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+            Only Leaders and Super Admins can publish fellowship videos.
+          </Text>
+          <Pressable
+            onPress={handleGoBack}
+            className="mt-6 rounded-full bg-orange-500 px-6 py-3 active:opacity-80"
+          >
+            <Text className="font-bold text-white">Go Back</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }

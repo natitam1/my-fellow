@@ -2,6 +2,7 @@ import { MainTabHeader, Placeholder } from "@/components";
 import { DevotionWriterModal } from "@/components/DevotionWriterModal";
 import { PRIMARY } from "@/constants";
 import { OFFLINE_DEVOTIONS } from "@/constants/offlineDevotions";
+import { useTheme } from "@/context/ThemeContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { devotionsService } from "@/services/devotionsService";
 import { devotionWriterService, WriterRequest } from "@/services/devotionWriterService";
@@ -51,7 +52,7 @@ const formatViews = (views?: number, formatted?: string) => {
   if (count >= 1000) {
     return (count / 1000).toFixed(1).replace(/\.0$/, "") + "k";
   }
-  return count > 0 ? `${count}` : "5.5k";
+  return count > 0 ? String(count) : "0";
 };
 
 const formatDuration = (item: Devotion) => {
@@ -78,6 +79,7 @@ const isNewDevotion = (dateStr?: string) => {
 interface CompactArticleCardProps {
   item: Devotion;
   isSaved: boolean;
+  isDark: boolean;
   width: number;
   imageHeight: number;
   onPress: () => void;
@@ -86,13 +88,16 @@ interface CompactArticleCardProps {
 
 // Compact Video / Devotional Card (Matching user reference UI, memoized)
 const CompactArticleCard = React.memo<CompactArticleCardProps>(
-  ({ item, isSaved, width, imageHeight, onPress, onToggleSave }) => {
+  ({ item, isSaved, isDark, width, imageHeight, onPress, onToggleSave }) => {
     const isNew = isNewDevotion(item.date);
 
     return (
       <View style={[styles.compactCardOuter, { width }]}>
         <Pressable
-          android_ripple={{ color: "rgba(0, 0, 0, 0.05)", foreground: true }}
+          android_ripple={{
+            color: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+            foreground: true,
+          }}
           style={({ pressed }) => [
             styles.compactCardPressable,
             Platform.OS === "ios" && pressed && { opacity: 0.92, transform: [{ scale: 0.985 }] },
@@ -100,7 +105,12 @@ const CompactArticleCard = React.memo<CompactArticleCardProps>(
           onPress={onPress}
         >
           {/* Card Thumbnail Image with Screenshot-accurate Overlays */}
-          <View style={[styles.compactImageWrapper, { height: imageHeight }]}>
+          <View
+            style={[
+              styles.compactImageWrapper,
+              { height: imageHeight, backgroundColor: isDark ? "#27272a" : "#e4e4e7" },
+            ]}
+          >
             {item.image ? (
               <ExpoImage
                 source={{ uri: item.image }}
@@ -110,8 +120,13 @@ const CompactArticleCard = React.memo<CompactArticleCardProps>(
                 transition={200}
               />
             ) : (
-              <View style={styles.compactImagePlaceholder}>
-                <Ionicons name="book-outline" size={32} color="#a1a1aa" />
+              <View
+                style={[
+                  styles.compactImagePlaceholder,
+                  { backgroundColor: isDark ? "#18181b" : "#f4f4f5" },
+                ]}
+              >
+                <Ionicons name="book-outline" size={32} color={isDark ? "#71717a" : "#a1a1aa"} />
               </View>
             )}
 
@@ -139,20 +154,41 @@ const CompactArticleCard = React.memo<CompactArticleCardProps>(
           {/* Article Info Container */}
           <View style={styles.compactBody}>
             {/* Title (2 lines bold, exactly like screenshot) */}
-            <Text style={styles.compactTitle} numberOfLines={2}>
+            <Text
+              style={[
+                styles.compactTitle,
+                { color: isDark ? "#fafafa" : "#18181b" },
+              ]}
+              numberOfLines={2}
+            >
               {item.title}
             </Text>
 
             {/* Single meta row: author · views · bookmark */}
             <View style={styles.compactMetaRow}>
-              <Text style={styles.compactAuthor} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.compactAuthor,
+                  { color: isDark ? "#a1a1aa" : "#71717a" },
+                ]}
+                numberOfLines={1}
+              >
                 {item.author || "4 Kilo Fellowship"}
               </Text>
 
               <View style={styles.compactMetaActions}>
                 <View style={styles.compactViewsRow}>
-                  <Ionicons name="eye-outline" size={14} color="#8a8a93" />
-                  <Text style={styles.compactViewsText}>
+                  <Ionicons
+                    name="eye-outline"
+                    size={14}
+                    color={isDark ? "#a1a1aa" : "#8a8a93"}
+                  />
+                  <Text
+                    style={[
+                      styles.compactViewsText,
+                      { color: isDark ? "#a1a1aa" : "#71717a" },
+                    ]}
+                  >
                     {formatViews(item.views, item.viewsFormatted)}
                   </Text>
                 </View>
@@ -175,7 +211,7 @@ const CompactArticleCard = React.memo<CompactArticleCardProps>(
                   <Ionicons
                     name={isSaved ? "bookmark" : "bookmark-outline"}
                     size={16}
-                    color={isSaved ? PRIMARY : "#a1a1aa"}
+                    color={isSaved ? PRIMARY : isDark ? "#71717a" : "#a1a1aa"}
                   />
                 </Pressable>
               </View>
@@ -192,6 +228,7 @@ interface MinimalDevotionCardProps {
   item: Devotion;
   isSaved: boolean;
   isRead: boolean;
+  isDark: boolean;
   onPress: () => void;
   onAuthorPress?: () => void;
   onToggleSave: () => void;
@@ -200,15 +237,30 @@ interface MinimalDevotionCardProps {
 
 // Elegant editorial article-style card for fellowship devotions (memoized)
 const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
-  ({ item, isSaved, isRead, onPress, onAuthorPress, onToggleSave, onShare }) => {
+  ({ item, isSaved, isRead, isDark, onPress, onAuthorPress, onToggleSave, onShare }) => {
     const actor = resolveDevotionActor(item);
     return (
-      <View style={styles.articleCardOuter}>
+      <View
+        style={[
+          styles.articleCardOuter,
+          {
+            backgroundColor: isDark ? "#18181b" : "#ffffff",
+            borderColor: isDark ? "#27272a" : "#eff3f4",
+          },
+        ]}
+      >
         <Pressable
-          android_ripple={{ color: "rgba(0, 0, 0, 0.04)", foreground: true }}
+          android_ripple={{
+            color: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
+            foreground: true,
+          }}
           style={({ pressed }) => [
             styles.articleCardPressable,
-            Platform.OS === "ios" && pressed && { opacity: 0.96, backgroundColor: "#fafafa" },
+            Platform.OS === "ios" &&
+              pressed && {
+                opacity: 0.96,
+                backgroundColor: isDark ? "#202024" : "#fafafa",
+              },
           ]}
           onPress={onPress}
         >
@@ -226,7 +278,15 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
               }}
               style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}
             >
-              <View style={styles.authorAvatar}>
+              <View
+                style={[
+                  styles.authorAvatar,
+                  {
+                    backgroundColor: isDark ? "#27272a" : "#f4f4f5",
+                    borderColor: isDark ? "#3f3f46" : "#e4e4e7",
+                  },
+                ]}
+              >
                 {actor.avatarUrl ? (
                   <ExpoImage
                     source={{ uri: actor.avatarUrl }}
@@ -234,7 +294,12 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
                     contentFit="cover"
                   />
                 ) : (
-                  <Text style={styles.authorAvatarText}>
+                  <Text
+                    style={[
+                      styles.authorAvatarText,
+                      { color: isDark ? "#fafafa" : "#18181b" },
+                    ]}
+                  >
                     {actor.displayName?.charAt(0)?.toUpperCase() || "F"}
                   </Text>
                 )}
@@ -242,7 +307,13 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
 
               <View style={styles.authorMeta}>
                 <View style={styles.authorNameRow}>
-                  <Text style={styles.authorName} numberOfLines={1}>
+                  <Text
+                    style={[
+                      styles.authorName,
+                      { color: isDark ? "#fafafa" : "#09090b" },
+                    ]}
+                    numberOfLines={1}
+                  >
                     {actor.displayName}
                   </Text>
                   {actor.isVerified && (
@@ -257,8 +328,9 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
                     <View
                       style={[
                         styles.fellowBadge,
+                        { backgroundColor: isDark ? "#27272a" : "#f4f4f5" },
                         actor.type === "team" && {
-                          backgroundColor: "#eff6ff",
+                          backgroundColor: isDark ? "rgba(59, 130, 246, 0.16)" : "#eff6ff",
                           borderColor: "#3b82f6",
                         },
                       ]}
@@ -266,6 +338,7 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
                       <Text
                         style={[
                           styles.fellowBadgeText,
+                          { color: isDark ? "#d4d4d8" : "#52525b" },
                           actor.type === "team" && { color: "#3b82f6" },
                         ]}
                       >
@@ -275,14 +348,40 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
                   )}
                 </View>
                 <View style={styles.metaSubRow}>
-                  <Text style={styles.authorDate}>{formatDate(item.date)}</Text>
-                  <Text style={styles.authorDot}>·</Text>
-                  <Text style={styles.readTimeText}>
+                  <Text
+                    style={[
+                      styles.authorDate,
+                      { color: isDark ? "#a1a1aa" : "#71717a" },
+                    ]}
+                  >
+                    {formatDate(item.date)}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.authorDot,
+                      { color: isDark ? "#71717a" : "#a1a1aa" },
+                    ]}
+                  >
+                    ·
+                  </Text>
+                  <Text
+                    style={[
+                      styles.readTimeText,
+                      { color: isDark ? "#a1a1aa" : "#71717a" },
+                    ]}
+                  >
                     {item.duration || "4 min read"}
                   </Text>
                   {isRead && (
                     <>
-                      <Text style={styles.authorDot}>·</Text>
+                      <Text
+                        style={[
+                          styles.authorDot,
+                          { color: isDark ? "#71717a" : "#a1a1aa" },
+                        ]}
+                      >
+                        ·
+                      </Text>
                       <View style={styles.readBadge}>
                         <Ionicons name="checkmark-done" size={12} color="#10b981" />
                         <Text style={styles.readText}>Read</Text>
@@ -297,7 +396,7 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
             <Pressable
               hitSlop={12}
               android_ripple={{
-                color: "rgba(0,0,0,0.1)",
+                color: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)",
                 borderless: true,
                 radius: 18,
               }}
@@ -310,22 +409,48 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
               <Ionicons
                 name={isSaved ? "bookmark" : "bookmark-outline"}
                 size={20}
-                color={isSaved ? "#000000" : "#a1a1aa"}
+                color={
+                  isSaved
+                    ? isDark
+                      ? "#ffffff"
+                      : "#000000"
+                    : isDark
+                      ? "#71717a"
+                      : "#a1a1aa"
+                }
               />
             </Pressable>
           </View>
 
           {/* Headline & Abstract snippet */}
-          <Text style={styles.articleTitle}>{item.title}</Text>
+          <Text
+            style={[
+              styles.articleTitle,
+              { color: isDark ? "#fafafa" : "#09090b" },
+            ]}
+          >
+            {item.title}
+          </Text>
           {item.caption ? (
-            <Text style={styles.articleCaption} numberOfLines={2}>
+            <Text
+              style={[
+                styles.articleCaption,
+                { color: isDark ? "#a1a1aa" : "#52525b" },
+              ]}
+              numberOfLines={2}
+            >
               {item.caption}
             </Text>
           ) : null}
 
           {/* Clean 16:9 Editorial Cover Image */}
           {item.image ? (
-            <View style={styles.imageWrapper}>
+            <View
+              style={[
+                styles.imageWrapper,
+                { backgroundColor: isDark ? "#27272a" : "#f4f4f5" },
+              ]}
+            >
               <ExpoImage
                 source={{ uri: item.image }}
                 style={styles.cardImage}
@@ -345,24 +470,48 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
           ) : null}
 
           {/* Article Footer: "Read Article" / "Listen & Read" action button + metrics & share */}
-          <View style={styles.articleFooter}>
+          <View
+            style={[
+              styles.articleFooter,
+              { borderTopColor: isDark ? "#27272a" : "#f4f4f5" },
+            ]}
+          >
             {/* Direct Call to Action */}
-            <View style={styles.readButton}>
-              <Text style={styles.readButtonText}>
+            <View
+              style={[
+                styles.readButton,
+                { backgroundColor: isDark ? "#27272a" : "#f4f4f5" },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.readButtonText,
+                  { color: isDark ? "#ffffff" : "#000000" },
+                ]}
+              >
                 {item.type === "voice" ? "Listen & Read" : "Read Article"}
               </Text>
               <Ionicons
                 name={item.type === "voice" ? "play" : "arrow-forward"}
                 size={item.type === "voice" ? 11 : 14}
-                color="#000000"
+                color={isDark ? "#ffffff" : "#000000"}
               />
             </View>
 
             {/* Right side stats: views, likes, and share */}
             <View style={styles.footerRightActions}>
               <View style={styles.footerStat}>
-                <Ionicons name="eye-outline" size={14} color="#a1a1aa" />
-                <Text style={styles.footerStatText}>
+                <Ionicons
+                  name="eye-outline"
+                  size={14}
+                  color={isDark ? "#71717a" : "#a1a1aa"}
+                />
+                <Text
+                  style={[
+                    styles.footerStatText,
+                    { color: isDark ? "#a1a1aa" : "#71717a" },
+                  ]}
+                >
                   {item.views > 999
                     ? `${(item.views / 1000).toFixed(1)}k`
                     : item.views || 0}
@@ -370,14 +519,25 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
               </View>
 
               <View style={styles.footerStat}>
-                <Ionicons name="heart-outline" size={14} color="#a1a1aa" />
-                <Text style={styles.footerStatText}>{item.likes || 0}</Text>
+                <Ionicons
+                  name="heart-outline"
+                  size={14}
+                  color={isDark ? "#71717a" : "#a1a1aa"}
+                />
+                <Text
+                  style={[
+                    styles.footerStatText,
+                    { color: isDark ? "#a1a1aa" : "#71717a" },
+                  ]}
+                >
+                  {item.likes || 0}
+                </Text>
               </View>
 
               <Pressable
                 hitSlop={10}
                 android_ripple={{
-                  color: "rgba(0,0,0,0.1)",
+                  color: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)",
                   borderless: true,
                   radius: 16,
                 }}
@@ -387,7 +547,11 @@ const MinimalDevotionCard = React.memo<MinimalDevotionCardProps>(
                   onShare();
                 }}
               >
-                <Ionicons name="share-outline" size={16} color="#71717a" />
+                <Ionicons
+                  name="share-outline"
+                  size={16}
+                  color={isDark ? "#a1a1aa" : "#71717a"}
+                />
               </Pressable>
             </View>
           </View>
@@ -405,6 +569,8 @@ const TAB_ROUTES = [
 
 export default function Devotions() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const isAdmin = useIsAdmin();
   const { width: viewportWidth } = useWindowDimensions();
   const [tabIndex, setTabIndex] = useState(0);
@@ -545,37 +711,80 @@ export default function Devotions() {
         item={item}
         isSaved={isDevotionSaved(item._id)}
         isRead={isDevotionRead(item._id)}
+        isDark={isDark}
         onPress={() => router.push(`/devotion/${item._id}`)}
         onAuthorPress={() => handleAuthorPress(item)}
         onToggleSave={() => handleToggleSave(item)}
         onShare={() => handleShare(item)}
       />
     ),
-    [isDevotionSaved, isDevotionRead, handleToggleSave, handleShare, handleAuthorPress],
+    [isDevotionSaved, isDevotionRead, isDark, handleToggleSave, handleShare, handleAuthorPress],
   );
 
   const savedEmptyComponent = useMemo(
     () => (
       <View style={styles.emptyContainer}>
-        <View style={styles.emptyIconCircle}>
-          <Ionicons name="bookmark-outline" size={36} color="#a1a1aa" />
+        <View
+          style={[
+            styles.emptyIconCircle,
+            { backgroundColor: isDark ? "#18181b" : "#f4f4f5" },
+          ]}
+        >
+          <Ionicons
+            name="bookmark-outline"
+            size={36}
+            color={isDark ? "#71717a" : "#a1a1aa"}
+          />
         </View>
-        <Text style={styles.emptyTitle}>No saved devotions</Text>
-        <Text style={styles.emptySubtitle}>
+        <Text
+          style={[
+            styles.emptyTitle,
+            { color: isDark ? "#fafafa" : "#09090b" },
+          ]}
+        >
+          No saved devotions
+        </Text>
+        <Text
+          style={[
+            styles.emptySubtitle,
+            { color: isDark ? "#a1a1aa" : "#71717a" },
+          ]}
+        >
           Tap the bookmark icon on any devotion to save it here for later.
         </Text>
       </View>
     ),
-    [],
+    [isDark],
   );
 
   const renderAllEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIconCircle}>
-        <Ionicons name="document-text-outline" size={36} color="#a1a1aa" />
+      <View
+        style={[
+          styles.emptyIconCircle,
+          { backgroundColor: isDark ? "#18181b" : "#f4f4f5" },
+        ]}
+      >
+        <Ionicons
+          name="document-text-outline"
+          size={36}
+          color={isDark ? "#71717a" : "#a1a1aa"}
+        />
       </View>
-      <Text style={styles.emptyTitle}>No devotions found</Text>
-      <Text style={styles.emptySubtitle}>
+      <Text
+        style={[
+          styles.emptyTitle,
+          { color: isDark ? "#fafafa" : "#09090b" },
+        ]}
+      >
+        No devotions found
+      </Text>
+      <Text
+        style={[
+          styles.emptySubtitle,
+          { color: isDark ? "#a1a1aa" : "#71717a" },
+        ]}
+      >
         Check back later for newly published devotions.
       </Text>
     </View>
@@ -590,7 +799,15 @@ export default function Devotions() {
           contentContainerStyle={styles.scrollPageContent}
         >
           {/* Hero Banner skeleton */}
-          <View style={styles.heroOuter}>
+          <View
+            style={[
+              styles.heroOuter,
+              {
+                backgroundColor: isDark ? "#18181b" : "#ffffff",
+                borderColor: isDark ? "#27272a" : "#eff3f4",
+              },
+            ]}
+          >
             <Placeholder width="100%" height={180} borderRadius={0} />
             <View style={styles.heroContent}>
               <Placeholder width="85%" height={20} borderRadius={6} style={{ marginBottom: 8 }} />
@@ -644,9 +861,20 @@ export default function Devotions() {
         >
           {/* 1. LATEST DEVOTION HERO (Top) */}
           {latestDevotion && (
-            <View style={styles.heroOuter}>
+            <View
+              style={[
+                styles.heroOuter,
+                {
+                  backgroundColor: isDark ? "#18181b" : "#ffffff",
+                  borderColor: isDark ? "#27272a" : "#eff3f4",
+                },
+              ]}
+            >
               <Pressable
-                android_ripple={{ color: "rgba(0, 0, 0, 0.04)", foreground: true }}
+                android_ripple={{
+                  color: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
+                  foreground: true,
+                }}
                 style={({ pressed }) => [
                   styles.heroPressable,
                   Platform.OS === "ios" && pressed && { opacity: 0.94 },
@@ -654,7 +882,12 @@ export default function Devotions() {
                 onPress={() => router.push(`/devotion/${latestDevotion._id}`)}
               >
                 {/* Clean Image with only LATEST badge on it */}
-                <View style={styles.heroImageContainer}>
+                <View
+                  style={[
+                    styles.heroImageContainer,
+                    { backgroundColor: isDark ? "#27272a" : "#f4f4f5" },
+                  ]}
+                >
                   {latestDevotion.image ? (
                     <ExpoImage
                       source={{ uri: latestDevotion.image }}
@@ -673,7 +906,13 @@ export default function Devotions() {
 
                 {/* Content below image */}
                 <View style={styles.heroContent}>
-                  <Text style={styles.heroTitle} numberOfLines={2}>
+                  <Text
+                    style={[
+                      styles.heroTitle,
+                      { color: isDark ? "#fafafa" : "#09090b" },
+                    ]}
+                    numberOfLines={2}
+                  >
                     {latestDevotion.title}
                   </Text>
 
@@ -686,7 +925,15 @@ export default function Devotions() {
                       }}
                       style={styles.heroAuthorRow}
                     >
-                      <View style={styles.heroAuthorAvatar}>
+                      <View
+                        style={[
+                          styles.heroAuthorAvatar,
+                          {
+                            backgroundColor: isDark ? "#27272a" : "#f4f4f5",
+                            borderColor: isDark ? "#3f3f46" : "#e4e4e7",
+                          },
+                        ]}
+                      >
                         {latestDevotion.authorAvatar ? (
                           <ExpoImage
                             source={{ uri: latestDevotion.authorAvatar }}
@@ -694,12 +941,23 @@ export default function Devotions() {
                             contentFit="cover"
                           />
                         ) : (
-                          <Text style={styles.heroAuthorAvatarText}>
+                          <Text
+                            style={[
+                              styles.heroAuthorAvatarText,
+                              { color: isDark ? "#e4e4e7" : "#3f3f46" },
+                            ]}
+                          >
                             {latestDevotion.author?.charAt(0)?.toUpperCase() || "F"}
                           </Text>
                         )}
                       </View>
-                      <Text style={styles.heroAuthor} numberOfLines={1}>
+                      <Text
+                        style={[
+                          styles.heroAuthor,
+                          { color: isDark ? "#d4d4d8" : "#3f3f46" },
+                        ]}
+                        numberOfLines={1}
+                      >
                         {latestDevotion.author || "4 Kilo Fellowship"}
                       </Text>
                       <Ionicons
@@ -709,14 +967,35 @@ export default function Devotions() {
                         style={{ marginLeft: 3 }}
                       />
                       <Text style={styles.heroDot}>·</Text>
-                      <Text style={styles.heroDate}>
+                      <Text
+                        style={[
+                          styles.heroDate,
+                          { color: isDark ? "#a1a1aa" : "#71717a" },
+                        ]}
+                      >
                         {formatDate(latestDevotion.date)}
                       </Text>
                     </TouchableOpacity>
 
-                    <View style={styles.heroButton}>
-                      <Text style={styles.heroButtonText}>Read</Text>
-                      <Ionicons name="arrow-forward" size={12} color="#000000" />
+                    <View
+                      style={[
+                        styles.heroButton,
+                        { backgroundColor: isDark ? "#27272a" : "#f4f4f5" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.heroButtonText,
+                          { color: isDark ? "#ffffff" : "#000000" },
+                        ]}
+                      >
+                        Read
+                      </Text>
+                      <Ionicons
+                        name="arrow-forward"
+                        size={12}
+                        color={isDark ? "#ffffff" : "#000000"}
+                      />
                     </View>
                   </View>
                 </View>
@@ -728,7 +1007,14 @@ export default function Devotions() {
           {recentDevotions.length > 0 && (
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Devotions</Text>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: isDark ? "#fafafa" : "#09090b" },
+                  ]}
+                >
+                  Recent Devotions
+                </Text>
               </View>
               <ScrollView
                 horizontal
@@ -743,6 +1029,7 @@ export default function Devotions() {
                     key={`recent-${item._id}`}
                     item={item}
                     isSaved={isDevotionSaved(item._id)}
+                    isDark={isDark}
                     width={cardWidth}
                     imageHeight={cardImageHeight}
                     onPress={() => router.push(`/devotion/${item._id}`)}
@@ -757,7 +1044,14 @@ export default function Devotions() {
           {popularDevotions.length > 0 && (
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Popular Devotions</Text>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: isDark ? "#fafafa" : "#09090b" },
+                  ]}
+                >
+                  Popular Devotions
+                </Text>
               </View>
               <ScrollView
                 horizontal
@@ -771,6 +1065,7 @@ export default function Devotions() {
                     key={`popular-${item._id}`}
                     item={item}
                     isSaved={isDevotionSaved(item._id)}
+                    isDark={isDark}
                     width={cardWidth}
                     imageHeight={cardImageHeight}
                     onPress={() => router.push(`/devotion/${item._id}`)}
@@ -785,7 +1080,14 @@ export default function Devotions() {
           {devotions.length > 0 && (
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>All Devotions</Text>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: isDark ? "#fafafa" : "#09090b" },
+                  ]}
+                >
+                  All Devotions
+                </Text>
               </View>
               {devotions.map((item: Devotion) => (
                 <MinimalDevotionCard
@@ -793,6 +1095,7 @@ export default function Devotions() {
                   item={item}
                   isSaved={isDevotionSaved(item._id)}
                   isRead={isDevotionRead(item._id)}
+                  isDark={isDark}
                   onPress={() => router.push(`/devotion/${item._id}`)}
                   onAuthorPress={() => handleAuthorPress(item)}
                   onToggleSave={() => handleToggleSave(item)}
@@ -807,8 +1110,20 @@ export default function Devotions() {
             <View style={styles.ctaIconCircle}>
               <Ionicons name="create-outline" size={22} color={PRIMARY} />
             </View>
-            <Text style={styles.ctaTitle}>Want to Share Your Faith?</Text>
-            <Text style={styles.ctaSubtitle}>
+            <Text
+              style={[
+                styles.ctaTitle,
+                { color: isDark ? "#fafafa" : "#09090b" },
+              ]}
+            >
+              Want to Share Your Faith?
+            </Text>
+            <Text
+              style={[
+                styles.ctaSubtitle,
+                { color: isDark ? "#a1a1aa" : "#71717a" },
+              ]}
+            >
               Share your devotional insights and encourage the fellowship
               community through writing.
             </Text>
@@ -908,11 +1223,32 @@ export default function Devotions() {
         {route.title}
       </Text>
       {route.key === "saved" && savedDevotions.length > 0 && (
-        <View style={[styles.tabBadge, focused && styles.tabBadgeActive]}>
+        <View
+          style={[
+            styles.tabBadge,
+            {
+              backgroundColor: focused
+                ? isDark
+                  ? "#ffffff"
+                  : "#000000"
+                : isDark
+                  ? "#27272a"
+                  : "#f4f4f5",
+            },
+          ]}
+        >
           <Text
             style={[
               styles.tabBadgeText,
-              focused && styles.tabBadgeTextActive,
+              {
+                color: focused
+                  ? isDark
+                    ? "#000000"
+                    : "#ffffff"
+                  : isDark
+                    ? "#a1a1aa"
+                    : "#71717a",
+              },
             ]}
           >
             {savedDevotions.length}
@@ -923,8 +1259,13 @@ export default function Devotions() {
   );
 
   return (
-    <View style={styles.screenContainer}>
-      <StatusBar style="dark" />
+    <View
+      style={[
+        styles.screenContainer,
+        { backgroundColor: isDark ? "#000000" : "#ffffff" },
+      ]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Main Tab Header with "Devotions" in the center and live Streak badge */}
       <MainTabHeader
@@ -951,12 +1292,23 @@ export default function Devotions() {
         renderTabBar={(tabBarProps) => (
           <TabBar
             {...tabBarProps}
-            indicatorStyle={styles.tabIndicator}
-            style={styles.tabBar}
+            indicatorStyle={[
+              styles.tabIndicator,
+              { backgroundColor: isDark ? "#ffffff" : "#000000" },
+            ]}
+            style={[
+              styles.tabBar,
+              {
+                backgroundColor: isDark ? "#000000" : "#ffffff",
+                borderBottomColor: isDark ? "#27272a" : "#eff3f4",
+              },
+            ]}
             tabStyle={styles.tabItem}
-            activeColor="#000000"
-            inactiveColor="#71717a"
-            pressColor="rgba(0, 0, 0, 0.05)"
+            activeColor={isDark ? "#ffffff" : "#000000"}
+            inactiveColor={isDark ? "#a1a1aa" : "#71717a"}
+            pressColor={
+              isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"
+            }
             scrollEnabled={false}
             options={{
               all: { label: renderTabLabel },

@@ -67,6 +67,7 @@ export default function EditProfileScreen() {
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors, isDirty },
   } = useForm<EditProfileFormValues>({
     resolver: zodResolver(editProfileSchema),
@@ -87,7 +88,7 @@ export default function EditProfileScreen() {
   const hasUnsavedImage = profileImage !== (user?.profileImage || null);
   const hasUnsavedChanges = isDirty || hasUnsavedImage;
 
-  useConfirmUnsavedChanges(hasUnsavedChanges, {
+  const { bypassAndNavigate } = useConfirmUnsavedChanges(hasUnsavedChanges, {
     title: "Discard profile changes?",
     message: "You have unsaved edits to your profile.",
     discardLabel: "Discard",
@@ -116,13 +117,17 @@ export default function EditProfileScreen() {
       });
 
       // Synchronize bio, location, and department with social profile API
+      let socialSyncFailed = false;
       try {
         await api.patch("/v1/me/profile", {
           bio: data.bio,
           location: data.location,
           department: data.department,
         });
-      } catch {}
+      } catch (syncError) {
+        socialSyncFailed = true;
+        console.warn("Partial social profile sync failed:", syncError);
+      }
 
       if (user?.id) {
         useCommunityStore.getState().updateMemberProfile(user.id, {
@@ -133,9 +138,13 @@ export default function EditProfileScreen() {
         });
       }
 
+      reset(data);
+
       setModalConfig({
-        title: "Success",
-        message: "Profile updated.",
+        title: socialSyncFailed ? "Profile Saved (Partial Sync)" : "Success",
+        message: socialSyncFailed
+          ? "Your core profile was updated, but syncing your community bio failed. Please check your connection and try again later."
+          : "Profile updated.",
         type: "success",
       });
       setModalVisible(true);
@@ -488,7 +497,7 @@ export default function EditProfileScreen() {
         onClose={() => {
           setModalVisible(false);
           if (modalConfig.type === "success") {
-            router.back();
+            bypassAndNavigate(() => router.back());
           }
         }}
         isDark={isDark}

@@ -1,10 +1,10 @@
 import { ConfirmModal, InfoModal, ScreenHeader } from "@/components";
 import { PRIMARY } from "@/constants/colors";
+import { FELLOWSHIP_CONFIG } from "@/constants/fellowship";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { JoinRequest, joinRequestService } from "@/services/joinRequestService";
-import { useSettingsStore } from "@/stores/settings.store";
 import { useUserStore } from "@/stores/user.store";
 import {
   Ionicons,
@@ -35,6 +35,7 @@ interface SettingItem {
   id: string;
   icon: string;
   iconFamily?: "ionicons" | "material" | "community";
+  iconTint?: string;
   label: string;
   description?: string;
   type: "navigation" | "toggle" | "action";
@@ -59,17 +60,6 @@ export default function SettingsScreen() {
   const { authState, logout, deleteAccount, getCurrentUser } = useAuth();
   const { user } = useUserStore();
   const isAuthenticated = authState.authenticated === true;
-
-  const {
-    pushNotifications,
-    eventReminders,
-    devotionReminders,
-    soundEnabled,
-    vibrationEnabled,
-    autoPlay,
-    dataSync,
-    setPreference,
-  } = useSettingsStore();
 
   const { isChecking, isDownloading, checkAndApplyUpdate, updateInfo } =
     useOTAUpdates(false);
@@ -223,76 +213,8 @@ export default function SettingsScreen() {
         ],
       },
       {
-        title: "Notifications & Alerts",
+        title: "Storage",
         items: [
-          {
-            id: "pushNotifications",
-            icon: "notifications-outline",
-            label: "Push Notifications",
-            description: "Announcements, reminders, and fellowship news",
-            type: "toggle",
-            value: pushNotifications,
-            onToggle: (v) => setPreference("pushNotifications", v),
-          },
-          {
-            id: "eventReminders",
-            icon: "calendar-outline",
-            label: "Event & Program Alerts",
-            description: "Receive reminders 30m before gatherings start",
-            type: "toggle",
-            value: eventReminders,
-            onToggle: (v) => setPreference("eventReminders", v),
-          },
-          {
-            id: "devotionReminders",
-            icon: "book-outline",
-            label: "Daily Devotion Reminders",
-            description: "Morning prayer and scripture notification",
-            type: "toggle",
-            value: devotionReminders,
-            onToggle: (v) => setPreference("devotionReminders", v),
-          },
-          {
-            id: "sound",
-            icon: "volume-high-outline",
-            label: "Notification Sound",
-            description: "Play audible chime on alerts",
-            type: "toggle",
-            value: soundEnabled,
-            onToggle: (v) => setPreference("soundEnabled", v),
-          },
-          {
-            id: "vibration",
-            icon: "phone-portrait-outline",
-            label: "Vibration",
-            description: "Vibrate on alerts and reminders",
-            type: "toggle",
-            value: vibrationEnabled,
-            onToggle: (v) => setPreference("vibrationEnabled", v),
-          },
-        ],
-      },
-      {
-        title: "Media & Storage",
-        items: [
-          {
-            id: "autoPlay",
-            icon: "play-circle-outline",
-            label: "Auto-play Media",
-            description: "Play audio devotions automatically",
-            type: "toggle",
-            value: autoPlay,
-            onToggle: (v) => setPreference("autoPlay", v),
-          },
-          {
-            id: "dataSync",
-            icon: "sync-outline",
-            label: "Background Sync",
-            description: "Keep devotions and programs available offline",
-            type: "toggle",
-            value: dataSync,
-            onToggle: (v) => setPreference("dataSync", v),
-          },
           {
             id: "clearCache",
             icon: "trash-outline",
@@ -314,7 +236,7 @@ export default function SettingsScreen() {
               ? "Checking for latest fellowship patches..."
               : isDownloading
                 ? "Downloading update in background..."
-                : `Version 2.0.0 (${updateInfo.channel})`,
+                : `Version ${appVersion} (${updateInfo.channel})`,
             type: "action",
             badge: updateInfo.isEnabled ? "OTA Active" : "Store Build",
             onPress: handleManualOtaCheck,
@@ -332,21 +254,26 @@ export default function SettingsScreen() {
             type: "navigation",
             onPress: () => router.push("/help"),
           },
-          {
-            id: "contact",
-            icon: "call-outline",
-            label: "Fellowship Hotline",
-            description: "0911000002",
-            type: "action",
-            onPress: () => Linking.openURL("tel:0911000002"),
-          },
+          ...(FELLOWSHIP_CONFIG.hotlinePhone
+            ? [
+                {
+                  id: "contact",
+                  icon: "call-outline",
+                  label: "Fellowship Hotline",
+                  description: FELLOWSHIP_CONFIG.hotlinePhone,
+                  type: "action" as const,
+                  onPress: () =>
+                    Linking.openURL(`tel:${FELLOWSHIP_CONFIG.hotlinePhone}`),
+                },
+              ]
+            : []),
           {
             id: "telegram",
             icon: "paper-plane-outline",
             label: "Telegram Community",
-            description: "@natitam1 / 4 Kilo Fellowship",
+            description: FELLOWSHIP_CONFIG.telegramLabel,
             type: "action",
-            onPress: () => Linking.openURL("https://t.me/natitam1"),
+            onPress: () => Linking.openURL(FELLOWSHIP_CONFIG.telegramUrl),
           },
           {
             id: "about",
@@ -410,42 +337,37 @@ export default function SettingsScreen() {
     isAuthenticated,
     isDark,
     user?.phoneNumber,
-    pushNotifications,
-    eventReminders,
-    devotionReminders,
-    soundEnabled,
-    vibrationEnabled,
-    autoPlay,
-    dataSync,
     isChecking,
     isDownloading,
     updateInfo,
     router,
   ]);
 
+  const getItemAccent = (id: string, danger?: boolean) => {
+    if (danger) return { color: "#ef4444", bgLight: "#fee2e2", bgDark: "rgba(239, 68, 68, 0.16)" };
+    if (["theme"].includes(id)) return { color: "#8b5cf6", bgLight: "#f5f3ff", bgDark: "rgba(139, 92, 246, 0.16)" };
+    if (["clearCache"].includes(id)) {
+      return { color: "#0ea5e9", bgLight: "#f0f9ff", bgDark: "rgba(14, 165, 233, 0.16)" };
+    }
+    if (["otaUpdates"].includes(id)) {
+      return { color: "#10b981", bgLight: "#ecfdf5", bgDark: "rgba(16, 185, 129, 0.16)" };
+    }
+    if (["privacy", "terms"].includes(id)) {
+      return { color: "#64748b", bgLight: "#f1f5f9", bgDark: "rgba(148, 163, 184, 0.16)" };
+    }
+    return { color: PRIMARY, bgLight: "#fff7ed", bgDark: "rgba(255, 103, 25, 0.16)" };
+  };
+
   const renderItemIcon = (item: SettingItem) => {
-    const iconColor = item.danger
-      ? "#ef4444"
-      : isDark
-        ? "#f4f4f5"
-        : PRIMARY;
-
-    const iconBg = item.danger
-      ? isDark
-        ? "rgba(239, 68, 68, 0.15)"
-        : "#fee2e2"
-      : isDark
-        ? "rgba(255, 103, 25, 0.12)"
-        : "#fff7ed";
-
+    const accent = getItemAccent(item.id, item.danger);
     return (
       <View
         style={[
           styles.iconWrap,
-          { backgroundColor: iconBg },
+          { backgroundColor: isDark ? accent.bgDark : accent.bgLight },
         ]}
       >
-        <Ionicons name={item.icon as any} size={20} color={iconColor} />
+        <Ionicons name={item.icon as any} size={19} color={accent.color} />
       </View>
     );
   };
@@ -564,14 +486,18 @@ export default function SettingsScreen() {
           { paddingBottom: Math.max(bottom + 40, 60) },
         ]}
       >
-        {/* User Card when logged in */}
+        {/* User Card when logged in — tappable to Edit Profile */}
         {isAuthenticated && user ? (
-          <View
-            style={[
+          <Pressable
+            onPress={() => router.push("/edit-profile")}
+            accessibilityRole="button"
+            accessibilityLabel="Edit your profile"
+            style={({ pressed }) => [
               styles.userCard,
               {
                 backgroundColor: isDark ? "#18181b" : "#ffffff",
                 borderColor: isDark ? "#27272a" : "#e2e8f0",
+                opacity: pressed ? 0.9 : 1,
               },
             ]}
           >
@@ -581,6 +507,7 @@ export default function SettingsScreen() {
                   <ExpoImage
                     source={{ uri: user.profileImage }}
                     style={styles.avatarImg}
+                    contentFit="cover"
                   />
                 ) : (
                   <View
@@ -602,6 +529,7 @@ export default function SettingsScreen() {
                     styles.userName,
                     { color: isDark ? "#ffffff" : "#0f172a" },
                   ]}
+                  numberOfLines={1}
                 >
                   {user.fullName || "Fellowship Member"}
                 </Text>
@@ -610,6 +538,7 @@ export default function SettingsScreen() {
                     styles.userPhone,
                     { color: isDark ? "#a1a1aa" : "#64748b" },
                   ]}
+                  numberOfLines={1}
                 >
                   {user.phoneNumber}
                 </Text>
@@ -621,8 +550,14 @@ export default function SettingsScreen() {
                   </View>
                 ) : null}
               </View>
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={isDark ? "#71717a" : "#94a3b8"}
+              />
             </View>
-          </View>
+          </Pressable>
         ) : null}
 
         {/* Setting Sections */}

@@ -1,6 +1,7 @@
 import { PRIMARY } from "@/constants";
 import { AppBottomSheet } from "@/components/AppBottomSheet";
 import { NativeBackButton } from "@/components/ui/NativeBackButton";
+import { useAuth } from "@/context/AuthContext";
 import { useConfirmUnsavedChanges } from "@/hooks/useConfirmUnsavedChanges";
 import { useTheme } from "@/context/ThemeContext";
 import { useCommunityStore } from "@/stores/community.store";
@@ -42,6 +43,7 @@ export default function ComposePostScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const { authState } = useAuth();
   const { user } = useUserStore();
   const createPost = useCommunityStore((s) => s.createPost);
   const postableActors = useCommunityStore((s) => s.postableActors);
@@ -174,6 +176,21 @@ export default function ComposePostScreen() {
   const handlePost = async () => {
     if (!content.trim() && !pickedImageUri) return;
 
+    if (!authState.authenticated) {
+      Alert.alert(
+        "Sign In Required",
+        "Please sign in with your phone number to share a reflection with the fellowship.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Sign In",
+            onPress: () => router.push("/(auth)/sign-in"),
+          },
+        ],
+      );
+      return;
+    }
+
     try {
       setSubmitting(true);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -182,13 +199,18 @@ export default function ComposePostScreen() {
         ? `${content.trim()}\n\n📍 4 Kilo Campus, AAU`
         : content.trim();
 
+      const isNonPersonalActor =
+        Boolean(activeActor) &&
+        activeActor.type !== "user" &&
+        activeActor.id !== "me";
+
       await createPost({
         body: finalContent,
         kind: "post",
         image: pickedImageUri ? { uri: pickedImageUri } : null,
         author: user,
-        authorActorId: activeActor && activeActor.id !== "me" ? activeActor.id : undefined,
-        authorActor: activeActor || undefined,
+        authorActorId: isNonPersonalActor ? activeActor.id : undefined,
+        authorActor: isNonPersonalActor ? activeActor : undefined,
       });
 
       // Mark as posted in ref and state to permanently prevent discard modal
@@ -199,14 +221,24 @@ export default function ComposePostScreen() {
 
       Keyboard.dismiss();
 
+      Toast.show({
+        type: "success",
+        text1: "Reflection posted",
+        text2: "Shared with the 4 Kilo Fellowship community.",
+        position: "top",
+      });
+
       bypassAndNavigate(() => {
         router.back();
       });
     } catch (err: any) {
+      const status = err?.response?.status;
       const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Could not publish post. Please check your connection and try again.";
+        status === 401
+          ? "Your session expired. Please sign in again to post."
+          : err?.response?.data?.message ||
+            err?.message ||
+            "Could not publish post. Please check your connection and try again.";
       Alert.alert("Unable to Post", message);
     } finally {
       setSubmitting(false);
@@ -282,7 +314,8 @@ export default function ComposePostScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
         style={styles.contentWrap}
       >
         <ScrollView
@@ -449,153 +482,80 @@ export default function ComposePostScreen() {
           </Text>
         </Pressable>
 
-        {/* Bottom Toolbar */}
+        {/* Bottom Toolbar — only working tools with clear 44px touch targets */}
         <View style={[styles.bottomToolbar, { borderTopColor: borderColor }]}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.toolbarIconsRow}
-          >
+          <View style={styles.toolbarIconsRow}>
             {/* 1. Gallery */}
             <Pressable
               onPress={pickImageFromGallery}
-              hitSlop={6}
+              hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel="Attach photo from gallery"
               android_ripple={{
-                color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+                color: isDark ? "rgba(255, 103, 25, 0.18)" : "rgba(255, 103, 25, 0.12)",
                 borderless: true,
-                radius: 18,
+                radius: 22,
               }}
-              style={styles.toolIconBtn}
+              style={[
+                styles.toolIconBtn,
+                pickedImageUri && {
+                  backgroundColor: isDark ? "rgba(255, 103, 25, 0.16)" : "#fff7ed",
+                },
+              ]}
             >
-              <Ionicons name="image-outline" size={22} color={mutedColor} />
+              <Ionicons
+                name="image-outline"
+                size={23}
+                color={pickedImageUri ? PRIMARY : textColor}
+              />
             </Pressable>
 
             {/* 2. Camera */}
             <Pressable
               onPress={takePhotoWithCamera}
-              hitSlop={6}
+              hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel="Take photo with camera"
               android_ripple={{
-                color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+                color: isDark ? "rgba(255, 103, 25, 0.18)" : "rgba(255, 103, 25, 0.12)",
                 borderless: true,
-                radius: 18,
+                radius: 22,
               }}
               style={styles.toolIconBtn}
             >
-              <Ionicons name="camera-outline" size={22} color={mutedColor} />
+              <Ionicons name="camera-outline" size={23} color={textColor} />
             </Pressable>
 
-            {/* 3. Audio / Devotion Scripture (Muted / Coming soon) */}
+            {/* 3. Location Pin (Working 4 Kilo Campus tag) */}
             <Pressable
-              onPress={() => showComingSoonToast("Audio devotion")}
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel="Audio notes, coming soon"
-              android_ripple={{
-                color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-                borderless: true,
-                radius: 18,
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setHasLocation((prev) => !prev);
               }}
-              style={styles.toolIconBtn}
-            >
-              <Ionicons name="stats-chart-outline" size={21} color={mutedColor} />
-            </Pressable>
-
-            {/* 4. GIF badge (Muted / Coming soon) */}
-            <Pressable
-              onPress={() => showComingSoonToast("GIF picker")}
-              hitSlop={6}
+              hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel="Attach GIF, coming soon"
+              accessibilityLabel="Toggle 4 Kilo Campus location tag"
               android_ripple={{
-                color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-                borderless: false,
-                radius: 12,
+                color: isDark ? "rgba(255, 103, 25, 0.18)" : "rgba(255, 103, 25, 0.12)",
+                borderless: true,
+                radius: 22,
               }}
               style={[
-                styles.gifBadgeBtn,
-                {
-                  borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "#cbd5e1",
-                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#f1f5f9",
+                styles.toolIconBtn,
+                hasLocation && {
+                  backgroundColor: isDark ? "rgba(255, 103, 25, 0.16)" : "#fff7ed",
                 },
               ]}
             >
-              <Text style={[styles.gifBadgeText, { color: mutedColor }]}>GIF</Text>
-            </Pressable>
-
-            {/* 5. Poll / Questionnaire (Muted / Coming soon) */}
-            <Pressable
-              onPress={() => showComingSoonToast("Polls")}
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel="Create poll, coming soon"
-              android_ripple={{
-                color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-                borderless: true,
-                radius: 18,
-              }}
-              style={styles.toolIconBtn}
-            >
-              <Ionicons name="list-outline" size={22} color={mutedColor} />
-            </Pressable>
-
-            {/* 6. Location Pin (Muted / Coming soon) */}
-            <Pressable
-              onPress={() => showComingSoonToast("Location tag")}
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel="Tag location, coming soon"
-              android_ripple={{
-                color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-                borderless: true,
-                radius: 18,
-              }}
-              style={styles.toolIconBtn}
-            >
               <Ionicons
-                name="location-outline"
-                size={22}
-                color={mutedColor}
+                name={hasLocation ? "location" : "location-outline"}
+                size={23}
+                color={hasLocation ? PRIMARY : textColor}
               />
             </Pressable>
+          </View>
 
-            {/* 7. Bookmark / Tag (Muted / Coming soon) */}
-            <Pressable
-              onPress={() => showComingSoonToast("Topics & tags")}
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel="Add bookmark tag, coming soon"
-              android_ripple={{
-                color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-                borderless: true,
-                radius: 18,
-              }}
-              style={styles.toolIconBtn}
-            >
-              <Ionicons name="bookmark-outline" size={21} color={mutedColor} />
-            </Pressable>
-
-            {/* 8. Plus Chip button (Muted / Coming soon) */}
-            <Pressable
-              onPress={() => showComingSoonToast("More attachments")}
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel="More attachments, coming soon"
-              android_ripple={{
-                color: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-                borderless: true,
-                radius: 18,
-              }}
-              style={styles.toolIconBtn}
-            >
-              <Ionicons name="add-circle-outline" size={22} color={mutedColor} />
-            </Pressable>
-          </ScrollView>
-
-          {/* 9. Circular Character Counter */}
+          {/* Character Counter */}
           <View style={styles.charCounterWrap}>
             <Text
               style={[
@@ -604,7 +564,7 @@ export default function ComposePostScreen() {
                   color:
                     charsLeft < 0
                       ? "#ef4444"
-                      : charsLeft < 20
+                      : charsLeft < 40
                         ? "#f59e0b"
                         : mutedColor,
                 },
@@ -773,16 +733,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   postBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 7,
-    borderRadius: 20,
-    minWidth: 68,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    borderRadius: 22,
+    minWidth: 84,
+    minHeight: 40,
     alignItems: "center",
     justifyContent: "center",
   },
   postBtnText: {
     color: "#ffffff",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
   },
   contentWrap: {
@@ -935,7 +896,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   toolIconBtn: {
-    padding: 6,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
   },
   gifBadgeBtn: {
     paddingHorizontal: 6,
