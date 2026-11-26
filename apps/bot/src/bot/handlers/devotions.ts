@@ -2,6 +2,7 @@ import { BotContext } from "../context";
 import { getAllDevotions, recordDevotionView, likeUnlikeDevotion, } from "../../api/devotions";
 import { editOrSend } from "../message-manager";
 import { buildPaginationKeyboard } from "../keyboards";
+import { escapeHtml } from "../../utils/html";
 import { InlineKeyboard } from "grammy";
 const PAGE_SIZE = 5;
 export async function handleDevotionsList(ctx: BotContext) {
@@ -39,7 +40,7 @@ export async function handleDevotionDetail(ctx: BotContext, devotionId: string) 
         if (!d) {
             return editOrSend(ctx, "Devotion not found.");
         }
-        const text = `Devotion Detail\n\nTitle: ${d.title}\nAuthor: ${d.author}\n\nContent:\n${d.content?.substring(0, 1000) || ""}`;
+        const text = `Devotion Detail\n\nTitle: ${escapeHtml(d.title)}\nAuthor: ${escapeHtml(d.author)}\n\nContent:\n${escapeHtml(d.content?.substring(0, 1000) || "")}`;
         const kb = new InlineKeyboard();
         if (ctx.session.token) {
             kb.text("Like / Unlike", `devotion_like_${d._id}`).row();

@@ -91,6 +91,7 @@ import {
   handleAdminJoinRequestStatus,
 } from "./bot/handlers/admin/index";
 import { mainReplyKeyboard, fellowInfoReplyKeyboard } from "./bot/keyboards";
+import { isAdminRole } from "./utils/roles";
 const bot = new Bot<BotContext>(config.BOT_TOKEN);
 bot.use(
   session({
@@ -106,7 +107,7 @@ bot.command("menu", (ctx) => {
   return handleEventsList(ctx);
 });
 bot.command("help", (ctx) =>
-  handleFellowInfo(ctx, mainReplyKeyboard(ctx.session.user?.role === "admin"))
+  handleFellowInfo(ctx, mainReplyKeyboard(isAdminRole(ctx.session.user?.role)))
 );
 bot.command("give", handlePayments);
 bot.command("events", (ctx) => {
@@ -133,7 +134,7 @@ bot.command("logout", handleLogout);
 bot.on("message:contact", handleContact);
 bot.hears("Back to Main Menu", async (ctx) => {
   return ctx.reply("Main Menu:", {
-    reply_markup: mainReplyKeyboard(ctx.session.user?.role === "admin"),
+    reply_markup: mainReplyKeyboard(isAdminRole(ctx.session.user?.role)),
   });
 });
 bot.hears("Programs", (ctx) => {
@@ -176,7 +177,10 @@ bot.on("callback_query:data", async (ctx) => {
     }
     if (data === "back_to_main") {
       s.currentPage = 1;
-      return handleFellowInfo(ctx, mainReplyKeyboard());
+      return handleFellowInfo(
+        ctx,
+        mainReplyKeyboard(isAdminRole(ctx.session.user?.role)),
+      );
     }
     if (data === "fi_features") {
       return handleFellowFeatures(ctx);
@@ -340,7 +344,7 @@ bot.on("message:text", async (ctx) => {
   const text = ctx.message.text;
   const s = ctx.session;
 
-  if (text.startsWith("/adm_") && s.user?.role === "admin" && s.token) {
+  if (text.startsWith("/adm_") && isAdminRole(s.user?.role) && s.token) {
     const parts = text.substring(1).split("_");
     if (parts.length >= 4 && parts[2] === "del") {
       const entity = parts[1];
@@ -356,7 +360,7 @@ bot.on("message:text", async (ctx) => {
       const entity = parts[1];
       const id = parts.slice(3).join("_");
       if (entity === "orders")
-        return handleAdminOrderStatus(ctx, id, "approved");
+        return handleAdminOrderStatus(ctx, id, "CONFIRMED");
       if (entity === "joinreqs")
         return handleAdminJoinRequestStatus(ctx, id, "approved");
     }
@@ -364,7 +368,7 @@ bot.on("message:text", async (ctx) => {
       const entity = parts[1];
       const id = parts.slice(3).join("_");
       if (entity === "orders")
-        return handleAdminOrderStatus(ctx, id, "rejected");
+        return handleAdminOrderStatus(ctx, id, "CANCELLED");
       if (entity === "joinreqs")
         return handleAdminJoinRequestStatus(ctx, id, "rejected");
     }
@@ -415,26 +419,36 @@ bot.on("message:text", async (ctx) => {
 });
 bot.on("message:photo", async (ctx) => {
   const s = ctx.session as any;
-  const photo = ctx.message.photo;
-  const bestPhoto = photo[photo.length - 1];
-  const file = await ctx.api.getFile(bestPhoto.file_id);
+  try {
+    const photo = ctx.message.photo;
+    const bestPhoto = photo[photo.length - 1];
+    const file = await ctx.api.getFile(bestPhoto.file_id);
 
-  if (file.file_path) {
-    const fileUrl = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`;
-    const response = await axios.get(fileUrl, {
-      responseType: "arraybuffer",
-    });
-    const buffer = Buffer.from(response.data);
+    if (file.file_path) {
+      const fileUrl = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`;
+      const response = await axios.get<ArrayBuffer>(fileUrl, {
+        responseType: "arraybuffer",
+        timeout: 15000,
+      });
+      const buffer = Buffer.from(response.data);
 
-    if (s.__awaitingPhoto) {
-      return finalizeRegistration(ctx, buffer);
+      if (s.__awaitingPhoto) {
+        return finalizeRegistration(ctx, buffer);
+      }
+
+      if (isAdminFormActive(ctx)) {
+        const text = ctx.message.caption || "";
+        const handled = await handleAdminFormInput(ctx, text, buffer);
+        if (handled) return;
+      }
     }
-
-    if (isAdminFormActive(ctx)) {
-      const text = ctx.message.caption || "";
-      const handled = await handleAdminFormInput(ctx, text, buffer);
-      if (handled) return;
-    }
+  } catch (err: unknown) {
+    const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+    console.error(
+      `Failed to download Telegram photo${status ? ` (HTTP ${status})` : ""}`,
+    );
+    await ctx.reply("Failed to process the photo. Please try again.");
+    return;
   }
 
   await ctx.reply("Please use the menu buttons at the bottom to continue.");
@@ -444,8 +458,9 @@ bot.catch((err) => {
 });
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
+let healthServer: http.Server | null = null;
 if (PORT) {
-  const healthServer = http.createServer((req, res) => {
+  healthServer = http.createServer((req, res) => {
     if (req.url === "/health" || req.url === "/") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok", service: "my-fellow-bot" }));
@@ -464,7 +479,15 @@ const stopBot = async (signal: string) => {
   try {
     await bot.stop();
   } catch (err) {
-    console.error("Error stopping bot:", err);
+    console.error(
+      "Error stopping bot:",
+      err instanceof Error ? err.message : "Unknown error",
+    );
+  }
+  if (healthServer) {
+    await new Promise<void>((resolve) => {
+      healthServer!.close(() => resolve());
+    });
   }
   process.exit(0);
 };
@@ -473,6 +496,15 @@ process.once("SIGINT", () => stopBot("SIGINT"));
 process.once("SIGTERM", () => stopBot("SIGTERM"));
 
 console.log("My Fellow Bot is updated. Starting in hybrid mode...");
-bot.api.deleteWebhook({ drop_pending_updates: true }).then(() => {
-  bot.start();
-});
+bot.api
+  .deleteWebhook({ drop_pending_updates: true })
+  .then(() => {
+    bot.start();
+  })
+  .catch((err: unknown) => {
+    console.error(
+      "Failed to delete webhook or start bot:",
+      err instanceof Error ? err.message : "Unknown error",
+    );
+    process.exit(1);
+  });

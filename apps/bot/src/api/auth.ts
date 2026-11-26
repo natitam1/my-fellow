@@ -17,13 +17,16 @@ export async function registerUser(body: {
     yearOfStudy?: string;
     telegramUserName?: string | null;
     profileImage?: any;
-    password?: string;
+    password: string;
 }) {
+    if (!body.password || body.password.length < 6) {
+        throw new Error("A password of at least 6 characters is required.");
+    }
     const formData = new FormData();
     formData.append("fullName", body.fullName);
     formData.append("phoneNumber", body.phoneNumber);
-    formData.append("password", body.password || "telegram-bot-user");
-    formData.append("confirmPassword", body.password || "telegram-bot-user");
+    formData.append("password", body.password);
+    formData.append("confirmPassword", body.password);
     if (body.team)
         formData.append("team", body.team);
     if (body.department)

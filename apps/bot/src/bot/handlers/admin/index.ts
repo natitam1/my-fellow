@@ -2,6 +2,7 @@ import { BotContext } from "../../context";
 import { adminInlineMenu } from "../../keyboards";
 import { editOrSend } from "../../message-manager";
 import { getAdminStats, getAdminUsers } from "../../../api/admin";
+import { isAdminRole } from "../../../utils/roles";
 import { handleAdminEventFormStep as _eventForm } from "./events";
 import { handleAdminDevotionFormStep as _devotionForm } from "./devotions";
 import { handleAdminLeaderFormStep as _leaderForm } from "./leaders";
@@ -60,7 +61,7 @@ export {
 } from "./join-requests";
 
 export async function handleAdminMenu(ctx: BotContext) {
-  if (ctx.session.user?.role !== "admin") {
+  if (!isAdminRole(ctx.session.user?.role)) {
     return ctx.reply("You do not have permission to access the admin menu.");
   }
   ctx.session.adminForm = undefined;

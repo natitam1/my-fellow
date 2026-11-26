@@ -4,6 +4,7 @@ import { InlineKeyboard } from "grammy";
 import { getMyJoinRequests } from "../../api/teams";
 import { getMyOrders } from "../../api/marketplace";
 import { getMyGivings } from "../../api/payments";
+import { escapeHtml } from "../../utils/html";
 export async function handleMyGivings(ctx: BotContext) {
   try {
     const result = await getMyGivings(ctx.session.token!);
@@ -14,7 +15,7 @@ export async function handleMyGivings(ctx: BotContext) {
       return editOrSend(ctx, "No contributions records found.");
     let text = "My Givings History\n\n";
     for (const g of givings) {
-      text += `Amount: ${g.amount} ETB\nReason: ${g.reason}\nStatus: ${g.status}\nDate: ${new Date(g.createdAt).toLocaleDateString()}\n---\n`;
+      text += `Amount: ${escapeHtml(g.amount)} ETB\nReason: ${escapeHtml(g.reason)}\nStatus: ${escapeHtml(g.status)}\nDate: ${escapeHtml(new Date(g.createdAt).toLocaleDateString())}\n---\n`;
     }
     const backTarget =
       ctx.session.currentSection === "payments" ? "pay_menu" : "profile_menu";
@@ -31,9 +32,9 @@ export async function handleMyProfile(ctx: BotContext) {
   const user = ctx.session.user!;
   const text = `My Profile
 
-Full Name: ${user.fullName}
-Phone: ${user.phoneNumber}
-Role: ${user.role}
+Full Name: ${escapeHtml(user.fullName)}
+Phone: ${escapeHtml(user.phoneNumber)}
+Role: ${escapeHtml(user.role)}
 
 View Profile - Detail account info
 Edit Profile - Update your personal details
@@ -65,7 +66,7 @@ export async function handleJoinRequests(ctx: BotContext) {
       return editOrSend(ctx, "No team join requests submitted.");
     let text = "My Join Requests\n\n";
     for (const req of requests) {
-      text += `Team: ${req.teamId}\nStatus: ${req.status}\nDate: ${new Date(req.createdAt).toLocaleDateString()}\n---\n`;
+      text += `Team: ${escapeHtml(req.teamId)}\nStatus: ${escapeHtml(req.status)}\nDate: ${escapeHtml(new Date(req.createdAt).toLocaleDateString())}\n---\n`;
     }
     const backTarget =
       ctx.session.currentSection === "profile"
@@ -86,7 +87,7 @@ export async function handleMyOrders(ctx: BotContext) {
     if (!orders.length) return editOrSend(ctx, "No marketplace orders found.");
     let text = "My Orders\n\n";
     for (const order of orders) {
-      text += `Order ID: ${order.id}\nStatus: ${order.status}\nTotal: ${order.totalAmount} ETB\nDate: ${new Date(order.createdAt).toLocaleDateString()}\n---\n`;
+      text += `Order ID: ${escapeHtml(order.id || order._id)}\nStatus: ${escapeHtml(order.status)}\nTotal: ${escapeHtml(order.totalAmount)} ETB\nDate: ${escapeHtml(new Date(order.createdAt).toLocaleDateString())}\n---\n`;
     }
     const backTarget =
       ctx.session.currentSection === "profile"

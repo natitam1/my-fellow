@@ -8,22 +8,32 @@ import {
   YEARS,
 } from "../keyboards";
 import { lookupByPhone, signIn, registerUser } from "../../api/auth";
+import { config } from "../../config";
+import { escapeHtml } from "../../utils/html";
+import { isAdminRole } from "../../utils/roles";
 import { InlineKeyboard, InputFile } from "grammy";
 import path from "path";
 async function sendFellowInfoPhoto(ctx: BotContext) {
   const imagePath = path.join(__dirname, "../../../src/assets/felow.jpg");
   const photo = new InputFile(imagePath);
+  const contactLines = config.SUPPORT_CONTACTS.map(
+    (c) => `• ${escapeHtml(c)}`,
+  ).join("\n");
+  const supportLines: string[] = [];
+  if (config.SUPPORT_PHONE) {
+    supportLines.push(`<b>Support Phone:</b> ${escapeHtml(config.SUPPORT_PHONE)}`);
+  }
+  if (config.SUPPORT_TELEGRAM) {
+    supportLines.push(`<b>Support Telegram:</b> ${escapeHtml(config.SUPPORT_TELEGRAM)}`);
+  }
   const caption =
     `AAU 4-Killo Evangelical Christian Students' Fellowship (ECSF) official telegram bot.\n\n` +
     `It is a centralized platform designed to connect members with fellowship activities, announcements, devotionals, and community updates—all in one place.\n\n` +
-    `<b>Contact:</b>\n` +
-    `• @Jesus_died_for_me\n` +
-    `• @fellowship_leader\n\n` +
-    `<b>Developer:</b> 0911000002\n` +
-    `<b>Telegram:</b> @natitam1`;
+    (contactLines ? `<b>Contact:</b>\n${contactLines}` : "") +
+    (supportLines.length ? `\n\n${supportLines.join("\n")}` : "");
   const kb = new InlineKeyboard().url(
     "Official Channel",
-    "https://t.me/AAU_4Killo_Fellowship",
+    config.OFFICIAL_CHANNEL_URL,
   );
   const msg = await ctx.replyWithPhoto(photo, {
     caption,
@@ -57,6 +67,15 @@ export async function handleStart(ctx: BotContext) {
 export async function handleContact(ctx: BotContext) {
   const contact = ctx.message?.contact;
   if (!contact || !contact.phone_number) return;
+  if (!ctx.from?.id || contact.user_id !== ctx.from.id) {
+    await ctx.reply(
+      "Please share your own phone number using the button below.",
+      {
+        reply_markup: sharePhoneKeyboard(),
+      },
+    );
+    return;
+  }
   const phone = normalizePhoneNumber(contact.phone_number);
   try {
     const { user } = await lookupByPhone(phone);
@@ -84,6 +103,7 @@ export async function handlePasswordSubmitted(
   ctx: BotContext,
   password: string,
 ) {
+  await ctx.deleteMessage().catch(() => {});
   const phone = ctx.session.onboardingData?.phoneNumber;
   if (!phone) {
     ctx.session.state = "WAIT_PHONE";
@@ -97,7 +117,7 @@ export async function handlePasswordSubmitted(
     delete ctx.session.onboardingData;
     delete (ctx.session as any).__pendingPassword;
     await ctx.reply(`Logged in successfully. Welcome back ${user.fullName}.`, {
-      reply_markup: mainReplyKeyboard(user.role === "admin"),
+      reply_markup: mainReplyKeyboard(isAdminRole(user.role)),
     });
     await sendFellowInfoPhoto(ctx);
   } catch (err: any) {
@@ -156,6 +176,7 @@ export async function handlePasswordCollected(
   ctx: BotContext,
   password: string,
 ) {
+  await ctx.deleteMessage().catch(() => {});
   if (password.length < 6) {
     return ctx.reply("Password must be at least 6 characters long.");
   }
@@ -175,7 +196,7 @@ export async function handlePasswordCollected(
 }
 export async function finalizeRegistration(ctx: BotContext, photoFile?: any) {
   const data = ctx.session.onboardingData;
-  if (!data || !data.phoneNumber || !data.fullName) {
+  if (!data || !data.phoneNumber || !data.fullName || !data.password) {
     ctx.session.state = "WAIT_PHONE";
     return ctx.reply("Session expired. Please start again with /start.");
   }
@@ -202,7 +223,7 @@ export async function finalizeRegistration(ctx: BotContext, photoFile?: any) {
     delete ctx.session.onboardingData;
     delete (ctx.session as any).__awaitingPhoto;
     await ctx.reply(`Registration complete. Welcome ${user.fullName}!`, {
-      reply_markup: mainReplyKeyboard(user.role === "admin"),
+      reply_markup: mainReplyKeyboard(isAdminRole(user.role)),
     });
     await sendFellowInfoPhoto(ctx);
   } catch (err: any) {

@@ -1,6 +1,7 @@
 import { BotContext } from "../../context";
 import { editOrSend } from "../../message-manager";
 import { getOrders, updateOrderStatus } from "../../../api/admin";
+import { escapeHtml } from "../../../utils/html";
 
 export async function handleAdminOrdersList(ctx: BotContext) {
   if (!ctx.session.token) return;
@@ -11,11 +12,15 @@ export async function handleAdminOrdersList(ctx: BotContext) {
     let text = `<b>Orders</b>\n\n`;
     if (Array.isArray(orders)) {
       orders.forEach((o: any, i: number) => {
-        const user = o.userId?.fullName || o.user?.fullName || "Unknown";
-        text += `${i + 1}. <b>${user}</b> — ${o.status}\n`;
-        if (o.status === "pending") {
-          text += `   /adm_orders_approve_${o._id}\n`;
-          text += `   /adm_orders_reject_${o._id}\n`;
+        const orderId = o.id || o._id;
+        const user = escapeHtml(
+          o.userId?.fullName || o.user?.fullName || "Unknown",
+        );
+        const status = escapeHtml(o.status);
+        text += `${i + 1}. <b>${user}</b> — ${status}\n`;
+        if (o.status === "PENDING") {
+          text += `   /adm_orders_approve_${orderId}\n`;
+          text += `   /adm_orders_reject_${orderId}\n`;
         }
       });
     }

@@ -1,6 +1,7 @@
 import { BotContext } from "../../context";
 import { editOrSend } from "../../message-manager";
 import { getJoinRequests, updateJoinRequestStatus } from "../../../api/admin";
+import { escapeHtml } from "../../../utils/html";
 
 export async function handleAdminJoinRequestsList(ctx: BotContext) {
   if (!ctx.session.token) return;
@@ -11,12 +12,16 @@ export async function handleAdminJoinRequestsList(ctx: BotContext) {
     let text = `<b>Join Requests</b>\n\n`;
     if (Array.isArray(requests)) {
       requests.forEach((r: any, i: number) => {
-        const user = r.userId?.fullName || r.user?.fullName || "Unknown";
-        const team = r.teamId?.name || r.team?.name || "Unknown";
-        text += `${i + 1}. <b>${user}</b> → ${team} (${r.status})\n`;
+        const reqId = r.id || r._id;
+        const user = escapeHtml(
+          r.userId?.fullName || r.user?.fullName || "Unknown",
+        );
+        const team = escapeHtml(r.teamId?.name || r.team?.name || "Unknown");
+        const status = escapeHtml(r.status);
+        text += `${i + 1}. <b>${user}</b> → ${team} (${status})\n`;
         if (r.status === "pending") {
-          text += `   /adm_joinreqs_approve_${r._id}\n`;
-          text += `   /adm_joinreqs_reject_${r._id}\n`;
+          text += `   /adm_joinreqs_approve_${reqId}\n`;
+          text += `   /adm_joinreqs_reject_${reqId}\n`;
         }
       });
     }

@@ -1,6 +1,8 @@
 import { BotContext } from "../context";
 import { editOrSend } from "../message-manager";
 import { fellowInfoReplyKeyboard, buildPaginationKeyboard } from "../keyboards";
+import { config } from "../../config";
+import { escapeHtml } from "../../utils/html";
 import { InlineKeyboard, InputFile } from "grammy";
 import path from "path";
 export async function handleFellowInfo(ctx: BotContext, replyMarkup?: any) {
@@ -8,17 +10,24 @@ export async function handleFellowInfo(ctx: BotContext, replyMarkup?: any) {
   ctx.session.currentSection = "fellow_info";
   const imagePath = path.join(__dirname, "../../../src/assets/felow.jpg");
   const photo = new InputFile(imagePath);
+  const contactLines = config.SUPPORT_CONTACTS.map(
+    (c) => `• ${escapeHtml(c)}`,
+  ).join("\n");
+  const supportLines: string[] = [];
+  if (config.SUPPORT_PHONE) {
+    supportLines.push(`<b>Support Phone:</b> ${escapeHtml(config.SUPPORT_PHONE)}`);
+  }
+  if (config.SUPPORT_TELEGRAM) {
+    supportLines.push(`<b>Support Telegram:</b> ${escapeHtml(config.SUPPORT_TELEGRAM)}`);
+  }
   const text =
     `AAU 4-Killo Evangelical Christian Students' Fellowship (ECSF) official telegram bot.\n\n` +
     `It is a centralized platform designed to connect members with fellowship activities, announcements, devotionals, and community updates—all in one place.\n\n` +
-    `<b>Contact:</b>\n` +
-    `• @Jesus_died_for_me\n` +
-    `• @fellowship_leader\n\n` +
-    `<b>Developer:</b> 0911000002\n` +
-    `<b>Telegram:</b> @natitam1`;
+    (contactLines ? `<b>Contact:</b>\n${contactLines}` : "") +
+    (supportLines.length ? `\n\n${supportLines.join("\n")}` : "");
   const kb = new InlineKeyboard().url(
     "Official Channel",
-    "https://t.me/AAU_4Killo_Fellowship",
+    config.OFFICIAL_CHANNEL_URL,
   );
   const isCallback = ctx.callbackQuery !== undefined;
   try {
