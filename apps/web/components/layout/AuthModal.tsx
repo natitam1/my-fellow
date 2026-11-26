@@ -188,12 +188,13 @@ export function AuthModal({
             {step === "phone" ? (
               <form onSubmit={handleSendOtp} className="space-y-4 pt-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">
+                  <label htmlFor="auth-modal-otp-phone" className="text-xs font-medium text-foreground">
                     Phone Number
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
+                      id="auth-modal-otp-phone"
                       type="tel"
                       placeholder="0911223344 or +251 9..."
                       value={phoneNumber}
@@ -202,6 +203,7 @@ export function AuthModal({
                       disabled={loading}
                       autoFocus
                       required
+                      aria-label="Ethiopian Phone Number"
                     />
                   </div>
                   <p className="text-[11px] text-muted-foreground">
@@ -230,12 +232,13 @@ export function AuthModal({
             ) : (
               <form onSubmit={handleVerifyOtp} className="space-y-4 pt-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">
+                  <label htmlFor="auth-modal-otp-code" className="text-xs font-medium text-foreground">
                     6-Digit Verification Code
                   </label>
                   <div className="relative">
                     <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
+                      id="auth-modal-otp-code"
                       type="text"
                       placeholder="123456"
                       value={otpCode}
@@ -245,6 +248,7 @@ export function AuthModal({
                       disabled={loading}
                       autoFocus
                       required
+                      aria-label="6-Digit Verification Code"
                     />
                   </div>
                 </div>
@@ -283,12 +287,13 @@ export function AuthModal({
         {mode === "password" && (
           <form onSubmit={handlePasswordLogin} className="space-y-3 pt-2">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">
+              <label htmlFor="auth-modal-password-phone" className="text-xs font-medium text-foreground">
                 Phone Number
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
+                  id="auth-modal-password-phone"
                   type="tel"
                   placeholder="0911223344"
                   value={phoneNumber}
@@ -297,19 +302,21 @@ export function AuthModal({
                   disabled={loading}
                   autoFocus
                   required
+                  aria-label="Phone Number for Password Login"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-foreground">
+                <label htmlFor="auth-modal-password" className="text-xs font-medium text-foreground">
                   Password
                 </label>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
+                  id="auth-modal-password"
                   type="password"
                   placeholder="••••••••"
                   value={password}
@@ -317,6 +324,7 @@ export function AuthModal({
                   className="pl-9 h-11 border-border focus-visible:ring-primary"
                   disabled={loading}
                   required
+                  aria-label="Account Password"
                 />
               </div>
             </div>

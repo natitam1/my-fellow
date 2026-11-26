@@ -23,18 +23,26 @@ export function OtpInput({
   className,
 }: OtpInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const hasFocusedRef = useRef(false);
 
   // Split string into array of length
   const digits = Array.from({ length }, (_, i) => value[i] || "");
 
   useEffect(() => {
-    // Focus first empty box on mount if not disabled
-    if (!disabled) {
-      const firstEmptyIndex = digits.findIndex((d) => !d);
+    // Focus first empty box on initial mount if not disabled
+    if (!disabled && !hasFocusedRef.current) {
+      hasFocusedRef.current = true;
+      let firstEmptyIndex = -1;
+      for (let i = 0; i < length; i++) {
+        if (!value[i]) {
+          firstEmptyIndex = i;
+          break;
+        }
+      }
       const targetIndex = firstEmptyIndex === -1 ? length - 1 : firstEmptyIndex;
       inputRefs.current[targetIndex]?.focus();
     }
-  }, []);
+  }, [disabled, length, value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const rawVal = e.target.value;

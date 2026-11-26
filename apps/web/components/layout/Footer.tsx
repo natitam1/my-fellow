@@ -15,12 +15,19 @@ import {
   Heart,
 } from "lucide-react";
 import { siteConfig } from "@/config/siteConfig";
+import { isAppShellRoute } from "./Navbar";
 
 export function Footer() {
   const pathname = usePathname();
 
-  // If in admin dashboard, public footer should not display
-  if (pathname.startsWith("/admin")) {
+  // Yield on admin, auth, and Twitter/Instagram AppShell companion routes
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signin") ||
+    pathname.startsWith("/onboarding") ||
+    isAppShellRoute(pathname)
+  ) {
     return null;
   }
 
@@ -121,7 +128,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/giving"
+                  href="/givings"
                   className="text-muted-foreground transition-colors hover:text-primary"
                 >
                   Digital Giving
