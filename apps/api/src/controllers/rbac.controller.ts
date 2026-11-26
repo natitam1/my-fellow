@@ -1,5 +1,6 @@
 import { Response } from "express";
 import mongoose from "mongoose";
+import { revokeUserSessions } from "../auth.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
 import { RoleGrantModel, TeamMembershipModel } from "../models/rbac.model.js";
 import { UserModel } from "../models/user.model.js";
@@ -38,13 +39,16 @@ export class RbacController {
     if (targetId === req.user.sub) {
       return res.status(403).json({ success: false, message: "Self-promotion is not allowed" });
     }
+    const targetRole = normalizeRole(target.role);
     if (
       actorRole !== "super_admin" &&
-      (rank[requestedRole] >= rank[actorRole] || requestedRole === "super_admin")
+      (rank[targetRole] >= rank[actorRole] ||
+        rank[requestedRole] >= rank[actorRole] ||
+        requestedRole === "super_admin")
     ) {
-      return res.status(403).json({ success: false, message: "Cannot assign an equal or higher role" });
+      return res.status(403).json({ success: false, message: "Cannot modify or assign an equal or higher role" });
     }
-    if (normalizeRole(target.role) === "super_admin" && requestedRole !== "super_admin") {
+    if (targetRole === "super_admin" && requestedRole !== "super_admin") {
       const count = await UserModel.countDocuments({ role: { $in: ["super_admin", "admin"] } });
       if (count <= 1) return res.status(409).json({ success: false, message: "Cannot remove the last Super Admin" });
     }
@@ -54,6 +58,7 @@ export class RbacController {
       { $set: { role: requestedRole }, $inc: { authVersion: 1 } },
       { new: true, select: "_id role authVersion" },
     );
+    await revokeUserSessions(targetId);
     await writeAuditLog({
       req,
       actorId: req.user.sub,
@@ -83,6 +88,7 @@ export class RbacController {
       { upsert: true, new: true, runValidators: true },
     );
     await UserModel.updateOne({ _id: target._id }, { $inc: { authVersion: 1 } });
+    await revokeUserSessions(targetId);
     await writeAuditLog({
       req,
       actorId: req.user.sub,
@@ -103,6 +109,7 @@ export class RbacController {
     }
     await RoleGrantModel.deleteOne({ userId: targetId, permission });
     await UserModel.updateOne({ _id: targetId }, { $inc: { authVersion: 1 } });
+    await revokeUserSessions(targetId);
     await writeAuditLog({
       req,
       actorId: req.user.sub,
@@ -125,18 +132,41 @@ export class RbacController {
   }
 
   static async assignTeamRole(req: AuthRequest, res: Response) {
-    const { userId, teamId } = req.params;
-    const role = req.body?.role;
-    if (!req.user || !mongoose.isValidObjectId(userId) || !mongoose.isValidObjectId(teamId) ||
-      !["team_leader", "coordinator"].includes(role)) {
+    const userId = String(req.params.userId);
+    const teamId = String(req.params.teamId);
+    const role: unknown = req.body?.role;
+    if (
+      !req.user ||
+      !mongoose.isValidObjectId(userId) ||
+      !mongoose.isValidObjectId(teamId) ||
+      (role !== "team_leader" && role !== "coordinator")
+    ) {
       return res.status(400).json({ success: false, message: "Valid userId, teamId and team role are required" });
     }
+    const target = await UserModel.findById(userId).select("_id role authVersion");
+    if (!target) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const actorRole = normalizeRole(req.user.role);
+    const targetRole = normalizeRole(target.role);
+    if (
+      actorRole !== "super_admin" &&
+      (rank[targetRole] >= rank[actorRole] || rank[role] >= rank[actorRole])
+    ) {
+      return res.status(403).json({ success: false, message: "Cannot modify or assign an equal or higher role" });
+    }
+
     const membership = await TeamMembershipModel.findOneAndUpdate(
       { userId, teamId },
       { $set: { role, assignedBy: req.user.sub } },
       { upsert: true, new: true, runValidators: true },
     );
-    await UserModel.updateOne({ _id: userId }, { $set: { role }, $inc: { authVersion: 1 } });
+    const userUpdate: Record<string, unknown> = { $inc: { authVersion: 1 } };
+    if (rank[role] > rank[targetRole]) {
+      userUpdate.$set = { role };
+    }
+    await UserModel.updateOne({ _id: userId }, userUpdate);
+    await revokeUserSessions(userId);
     await writeAuditLog({
       req,
       actorId: req.user.sub,

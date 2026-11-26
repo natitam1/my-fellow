@@ -1,10 +1,23 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { AuthController } from "../controllers/auth.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
+import { optionalAuth } from "../platform/auth.js";
 import { uploadSingle } from "../middleware/upload.middleware.js";
 import { handleMulterError } from "../middleware/multerError.middleware.js";
 
 const router = Router();
+
+const phoneLookupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many phone lookup attempts. Please try again later.",
+  },
+});
 
 router.post(
   "/signup",
@@ -13,7 +26,12 @@ router.post(
   AuthController.register,
 );
 router.post("/signin", AuthController.login);
-router.post("/lookup-by-phone", AuthController.lookupByPhone);
+router.post(
+  "/lookup-by-phone",
+  phoneLookupLimiter,
+  optionalAuth,
+  AuthController.lookupByPhone,
+);
 router.get("/me", requireAuth, AuthController.getMe);
 router.patch(
   "/profile",

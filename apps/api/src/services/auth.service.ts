@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { auth } from "../auth.js";
+import { auth, revokeUserSessions } from "../auth.js";
 import { OtpRecordModel } from "../models/otp.model.js";
 import TeamModel from "../models/team.model.js";
 import { IUserDocument, UserModel } from "../models/user.model.js";
@@ -7,6 +7,7 @@ import { SignInDTO, SignUpDTO } from "../types/types.js";
 import { signJwt } from "../utils/jwt.js";
 import { ProfileModel, ActorModel } from "../models/social.models.js";
 import { resolveUniqueUsername } from "../utils/username.js";
+import { escapeRegex } from "../utils/regex.js";
 import { uploadImageToCloudinary } from "./cloudinary.service.js";
 import { OtpService, toLocalPhone } from "./otp.service.js";
 import { ensureFollowOfficialActor } from "../modules/actors/actor.service.js";
@@ -97,7 +98,7 @@ export class AuthService {
         }
       } else {
         const teamObj = await TeamModel.findOne({
-          name: { $regex: new RegExp("^" + dto.team + "$", "i") },
+          name: { $regex: new RegExp("^" + escapeRegex(dto.team) + "$", "i") },
           isDeleted: false,
         });
         if (teamObj) {
@@ -261,6 +262,28 @@ export class AuthService {
       throw new Error("User not found");
     }
 
+    const allowedUpdates: Partial<{
+      fullName: string;
+      team: string | null;
+      department: string | null;
+      yearOfStudy: string | null;
+      telegramUserName: string | null;
+      profileImage: string | null;
+    }> = {};
+
+    if (typeof updates?.fullName === "string") {
+      allowedUpdates.fullName = updates.fullName;
+    }
+    if (updates?.department !== undefined) {
+      allowedUpdates.department = updates.department;
+    }
+    if (updates?.yearOfStudy !== undefined) {
+      allowedUpdates.yearOfStudy = updates.yearOfStudy;
+    }
+    if (updates?.telegramUserName !== undefined) {
+      allowedUpdates.telegramUserName = updates.telegramUserName;
+    }
+
     if (file && file.buffer) {
       try {
         const uploadResult = await uploadImageToCloudinary(file.buffer, {
@@ -275,35 +298,56 @@ export class AuthService {
             gravity: "face",
           },
         });
-        updates.profileImage = uploadResult.secure_url;
+        allowedUpdates.profileImage = uploadResult.secure_url;
       } catch (error: any) {
         throw new Error(
           `Failed to upload image: ${error.message || "Image upload error"}`,
         );
       }
-    } else if (updates.image && !updates.profileImage) {
-      updates.profileImage = updates.image;
+    } else if (updates?.profileImage !== undefined) {
+      allowedUpdates.profileImage = updates.profileImage;
+    } else if (updates?.image !== undefined) {
+      allowedUpdates.profileImage = updates.image;
     }
 
     // Resolve team name string → ObjectId if a string name was sent
-    if (updates.team && typeof updates.team === "string" && !mongoose.isValidObjectId(updates.team)) {
-      const teamDoc = await TeamModel.findOne({
-        name: { $regex: new RegExp(`^${updates.team.trim()}`, "i") },
-        isDeleted: { $ne: true },
-      }).select("_id");
-      if (teamDoc) {
-        updates.team = teamDoc._id;
-      } else {
-        // Team name not found in DB — store as null rather than crashing
-        updates.team = null;
+    if (updates?.team !== undefined) {
+      if (updates.team === null || updates.team === "") {
+        allowedUpdates.team = null;
+      } else if (
+        typeof updates.team === "string" &&
+        !mongoose.isValidObjectId(updates.team)
+      ) {
+        const teamDoc = await TeamModel.findOne({
+          name: {
+            $regex: new RegExp(`^${escapeRegex(updates.team.trim())}`, "i"),
+          },
+          isDeleted: { $ne: true },
+        }).select("_id");
+        allowedUpdates.team = teamDoc ? String(teamDoc._id) : null;
+      } else if (mongoose.isValidObjectId(updates.team)) {
+        allowedUpdates.team = String(updates.team);
       }
     }
 
-    Object.keys(updates).forEach((key) => {
-      if (updates[key] !== undefined) {
-        (user as any)[key] = updates[key];
-      }
-    });
+    if (allowedUpdates.fullName !== undefined) {
+      user.fullName = allowedUpdates.fullName;
+    }
+    if (allowedUpdates.team !== undefined) {
+      user.team = allowedUpdates.team;
+    }
+    if (allowedUpdates.department !== undefined) {
+      user.department = allowedUpdates.department;
+    }
+    if (allowedUpdates.yearOfStudy !== undefined) {
+      user.yearOfStudy = allowedUpdates.yearOfStudy;
+    }
+    if (allowedUpdates.telegramUserName !== undefined) {
+      user.telegramUserName = allowedUpdates.telegramUserName;
+    }
+    if (allowedUpdates.profileImage !== undefined) {
+      user.profileImage = allowedUpdates.profileImage;
+    }
 
     await user.save();
     await user.populate("team", "name");
@@ -398,6 +442,7 @@ export class AuthService {
     user.password = dto.newPassword;
     user.authVersion = (user.authVersion || 0) + 1;
     await user.save();
+    await revokeUserSessions(String(user._id));
 
     return {
       success: true,
@@ -749,6 +794,7 @@ export class AuthService {
     user.password = newPassword;
     user.authVersion = (user.authVersion || 0) + 1;
     await user.save();
+    await revokeUserSessions(String(user._id));
 
     // Consume the token so it cannot be used again
     await OtpRecordModel.deleteOne({ _id: record._id });
@@ -788,6 +834,7 @@ export class AuthService {
     const phone = user.phoneNumber;
 
     await Promise.allSettled([
+      revokeUserSessions(String(user._id)),
       ProfileModel.deleteMany({ userId: String(user._id) }),
       OtpRecordModel.deleteMany({ phoneNumber: phone }),
     ]);

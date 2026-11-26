@@ -10,6 +10,7 @@ export type Role = (typeof ROLES)[number];
 export type LegacyRole = Role | "admin" | "user";
 
 export const PERMISSIONS = [
+  "users.manage",
   "members.view",
   "members.edit",
   "members.contact.view",
@@ -46,6 +47,7 @@ const ALL_PERMISSIONS = new Set<Permission>(PERMISSIONS);
 const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   super_admin: ALL_PERMISSIONS,
   leader: new Set([
+    "users.manage",
     "members.view",
     "members.edit",
     "teams.view",
@@ -93,7 +95,6 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "finance.give",
   ]),
   member: new Set([
-    "members.view",
     "teams.view",
     "events.view",
     "prayer_requests.submit",

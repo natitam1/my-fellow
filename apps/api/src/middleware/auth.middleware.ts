@@ -91,9 +91,11 @@ export const requireAuth = async (
     if (!dbUser) {
       return res.status(401).json({ success: false, message: "User not found" });
     }
-    const tokenVer = payload.authVersion ?? 0;
     const dbVer = dbUser.authVersion ?? 0;
-    if (payload.authVersion !== undefined && tokenVer !== dbVer) {
+    if (
+      (dbVer > 0 && (payload.authVersion ?? -1) !== dbVer) ||
+      (payload.authVersion !== undefined && payload.authVersion !== dbVer)
+    ) {
       return res.status(401).json({ success: false, message: "Session expired" });
     }
     const grants = await RoleGrantModel.find({
@@ -183,6 +185,20 @@ export const ROLE_RANK: Record<Role, number> = {
 export function requireMinimumRole(role: Role) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || ROLE_RANK[normalizeRole(req.user.role)] < ROLE_RANK[role]) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    return next();
+  };
+}
+
+export function requireRole(allowedRoles: Array<Role | "admin" | "user">) {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    const userRole = normalizeRole(req.user.role);
+    const normalizedAllowed = allowedRoles.map((r) => normalizeRole(r));
+    if (!normalizedAllowed.includes(userRole)) {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
     return next();

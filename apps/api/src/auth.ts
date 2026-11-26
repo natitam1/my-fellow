@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { bearer, phoneNumber } from "better-auth/plugins";
@@ -8,12 +9,56 @@ import { mongoDb } from "./utils/mongodb.js";
 
 const isProd = process.env.NODE_ENV === "production";
 
+const authSecret =
+  process.env.BETTER_AUTH_SECRET ||
+  process.env.JWT_SECRET ||
+  (isProd ? undefined : "dev-only-secret-key-for-local-development");
+
+if (isProd && !authSecret) {
+  throw new Error(
+    "BETTER_AUTH_SECRET or JWT_SECRET must be configured in production.",
+  );
+}
+
+const envAllowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const trustedOrigins = Array.from(
+  new Set([
+    "my-fellow://",
+    "my-fellow://*",
+    "exp://",
+    "exp://*",
+    "http://localhost:3000",
+    "http://localhost:8081",
+    "http://localhost:19000",
+    "http://localhost:19006",
+    "https://my-fellow-api.onrender.com",
+    "https://*.primeuat.app",
+    "https://fellow.primeuat.app",
+    ...(process.env.API_URL ? [process.env.API_URL.trim()] : []),
+    ...envAllowedOrigins,
+  ]),
+);
+
+export async function revokeUserSessions(userId: string): Promise<void> {
+  try {
+    const idStr = String(userId);
+    const filters: Array<Record<string, unknown>> = [{ userId: idStr }];
+    if (mongoose.isValidObjectId(idStr)) {
+      filters.push({ userId: new mongoose.Types.ObjectId(idStr) });
+    }
+    await mongoDb.collection("sessions").deleteMany({ $or: filters });
+  } catch (err) {
+    console.warn("[Auth] Failed to revoke Better-Auth sessions:", err);
+  }
+}
+
 export const auth = betterAuth({
   database: mongodbAdapter(mongoDb),
-  secret:
-    process.env.BETTER_AUTH_SECRET ||
-    process.env.JWT_SECRET ||
-    "962fA3!sdfxQmR2$7Lsfd@KzYHcW8eP8sdsfsdfN4bT6SdJ_BETTER_AUTH",
+  secret: authSecret,
   baseURL:
     process.env.API_URL ||
     (isProd
@@ -57,6 +102,7 @@ export const auth = betterAuth({
         type: "string",
         required: false,
         defaultValue: "member",
+        input: false,
       },
       profileImage: {
         type: "string",
@@ -69,19 +115,7 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 24 hours
   },
-  trustedOrigins: [
-    "my-fellow://",
-    "my-fellow://*",
-    "exp://",
-    "exp://*",
-    "http://localhost:3000",
-    "http://localhost:8081",
-    "http://localhost:19000",
-    "http://localhost:19006",
-    "https://*.onrender.com",
-    "https://*.primeuat.app",
-    "https://fellow.primeuat.app",
-  ],
+  trustedOrigins,
   rateLimit: {
     enabled: true,
     window: 60,

@@ -23,7 +23,6 @@ export const changePasswordSchema = z.object({
 
 export const updateProfileSchema = z.object({
   fullName: z.string().min(2).optional(),
-  phoneNumber: z.string().min(8).max(15).optional(),
   team: z.string().optional().nullable(),
   department: z.string().optional().nullable(),
   yearOfStudy: z.string().optional().nullable(),

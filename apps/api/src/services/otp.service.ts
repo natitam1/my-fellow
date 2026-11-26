@@ -91,8 +91,14 @@ export class OtpService {
    * SHA-256 hash for secure storage of OTP codes and tokens
    */
   static hashSecret(secret: string): string {
+    const hmacKey =
+      process.env.JWT_SECRET ||
+      (process.env.NODE_ENV === "production" ? undefined : "otp-secret-key");
+    if (!hmacKey) {
+      throw new Error("JWT_SECRET must be configured in production for OTP hashing.");
+    }
     return crypto
-      .createHmac("sha256", process.env.JWT_SECRET || "otp-secret-key")
+      .createHmac("sha256", hmacKey)
       .update(secret)
       .digest("hex");
   }
@@ -123,7 +129,7 @@ export class OtpService {
         console.error(
           `[GeezSMS] CRITICAL: GEEZ_API_KEY is not configured in production. Cannot send SMS to ${maskedPhone(localPhone)}.`,
         );
-        return;
+        throw new Error("SMS gateway is not configured in production.");
       }
       console.info(
         `[OTP] SMS gateway not configured (dev mode). Code for ${maskedPhone(localPhone)}: ${code}`,
@@ -148,55 +154,44 @@ export class OtpService {
     else if (cleaned.startsWith("0")) cleaned = "251" + cleaned.slice(1);
     else if (!cleaned.startsWith("251")) cleaned = "251" + cleaned;
 
-    // Prefer POST to keep token out of query strings / access logs
-    try {
-      const payload: Record<string, string> = {
-        token: apiKey,
-        phone: cleaned,
-        msg: message,
-      };
-      if (SHORTCODE_ID) {
-        payload.shortcode_id = SHORTCODE_ID;
-      }
+    // POST only so the API token never appears in URL query strings or access logs
+    const payload: Record<string, string> = {
+      token: apiKey,
+      phone: cleaned,
+      msg: message,
+    };
+    if (SHORTCODE_ID) {
+      payload.shortcode_id = SHORTCODE_ID;
+    }
 
+    try {
       const res = await fetch("https://api.geezsms.com/api/v1/sms/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: unknown } | null;
+      if (res.ok && (!data || !data.error)) {
         console.info(`[GeezSMS] Successfully sent OTP to ${maskedPhone(localPhone)}`);
         return;
       }
-      console.warn(`[GeezSMS] POST returned ${res.status}, falling back to GET`);
-    } catch (err) {
-      console.warn("[GeezSMS] POST request failed, falling back to GET:", err);
-    }
 
-    // Fallback: GET request
-    try {
-      const params = new URLSearchParams({
-        token: apiKey,
-        phone: cleaned,
-        msg: message,
-      });
-      if (SHORTCODE_ID) {
-        params.append("shortcode_id", SHORTCODE_ID);
+      const errMsg = `[GeezSMS] SMS delivery failed with HTTP ${res.status}`;
+      console.error(`${errMsg} for ${maskedPhone(localPhone)}`);
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("Failed to deliver verification SMS. Please try again shortly.");
       }
-
-      const res = await fetch(`https://api.geezsms.com/api/v1/sms/send?${params.toString()}`);
-      const data = (await res.json().catch(() => null)) as any;
-      if (res.ok && (!data || !data.error)) {
-        console.info(`[GeezSMS] Successfully sent OTP to ${maskedPhone(localPhone)} via fallback`);
-        return;
-      }
-      console.error(`[GeezSMS] GET fallback returned HTTP ${res.status}`);
     } catch (err: any) {
       console.error(
-        `GeezSMS network error for ${maskedPhone(localPhone)}:`,
+        `[GeezSMS] SMS delivery error for ${maskedPhone(localPhone)}:`,
         err?.message || err,
       );
+      if (process.env.NODE_ENV === "production") {
+        throw err instanceof Error
+          ? err
+          : new Error("Failed to deliver verification SMS. Please try again shortly.");
+      }
     }
   }
 }

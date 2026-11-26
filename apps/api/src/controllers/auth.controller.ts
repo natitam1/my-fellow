@@ -15,6 +15,18 @@ import {
   verifyPhoneAuthOtpSchema,
 } from "../validators/auth.validator.js";
 
+function maskFullName(fullName: string): string {
+  if (!fullName) return "";
+  const parts = fullName.trim().split(/\s+/);
+  return parts
+    .map((part) => {
+      if (part.length <= 1) return part;
+      if (part.length === 2) return `${part[0]}*`;
+      return `${part[0]}${"*".repeat(part.length - 2)}${part[part.length - 1]}`;
+    })
+    .join(" ");
+}
+
 export class AuthController {
   static async register(req: AuthRequest, res: Response) {
     try {
@@ -111,6 +123,17 @@ export class AuthController {
       }
 
       const { user } = await AuthService.lookupByPhoneNumber(phoneNumber);
+
+      // Unauthenticated callers receive sanitized response to prevent enumeration
+      if (!req.user) {
+        return res.status(200).json({
+          success: true,
+          user: {
+            fullName: maskFullName(user.fullName),
+          },
+        });
+      }
+
       return res.status(200).json({ success: true, user });
     } catch (err: any) {
       return res.status(401).json({
