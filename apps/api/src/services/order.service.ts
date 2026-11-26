@@ -52,6 +52,14 @@ export class OrderService {
           },
         });
       }
+      const order = await Order.create({
+        userId,
+        totalAmount,
+        items: orderItemsData,
+        status: "PENDING",
+      });
+
+      return order.toJSON();
     } catch (err) {
       // Roll back any previously decremented stock on error
       for (const dec of decremented) {
@@ -61,15 +69,6 @@ export class OrderService {
       }
       throw err;
     }
-
-    const order = await Order.create({
-      userId,
-      totalAmount,
-      items: orderItemsData,
-      status: "PENDING",
-    });
-
-    return order.toJSON();
   }
 
   static async getByUser(userId: string, page: number = 1, limit: number = 20) {
@@ -176,6 +175,35 @@ export class OrderService {
   }
 
   static async updateStatus(id: string, status: OrderStatus) {
+    if (status === "CANCELLED") {
+      const cancelled = await Order.findOneAndUpdate(
+        { _id: id, status: { $ne: "CANCELLED" } },
+        { $set: { status: "CANCELLED" } },
+        { new: true, runValidators: true },
+      ).lean();
+
+      if (cancelled) {
+        for (const item of cancelled.items || []) {
+          await Product.findByIdAndUpdate(item.productId, {
+            $inc: { stock: item.quantity },
+          }).catch((err) => {
+            console.error("[OrderService] Failed to restore stock on cancel:", err);
+          });
+        }
+        return {
+          ...cancelled,
+          id: (cancelled as any)._id.toString(),
+        };
+      }
+
+      const existing = await Order.findById(id).lean();
+      if (!existing) return null;
+      return {
+        ...existing,
+        id: (existing as any)._id.toString(),
+      };
+    }
+
     const order = await Order.findByIdAndUpdate(
       id,
       { status },

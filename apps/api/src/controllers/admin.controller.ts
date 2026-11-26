@@ -15,14 +15,15 @@ import {
 } from "../models/social.models.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
 import { roleHasPermission } from "../rbac/permissions.js";
+import { escapeRegex } from "../utils/regex.js";
 
 export class AdminController {
   static async getAllUsers(req: AuthRequest, res: Response) {
     try {
-      const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
-      const limit = Math.max(
-        1,
-        parseInt((req.query.limit as string) || "20", 10),
+      const page = Math.max(1, parseInt((req.query.page as string) || "1", 10) || 1);
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt((req.query.limit as string) || "20", 10) || 20),
       );
       const search = typeof req.query.search === "string" ? req.query.search.trim() : undefined;
       const team = typeof req.query.team === "string" ? req.query.team.trim() : undefined;
@@ -34,7 +35,7 @@ export class AdminController {
       const query: any = {};
 
       if (search) {
-        const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const escaped = escapeRegex(search);
         query.$or = [
           { fullName: { $regex: escaped, $options: "i" } },
           { phoneNumber: { $regex: escaped, $options: "i" } },
@@ -108,10 +109,10 @@ export class AdminController {
 
   static async getAllRegistrations(req: Request, res: Response) {
     try {
-      const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
-      const limit = Math.max(
-        1,
-        parseInt((req.query.limit as string) || "10", 10),
+      const page = Math.max(1, parseInt((req.query.page as string) || "1", 10) || 1);
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt((req.query.limit as string) || "10", 10) || 10),
       );
       const eventId = typeof req.query.eventId === "string" ? req.query.eventId.trim() : undefined;
       const userId = typeof req.query.userId === "string" ? req.query.userId.trim() : undefined;
@@ -151,12 +152,13 @@ export class AdminController {
       pipeline.push({ $unwind: "$event" });
 
       if (search) {
+        const escaped = escapeRegex(search);
         pipeline.push({
           $match: {
             $or: [
-              { "user.fullName": { $regex: search, $options: "i" } },
-              { "user.phoneNumber": { $regex: search, $options: "i" } },
-              { "event.title": { $regex: search, $options: "i" } },
+              { "user.fullName": { $regex: escaped, $options: "i" } },
+              { "user.phoneNumber": { $regex: escaped, $options: "i" } },
+              { "event.title": { $regex: escaped, $options: "i" } },
             ],
           },
         });
@@ -224,10 +226,10 @@ export class AdminController {
 
   static async getAllTransactions(req: Request, res: Response) {
     try {
-      const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
-      const limit = Math.max(
-        1,
-        parseInt((req.query.limit as string) || "10", 10),
+      const page = Math.max(1, parseInt((req.query.page as string) || "1", 10) || 1);
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt((req.query.limit as string) || "10", 10) || 10),
       );
       const search = typeof req.query.search === "string" ? req.query.search.trim() : undefined;
       const status = typeof req.query.status === "string" ? req.query.status.trim() : undefined;
@@ -257,14 +259,15 @@ export class AdminController {
 
       // Search Stage
       if (search) {
+        const escaped = escapeRegex(search);
         pipeline.push({
           $match: {
             $or: [
-              { "user.fullName": { $regex: search, $options: "i" } },
-              { "user.phoneNumber": { $regex: search, $options: "i" } },
-              { tx_ref: { $regex: search, $options: "i" } },
-              { sessionId: { $regex: search, $options: "i" } },
-              { reason: { $regex: search, $options: "i" } },
+              { "user.fullName": { $regex: escaped, $options: "i" } },
+              { "user.phoneNumber": { $regex: escaped, $options: "i" } },
+              { tx_ref: { $regex: escaped, $options: "i" } },
+              { sessionId: { $regex: escaped, $options: "i" } },
+              { reason: { $regex: escaped, $options: "i" } },
             ],
           },
         });
@@ -333,7 +336,7 @@ export class AdminController {
       ]);
 
       const [totalRevenueResult] = await TransactionModel.aggregate([
-        { $match: { status: { $in: ["success", "completed", "pending"] } } },
+        { $match: { status: { $in: ["success", "completed"] } } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]);
 
@@ -360,10 +363,10 @@ export class AdminController {
 
   static async getSupportTickets(req: AuthRequest, res: Response) {
     try {
-      const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
-      const limit = Math.max(
-        1,
-        parseInt((req.query.limit as string) || "20", 10),
+      const page = Math.max(1, parseInt((req.query.page as string) || "1", 10) || 1);
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt((req.query.limit as string) || "20", 10) || 20),
       );
       const status = typeof req.query.status === "string" ? req.query.status.trim() : undefined;
       const skip = (page - 1) * limit;
@@ -501,18 +504,27 @@ export class AdminController {
         });
       }
 
-      if ((targetType === "team" || targetType === "role") && !targetId) {
-        return res.status(400).json({
-          success: false,
-          message: `targetId is required when targetType is '${targetType}'`,
-        });
+      if (targetType === "team" || targetType === "role") {
+        if (typeof targetId !== "string" || !targetId.trim()) {
+          return res.status(400).json({
+            success: false,
+            message: `targetId must be a non-empty string when targetType is '${targetType}'`,
+          });
+        }
+        if (targetType === "team" && !mongoose.isValidObjectId(targetId.trim())) {
+          return res.status(400).json({
+            success: false,
+            message: "targetId must be a valid team ID",
+          });
+        }
       }
 
+      const safeTargetId = typeof targetId === "string" ? targetId.trim() : null;
       const userQuery: any = {};
-      if (targetType === "team") {
-        userQuery.team = targetId;
-      } else if (targetType === "role") {
-        userQuery.role = targetId;
+      if (targetType === "team" && safeTargetId) {
+        userQuery.team = safeTargetId;
+      } else if (targetType === "role" && safeTargetId) {
+        userQuery.role = safeTargetId;
       }
 
       const targetUsers = await UserModel.find(userQuery).select("_id").lean();
@@ -612,10 +624,10 @@ export class AdminController {
 
   static async getNotifications(req: AuthRequest, res: Response) {
     try {
-      const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
-      const limit = Math.max(
-        1,
-        parseInt((req.query.limit as string) || "20", 10),
+      const page = Math.max(1, parseInt((req.query.page as string) || "1", 10) || 1);
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt((req.query.limit as string) || "20", 10) || 20),
       );
       const skip = (page - 1) * limit;
 

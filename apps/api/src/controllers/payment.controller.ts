@@ -1,27 +1,86 @@
 import { Response } from "express";
 import crypto from "crypto";
+import mongoose from "mongoose";
 import { JamiSignatureError } from "jami-sdk";
 import { jamiService } from "../services/jami.service.js";
 import {
   TransactionModel,
   TransactionStatus,
 } from "../models/transaction.model.js";
+import { Order } from "../models/order.model.js";
 import { paymentInitSchema } from "../validators/payment.validator.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
 import { UserModel } from "../models/user.model.js";
 import { routeParam } from "../utils/routeParam.js";
 
+export function isAllowedReturnUrl(rawUrl: string): boolean {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith("my-fellow://")) return true;
+  if (trimmed.startsWith("https://t.me/")) return true;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === "http:" && parsed.hostname === "localhost" && parsed.port) {
+      return true;
+    }
+    if (
+      parsed.protocol === "https:" &&
+      /^my-fellow[a-z0-9-]*\.vercel\.app$/i.test(parsed.hostname)
+    ) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 export class PaymentController {
   static async initializeJami(req: AuthRequest, res: Response) {
     try {
       const parsed = paymentInitSchema.parse(req.body);
-      const { amount, email, phone, reason, returnUrl, orderId } = parsed;
+      const { email, phone, reason, returnUrl, orderId } = parsed;
+      let resolvedAmount = parsed.amount;
       const userId = req.user?.sub;
 
       if (!userId) {
         return res
           .status(401)
           .json({ success: false, message: "User not authenticated" });
+      }
+
+      if (returnUrl && !isAllowedReturnUrl(returnUrl)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid returnUrl: scheme or origin is not allowed",
+        });
+      }
+
+      if (orderId) {
+        if (!mongoose.isValidObjectId(orderId)) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Order not found" });
+        }
+        const order = await Order.findById(orderId).lean();
+        if (!order) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Order not found" });
+        }
+        if (String(order.userId) !== String(userId)) {
+          return res.status(403).json({
+            success: false,
+            message: "Forbidden: You cannot pay for another user's order",
+          });
+        }
+        if (typeof order.totalAmount !== "number" || order.totalAmount <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid order total amount",
+          });
+        }
+        resolvedAmount = order.totalAmount;
       }
 
       const user = await UserModel.findById(userId);
@@ -40,7 +99,7 @@ export class PaymentController {
       const targetPhone = phone || user.phoneNumber;
 
       const checkout = await jamiService.initializeCheckout({
-        amount,
+        amount: resolvedAmount,
         email: resolvedEmail,
         phone: targetPhone,
         name: user.fullName || "4 Kilo Fellowship Member",
@@ -77,7 +136,7 @@ export class PaymentController {
         tx_ref,
         sessionId: checkout.sessionId,
         provider: "jami",
-        amount,
+        amount: resolvedAmount,
         reason: reason || "Donation",
         status: TransactionStatus.PENDING,
         ...(orderId ? { orderId } : {}),
@@ -163,42 +222,70 @@ export class PaymentController {
         transaction.sessionId || sessionId,
       );
 
+      let resolvedTx = transaction;
+
       if (session.status === "completed" || session.orderStatus === "paid") {
-        const paidSantim = session.amount ?? 0;
+        const paidSantim = session.amount;
         const expectedSantim = Math.round(transaction.amount * 100);
 
-        if (session.amount && paidSantim !== expectedSantim) {
-          transaction.status = TransactionStatus.FAILED;
-          await transaction.save();
+        if (typeof session.amount !== "number" || paidSantim !== expectedSantim) {
+          await TransactionModel.findOneAndUpdate(
+            { _id: transaction._id, status: TransactionStatus.PENDING },
+            { $set: { status: TransactionStatus.FAILED } },
+          );
           return res.status(400).json({
             success: false,
             message: "Amount mismatch detected",
           });
         }
 
-        transaction.status = TransactionStatus.SUCCESS;
-        if (session.orderId) {
-          transaction.orderId = session.orderId;
+        const updatedTx = await TransactionModel.findOneAndUpdate(
+          { _id: transaction._id, status: TransactionStatus.PENDING },
+          {
+            $set: {
+              status: TransactionStatus.SUCCESS,
+              ...(!transaction.orderId && session.orderId
+                ? { orderId: session.orderId }
+                : {}),
+            },
+          },
+          { new: true },
+        );
+
+        if (updatedTx) {
+          resolvedTx = updatedTx;
+          if (updatedTx.orderId && mongoose.isValidObjectId(updatedTx.orderId)) {
+            await Order.findOneAndUpdate(
+              { _id: updatedTx.orderId, status: "PENDING" },
+              { $set: { status: "CONFIRMED" } },
+            );
+          }
+        } else {
+          const latest = await TransactionModel.findById(transaction._id);
+          if (latest) resolvedTx = latest;
         }
-        await transaction.save();
       } else if (
         session.status === "expired" ||
         session.orderStatus === "failed"
       ) {
-        transaction.status = TransactionStatus.FAILED;
-        await transaction.save();
+        const updatedTx = await TransactionModel.findOneAndUpdate(
+          { _id: transaction._id, status: TransactionStatus.PENDING },
+          { $set: { status: TransactionStatus.FAILED } },
+          { new: true },
+        );
+        if (updatedTx) resolvedTx = updatedTx;
       }
 
       return res.status(200).json({
         success: true,
         message: "Transaction status resolved",
         data: {
-          status: transaction.status,
-          tx_ref: transaction.tx_ref,
-          sessionId: transaction.sessionId,
-          amount: transaction.amount,
-          reason: transaction.reason,
-          orderId: session.orderId,
+          status: resolvedTx.status,
+          tx_ref: resolvedTx.tx_ref,
+          sessionId: resolvedTx.sessionId,
+          amount: resolvedTx.amount,
+          reason: resolvedTx.reason,
+          orderId: resolvedTx.orderId || session.orderId,
           orderStatus: session.orderStatus,
           failure: session.failure,
           attempt: session.attempt,
@@ -256,28 +343,47 @@ export class PaymentController {
           }
 
           const expectedSantim = Math.round(transaction.amount * 100);
-          if (amount === expectedSantim) {
+          if (typeof amount === "number" && amount === expectedSantim) {
             if (status === "paid" || event.type === "order.completed") {
-              transaction.status = TransactionStatus.SUCCESS;
-              if (orderId) {
-                transaction.orderId = orderId;
+              const updatedTx = await TransactionModel.findOneAndUpdate(
+                { _id: transaction._id, status: TransactionStatus.PENDING },
+                {
+                  $set: {
+                    status: TransactionStatus.SUCCESS,
+                    ...(!transaction.orderId && orderId ? { orderId } : {}),
+                  },
+                },
+                { new: true },
+              );
+              if (
+                updatedTx &&
+                updatedTx.orderId &&
+                mongoose.isValidObjectId(updatedTx.orderId)
+              ) {
+                await Order.findOneAndUpdate(
+                  { _id: updatedTx.orderId, status: "PENDING" },
+                  { $set: { status: "CONFIRMED" } },
+                );
               }
             } else if (status === "failed") {
-              transaction.status = TransactionStatus.FAILED;
+              await TransactionModel.findOneAndUpdate(
+                { _id: transaction._id, status: TransactionStatus.PENDING },
+                { $set: { status: TransactionStatus.FAILED } },
+              );
             }
           } else {
-            transaction.status = TransactionStatus.FAILED;
+            await TransactionModel.findOneAndUpdate(
+              { _id: transaction._id, status: TransactionStatus.PENDING },
+              { $set: { status: TransactionStatus.FAILED } },
+            );
           }
-
-          await transaction.save();
         }
       } else if (event.type === "checkout.session.expired") {
         const { sessionId } = event.data;
-        const transaction = await TransactionModel.findOne({ sessionId });
-        if (transaction && transaction.status === TransactionStatus.PENDING) {
-          transaction.status = TransactionStatus.FAILED;
-          await transaction.save();
-        }
+        await TransactionModel.findOneAndUpdate(
+          { sessionId, status: TransactionStatus.PENDING },
+          { $set: { status: TransactionStatus.FAILED } },
+        );
       }
 
       return res.status(200).json({ received: true });
