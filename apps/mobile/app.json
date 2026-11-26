@@ -18,7 +18,10 @@
         "UIBackgroundModes": [
           "audio",
           "remote-notification"
-        ]
+        ],
+        "NSPhotoLibraryUsageDescription": "The app accesses your photos to allow you to share devotional artwork, event photos, and update your profile picture.",
+        "NSCameraUsageDescription": "The app accesses your camera to capture devotional media, event moments, and take profile pictures.",
+        "NSMicrophoneUsageDescription": "The app accesses your microphone to allow you to record audio testimonies, prayer notes, and voice messages."
       }
     },
     "android": {
@@ -29,8 +32,7 @@
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.POST_NOTIFICATIONS",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.SCHEDULE_EXACT_ALARM"
+        "android.permission.RECEIVE_BOOT_COMPLETED"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -72,12 +74,20 @@
         "expo-audio",
         {
           "enableBackgroundPlayback": true,
-          "enableBackgroundRecording": false
+          "enableBackgroundRecording": false,
+          "microphonePermission": "The app accesses your microphone to allow you to record audio testimonies, prayer notes, and voice messages."
         }
       ],
       "expo-asset",
       "@react-native-community/datetimepicker",
       "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to allow you to share devotional artwork, event photos, and update your profile picture.",
+          "cameraPermission": "The app accesses your camera to capture devotional media, event moments, and take profile pictures."
+        }
+      ],
       "expo-secure-store",
       "expo-sharing",
       "expo-status-bar",
@@ -85,7 +95,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/app-icon.png",
+          "icon": "./assets/images/adaptive-icon-monochrome.png",
           "color": "#FF6719",
           "defaultChannel": "reminders"
         }
