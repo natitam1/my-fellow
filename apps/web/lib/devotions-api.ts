@@ -1,3 +1,4 @@
+import axios from "axios";
 import api from "./api";
 import {
   Devotion,
@@ -7,6 +8,47 @@ import {
   WriterRequestData,
   UserStreak,
 } from "@/types/devotion";
+import { MOCK_DEVOTIONS, MockDevotion } from "./mock-data";
+
+export const MOCK_DEVOTION_IMAGES: Record<string, string> = {
+  "dev-01": "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80",
+  "dev-02": "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=1200&q=80",
+  "dev-03": "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1200&q=80",
+  "dev-04": "https://images.unsplash.com/photo-1490730141103-6cac27aaab94?auto=format&fit=crop&w=1200&q=80",
+  "dev-05": "https://images.unsplash.com/photo-1508780709619-79562169bc64?auto=format&fit=crop&w=1200&q=80",
+};
+
+export function formatMockDevotion(m: MockDevotion): Devotion {
+  return {
+    _id: m._id,
+    id: m._id,
+    title: m.title,
+    author: m.author.name,
+    authorId: m.author._id,
+    authorRole: m.author.role,
+    authorAvatar: m.author.avatarUrl,
+    actorType: "official",
+    date: m.date,
+    views: m.likesCount * 3 + 120,
+    viewsFormatted: `${m.likesCount * 3 + 120}`,
+    likes: m.likesCount,
+    likesFormatted: `${m.likesCount}`,
+    image: MOCK_DEVOTION_IMAGES[m._id] || "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80",
+    type: "text",
+    duration: "4 min read",
+    content: m.content,
+    caption: m.content.length > 150 ? m.content.slice(0, 150) + "..." : m.content,
+    prayer: m.prayer,
+    scriptureReference: m.scripture,
+    scriptureText: m.verseText,
+    tags: m.tags,
+    featured: m._id === "dev-01",
+    isLiked: false,
+    isSaved: false,
+  };
+}
+
+export const FORMATTED_MOCK_DEVOTIONS: Devotion[] = MOCK_DEVOTIONS.map(formatMockDevotion);
 
 export const DEFAULT_DEVOTIONS: Devotion[] = [
   {
@@ -210,6 +252,11 @@ export const DEFAULT_DEVOTIONS: Devotion[] = [
   },
 ];
 
+export const ALL_FALLBACK_DEVOTIONS: Devotion[] = [
+  ...FORMATTED_MOCK_DEVOTIONS,
+  ...DEFAULT_DEVOTIONS,
+];
+
 export const INITIAL_COMMENTS: Record<string, DevotionComment[]> = {
   "devotion-1": [
     {
@@ -294,8 +341,8 @@ export async function fetchDevotions(params?: {
     console.warn("Devotions API unavailable, using fallback devotions:", err);
   }
 
-  // Fallback filtering in memory
-  let filtered = [...DEFAULT_DEVOTIONS];
+  // Fallback filtering in memory using centralized MOCK_DEVOTIONS and DEFAULT_DEVOTIONS
+  let filtered = [...ALL_FALLBACK_DEVOTIONS];
   if (params?.type && params.type !== "all") {
     filtered = filtered.filter((d) => d.type === params.type);
   }
@@ -346,7 +393,7 @@ export async function fetchDevotionById(
     console.warn(`Devotion ${id} API error, finding in fallback:`, err);
   }
 
-  const found = DEFAULT_DEVOTIONS.find(
+  const found = ALL_FALLBACK_DEVOTIONS.find(
     (d) => d._id === id || d.id === id || d.title === decodeURIComponent(id),
   );
   if (found) {
@@ -359,7 +406,7 @@ export async function fetchDevotionById(
   // Return first devotion as safe fallback if ID not found
   return {
     success: true,
-    data: DEFAULT_DEVOTIONS[0],
+    data: ALL_FALLBACK_DEVOTIONS[0] || DEFAULT_DEVOTIONS[0],
     message: "Showing featured devotional",
   };
 }
@@ -578,11 +625,14 @@ export async function submitWriterRequest(
         res.data?.message ||
         "Application submitted successfully! Fellowship leaders will review your submission.",
     };
-  } catch (err: any) {
-    const msg =
-      err.response?.data?.message ||
-      "Thank you! Your writer request has been recorded.";
-    return { success: true, message: msg };
+  } catch (err) {
+    let message = "Failed to submit writer request";
+    if (axios.isAxiosError(err) && err.response?.data?.message) {
+      message = err.response.data.message;
+    } else if (err instanceof Error) {
+      message = err.message;
+    }
+    throw new Error(message);
   }
 }
 

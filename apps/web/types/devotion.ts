@@ -69,10 +69,13 @@ export interface SingleDevotionResponse {
 }
 
 export interface WriterRequestData {
-  reason: string;
-  sampleDevotionTitle: string;
-  sampleDevotionContent: string;
-  preferredLanguage?: string;
+  fullName: string;
+  phoneNumber: string;
+  telegramHandle: string;
+  department: string;
+  year: string;
+  sampleTopic: string;
+  message?: string;
 }
 
 export interface UserStreak {

@@ -33,10 +33,13 @@ export function DevotionWriterModal({
 }: DevotionWriterModalProps) {
   const { user, isAuthenticated, isAdmin } = useAuth();
 
-  const [reason, setReason] = useState("");
-  const [sampleTitle, setSampleTitle] = useState("");
-  const [sampleContent, setSampleContent] = useState("");
-  const [language, setLanguage] = useState("Amharic & English");
+  const [fullName, setFullName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [telegramHandle, setTelegramHandle] = useState("");
+  const [department, setDepartment] = useState("");
+  const [year, setYear] = useState("");
+  const [sampleTopic, setSampleTopic] = useState("");
+  const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
@@ -52,6 +55,25 @@ export function DevotionWriterModal({
     }
   }, [open, isAuthenticated]);
 
+  useEffect(() => {
+    if (user) {
+      if (user.fullName) setFullName((prev) => prev || user.fullName);
+      if (user.phoneNumber) setPhoneNumber((prev) => prev || user.phoneNumber);
+      if (user.telegramUserName) {
+        const tg = user.telegramUserName;
+        setTelegramHandle((prev) => prev || tg);
+      }
+      if (user.department) {
+        const dept = user.department;
+        setDepartment((prev) => prev || dept);
+      }
+      if (user.yearOfStudy) {
+        const yr = user.yearOfStudy;
+        setYear((prev) => prev || yr);
+      }
+    }
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -60,7 +82,12 @@ export function DevotionWriterModal({
       return;
     }
 
-    if (!reason.trim() || !sampleTitle.trim() || !sampleContent.trim()) {
+    if (
+      !fullName.trim() ||
+      !phoneNumber.trim() ||
+      !telegramHandle.trim() ||
+      !sampleTopic.trim()
+    ) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -68,10 +95,13 @@ export function DevotionWriterModal({
     setIsSubmitting(true);
     try {
       const res = await submitWriterRequest({
-        reason: reason.trim(),
-        sampleDevotionTitle: sampleTitle.trim(),
-        sampleDevotionContent: sampleContent.trim(),
-        preferredLanguage: language,
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        telegramHandle: telegramHandle.trim(),
+        department: department.trim(),
+        year: year.trim(),
+        sampleTopic: sampleTopic.trim(),
+        message: message.trim() || undefined,
       });
 
       if (res.success) {
@@ -82,8 +112,10 @@ export function DevotionWriterModal({
           onOpenChange(false);
         }, 1500);
       }
-    } catch {
-      toast.error("Failed to submit application. Please try again.");
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to submit request";
+      toast.error(errorMsg || "Failed to submit request");
     } finally {
       setIsSubmitting(false);
     }
@@ -183,59 +215,100 @@ export function DevotionWriterModal({
             )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="reason" className="text-xs font-medium">
-                Why do you want to write devotions for the fellowship? *
+              <Label htmlFor="fullName" className="text-xs font-medium">
+                Full Name *
               </Label>
-              <Textarea
-                id="reason"
+              <Input
+                id="fullName"
                 required
-                rows={2}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Share your spiritual passion, calling, or ministry background..."
-                className="text-sm resize-none"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="e.g. Dawit Girma"
+                className="text-sm"
               />
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="phoneNumber" className="text-xs font-medium">
+                  Phone Number *
+                </Label>
+                <Input
+                  id="phoneNumber"
+                  required
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="e.g. 0911234567"
+                  className="text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="telegramHandle" className="text-xs font-medium">
+                  Telegram Handle *
+                </Label>
+                <Input
+                  id="telegramHandle"
+                  required
+                  value={telegramHandle}
+                  onChange={(e) => setTelegramHandle(e.target.value)}
+                  placeholder="e.g. @dawit_g"
+                  className="text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="department" className="text-xs font-medium">
+                  Academic Department
+                </Label>
+                <Input
+                  id="department"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  placeholder="e.g. Computer Science"
+                  className="text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="year" className="text-xs font-medium">
+                  Study Year
+                </Label>
+                <Input
+                  id="year"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  placeholder="e.g. 3rd Year"
+                  className="text-sm"
+                />
+              </div>
+            </div>
+
             <div className="space-y-1.5">
-              <Label htmlFor="sampleTitle" className="text-xs font-medium">
-                Sample Devotion Title *
+              <Label htmlFor="sampleTopic" className="text-xs font-medium">
+                Sample Devotional Topic *
               </Label>
               <Input
-                id="sampleTitle"
+                id="sampleTopic"
                 required
-                value={sampleTitle}
-                onChange={(e) => setSampleTitle(e.target.value)}
+                value={sampleTopic}
+                onChange={(e) => setSampleTopic(e.target.value)}
                 placeholder="e.g. በእርሱ መደገፍ (Resting in Him)"
                 className="text-sm"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="sampleContent" className="text-xs font-medium">
-                Sample Reflection / Excerpt *
+              <Label htmlFor="message" className="text-xs font-medium">
+                Reason / Message (Optional)
               </Label>
               <Textarea
-                id="sampleContent"
-                required
-                rows={4}
-                value={sampleContent}
-                onChange={(e) => setSampleContent(e.target.value)}
-                placeholder="Write a brief sample devotional excerpt (Scripture focus + reflection + practical application)..."
+                id="message"
+                rows={3}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Share your spiritual passion, calling, or ministry background..."
                 className="text-sm resize-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="language" className="text-xs font-medium">
-                Primary Writing Language
-              </Label>
-              <Input
-                id="language"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                placeholder="Amharic, English, or bilingual"
-                className="text-sm"
               />
             </div>
 

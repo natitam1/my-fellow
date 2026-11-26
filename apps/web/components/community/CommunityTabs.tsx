@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Users, Megaphone, HeartHandshake } from "lucide-react";
+import { Sparkles, Users, Megaphone, HeartHandshake, Flame } from "lucide-react";
 import { FeedTab } from "@/types/community";
 import { cn } from "@/lib/utils";
 
@@ -12,10 +12,11 @@ interface CommunityTabsProps {
 }
 
 const TABS: { id: FeedTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "all", label: "All", icon: Sparkles },
+  { id: "all", label: "All Feed", icon: Sparkles },
   { id: "following", label: "Following", icon: Users },
   { id: "announcements", label: "Announcements", icon: Megaphone },
-  { id: "prayer_requests", label: "Prayer Requests", icon: HeartHandshake },
+  { id: "prayer_requests", label: "Prayers", icon: HeartHandshake },
+  { id: "testimonies", label: "Testimonies", icon: Flame },
 ];
 
 export function CommunityTabs({

@@ -6,17 +6,22 @@ import {
   Sparkles,
   Loader2,
   RefreshCw,
-  Hash,
   X,
   Filter,
   ShieldCheck,
-  BookOpen,
+  Megaphone,
+  HeartHandshake,
+  Flame,
+  Users,
+  PenSquare,
 } from "lucide-react";
 import { Post, FeedTab } from "@/types/community";
 import { getCommunityFeed } from "@/lib/communityApi";
 import { PostComposer } from "@/components/community/PostComposer";
 import { PostCard } from "@/components/community/PostCard";
 import { CommunityTabs } from "@/components/community/CommunityTabs";
+import { CommentsSheet } from "@/components/community/CommentsSheet";
+import { CommunityFeedSkeleton } from "@/components/community/CommunityFeedSkeleton";
 import { WhoToFollowWidget } from "@/components/community/WhoToFollowWidget";
 import { PrayerPromptWidget } from "@/components/community/PrayerPromptWidget";
 import { CommunityBanner } from "@/components/community/CommunityBanner";
@@ -40,6 +45,10 @@ function CommunityContent() {
   const [composerDefaultTag, setComposerDefaultTag] = useState<string | undefined>(
     activeTag ? `#${activeTag}` : undefined
   );
+
+  // Comments Sheet state
+  const [activePostForComments, setActivePostForComments] = useState<Post | null>(null);
+  const [commentsSheetOpen, setCommentsSheetOpen] = useState(false);
 
   // Sync tab with URL if changed
   const handleTabChange = (newTab: FeedTab) => {
@@ -97,7 +106,7 @@ function CommunityContent() {
       setPosts((prev) => [...prev, ...res.items]);
       setNextCursor(res.nextCursor || null);
       setHasMore(Boolean(res.hasMore));
-    } catch (err) {
+    } catch {
       toast.error("Failed to load more posts");
     } finally {
       setIsLoadingMore(false);
@@ -120,16 +129,104 @@ function CommunityContent() {
     window.scrollTo({ top: 120, behavior: "smooth" });
   };
 
+  const handleOpenComments = (post: Post) => {
+    setActivePostForComments(post);
+    setCommentsSheetOpen(true);
+  };
+
+  const handleCommentAdded = (postId: string, newReply: Post) => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              counts: {
+                ...p.counts,
+                replies: (p.counts?.replies || 0) + 1,
+              },
+            }
+          : p
+      )
+    );
+  };
+
+  const renderEmptyState = () => {
+    let icon = <Sparkles className="h-6 w-6 text-primary" />;
+    let title = "No reflections found in this channel";
+    let desc = "Be the first brother or sister to share an encouraging word or reflection.";
+
+    if (activeTag) {
+      title = `No posts tagged #${activeTag}`;
+      desc = "No fellowship member has used this hashtag yet. Start the conversation!";
+    } else if (activeTab === "prayer_requests") {
+      icon = <HeartHandshake className="h-6 w-6 text-primary" />;
+      title = "No active prayer requests";
+      desc = "There are currently no active prayer requests in this channel. Share what is on your heart or pray for one another.";
+    } else if (activeTab === "announcements") {
+      icon = <Megaphone className="h-6 w-6 text-primary" />;
+      title = "No official announcements right now";
+      desc = "Stay tuned! Fellowship leadership and ministry teams will post campus schedule updates and event alerts here.";
+    } else if (activeTab === "testimonies") {
+      icon = <Flame className="h-6 w-6 text-amber-500" />;
+      title = "No testimonies recorded yet";
+      desc = "Has God done something remarkable in your exams, project deadlines, or life on campus? Celebrate His faithfulness here!";
+    } else if (activeTab === "following") {
+      icon = <Users className="h-6 w-6 text-primary" />;
+      title = "Your Following feed is quiet";
+      desc = "Follow fellowship ministries and student cell groups from the right sidebar to see their latest reflections here.";
+    }
+
+    return (
+      <div className="border border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center bg-card/50 space-y-4">
+        <div className="h-12 w-12 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
+          {icon}
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="font-semibold text-foreground text-base">
+            {title}
+          </h3>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            {desc}
+          </p>
+        </div>
+        <div className="pt-2 flex items-center justify-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setActiveTab("all");
+              clearTagFilter();
+            }}
+            className="text-xs rounded-full font-medium h-8 px-4"
+          >
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            View All Feed
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              window.scrollTo({ top: 120, behavior: "smooth" });
+            }}
+            className="text-xs rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-8 px-4"
+          >
+            <PenSquare className="h-3.5 w-3.5 mr-1.5" />
+            Share a Reflection
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-background py-6 sm:py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        {/* Fellowship Banner */}
+    <div className="min-h-screen bg-background py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-5 sm:space-y-6">
+        {/* Fellowship Campus Banner */}
         <CommunityBanner />
 
         {/* Main Grid: Feed + Right Sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
           {/* Main Feed Column */}
-          <main className="lg:col-span-8 space-y-4">
+          <section aria-label="Community Feed" className="lg:col-span-8 space-y-4">
             {/* Actor-Based Post Composer */}
             <PostComposer
               key={composerDefaultTag || activeTab}
@@ -138,7 +235,7 @@ function CommunityContent() {
             />
 
             {/* Channels & Tabs */}
-            <div className="sticky top-16 z-30 bg-background/90 backdrop-blur-md pt-2 pb-1 space-y-2">
+            <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md pt-2 pb-1 space-y-2">
               <CommunityTabs
                 activeTab={activeTab}
                 onTabChange={handleTabChange}
@@ -163,44 +260,11 @@ function CommunityContent() {
               )}
             </div>
 
-            {/* Post Feed List */}
+            {/* Post Feed List / Loading Skeletons */}
             {isLoading ? (
-              <div className="py-16 text-center space-y-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                <p className="text-xs text-muted-foreground font-medium">
-                  Loading fellowship reflections...
-                </p>
-              </div>
+              <CommunityFeedSkeleton count={3} />
             ) : posts.length === 0 ? (
-              <div className="border border-dashed border-border rounded-xl p-10 text-center bg-card/40 space-y-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
-                  <Sparkles className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground text-sm">
-                    No posts found in this channel
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                    {activeTab === "prayer_requests"
-                      ? "There are currently no active prayer requests. Be the first to share your prayer item!"
-                      : activeTab === "announcements"
-                      ? "No official ministry announcements right now. Check back soon!"
-                      : "Be the first to share an encouraging word or testimony with the fellowship."}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setActiveTab("all");
-                    clearTagFilter();
-                  }}
-                  className="text-xs"
-                >
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                  View All Feed
-                </Button>
-              </div>
+              renderEmptyState()
             ) : (
               <div className="space-y-4">
                 {posts.map((post) => (
@@ -208,6 +272,7 @@ function CommunityContent() {
                     key={post.id}
                     post={post}
                     onPostDeleted={handlePostDeleted}
+                    onCommentClick={handleOpenComments}
                   />
                 ))}
 
@@ -218,12 +283,12 @@ function CommunityContent() {
                       variant="outline"
                       onClick={handleLoadMore}
                       disabled={isLoadingMore}
-                      className="text-xs font-semibold h-9 px-6 rounded-lg border-border hover:bg-muted"
+                      className="text-xs font-semibold h-9 px-6 rounded-full border-border hover:bg-muted"
                     >
                       {isLoadingMore ? (
                         <>
                           <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                          <span>Loading more...</span>
+                          <span>Loading more reflections...</span>
                         </>
                       ) : (
                         <span>Load More Reflections</span>
@@ -233,7 +298,7 @@ function CommunityContent() {
                 )}
               </div>
             )}
-          </main>
+          </section>
 
           {/* Right Sidebar Widgets */}
           <aside className="lg:col-span-4 space-y-4 lg:sticky lg:top-20">
@@ -261,6 +326,14 @@ function CommunityContent() {
           </aside>
         </div>
       </div>
+
+      {/* Real-time Comments Drawer / Sheet */}
+      <CommentsSheet
+        post={activePostForComments}
+        open={commentsSheetOpen}
+        onOpenChange={setCommentsSheetOpen}
+        onCommentAdded={handleCommentAdded}
+      />
     </div>
   );
 }

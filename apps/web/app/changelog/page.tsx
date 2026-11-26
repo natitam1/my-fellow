@@ -1,5 +1,4 @@
 import React from "react";
-import Navbar from "@/components/Navbar";
 
 export default function ChangelogPage() {
   const changes = [
@@ -47,8 +46,7 @@ export default function ChangelogPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-zinc-900 selection:bg-primary/30">
-      <Navbar />
-      <main className="mx-auto max-w-4xl px-4 pt-32 pb-16 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-4xl px-4 pt-12 pb-16 sm:px-6 lg:px-8">
         <div className="mb-12">
           <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl">
             Changelog

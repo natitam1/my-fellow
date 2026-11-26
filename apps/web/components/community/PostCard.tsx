@@ -14,6 +14,8 @@ import {
   ExternalLink,
   Copy,
   Check,
+  BookOpen,
+  GraduationCap,
 } from "lucide-react";
 import { Post } from "@/types/community";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,6 +30,7 @@ import {
 import { ActorBadge } from "./ActorBadge";
 import { ImageGallery } from "./ImageGallery";
 import { toggleLike, toggleBookmark, toggleRepost, deletePost } from "@/lib/communityApi";
+import { parseScriptureQuote } from "@/lib/scriptureUtils";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -36,6 +39,7 @@ interface PostCardProps {
   post: Post;
   isDetail?: boolean;
   onPostDeleted?: (postId: string) => void;
+  onCommentClick?: (post: Post) => void;
   className?: string;
 }
 
@@ -43,6 +47,7 @@ export function PostCard({
   post,
   isDetail = false,
   onPostDeleted,
+  onCommentClick,
   className,
 }: PostCardProps) {
   const router = useRouter();
@@ -66,6 +71,13 @@ export function PostCard({
     post.author?.avatar?.urls?.sm ||
     post.author?.avatar?.urls?.original ||
     null;
+
+  // Student Department and Academic Year
+  const department = actor?.department || post.author?.department;
+  const academicYear = actor?.year || post.author?.year;
+
+  // Formatted Scripture Quote Detection
+  const parsedScripture = parseScriptureQuote(post.body);
 
   // Format relative timestamp
   const formatTimestamp = (dateStr: string) => {
@@ -155,7 +167,7 @@ export function PostCard({
     e.stopPropagation();
     const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/community/post/${post.id}`;
 
-    if (navigator.share) {
+    if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({
           title: `${authorName} on 4 Kilo Fellowship`,
@@ -197,11 +209,20 @@ export function PostCard({
     }
   };
 
+  const handleCommentClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onCommentClick) {
+      onCommentClick(post);
+    } else if (!isDetail) {
+      router.push(`/community/post/${post.id}#replies`);
+    }
+  };
+
   const canDelete =
     Boolean(user?.id && (user.id === post.author.id || user.id === post.createdByUserId)) ||
     isAdmin;
 
-  // Render text with clickable hashtags
+  // Render text with clickable hashtags and mentions
   const renderFormattedBody = (content: string | null) => {
     if (!content) return null;
 
@@ -260,7 +281,7 @@ export function PostCard({
             <Avatar
               className={cn(
                 "h-10 w-10 border border-border/60 transition-transform duration-150 group-hover/avatar:scale-105",
-                isOfficial && "ring-2 ring-primary/30"
+                isOfficial && "ring-2 ring-primary/40"
               )}
             >
               {avatarUrl && <AvatarImage src={avatarUrl} alt={authorName} />}
@@ -282,8 +303,20 @@ export function PostCard({
                 isVerified={post.author?.isVerified}
               />
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+
+            {/* University Department & Year Info */}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
               <span>@{authorHandle}</span>
+              {(department || academicYear) && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-muted-foreground/90 font-medium">
+                    <GraduationCap className="h-3 w-3 text-primary/70 shrink-0" />
+                    <span>{department}</span>
+                    {academicYear && <span>· Year {academicYear}</span>}
+                  </span>
+                </>
+              )}
               <span>•</span>
               <time dateTime={post.createdAt} title={new Date(post.createdAt).toLocaleString()}>
                 {formatTimestamp(post.createdAt)}
@@ -292,14 +325,14 @@ export function PostCard({
           </div>
         </div>
 
-        {/* Post Actions Menu */}
+        {/* Post Actions Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 rounded-full"
-              aria-label="More options"
+              aria-label="More post options"
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
@@ -344,11 +377,32 @@ export function PostCard({
         </DropdownMenu>
       </div>
 
-      {/* Post Body */}
-      {post.body && (
-        <div className="mt-3 text-sm text-foreground/90 whitespace-pre-line break-words leading-relaxed">
-          {renderFormattedBody(post.body)}
+      {/* Formatted Scripture Quote Callout if found in post */}
+      {parsedScripture && (
+        <div className="mt-3 p-3.5 rounded-xl border border-primary/25 bg-primary/5 dark:bg-primary/10 space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <BookOpen className="h-3.5 w-3.5 shrink-0" />
+            <span>{parsedScripture.reference}</span>
+          </div>
+          <p className="text-xs sm:text-sm italic text-foreground/90 leading-relaxed font-medium">
+            &ldquo;{parsedScripture.quote}&rdquo;
+          </p>
         </div>
+      )}
+
+      {/* Post Body (or Remaining Text after scripture quote) */}
+      {parsedScripture ? (
+        parsedScripture.remainingText ? (
+          <div className="mt-2.5 text-sm text-foreground/90 whitespace-pre-line break-words leading-relaxed">
+            {renderFormattedBody(parsedScripture.remainingText)}
+          </div>
+        ) : null
+      ) : (
+        post.body && (
+          <div className="mt-3 text-sm text-foreground/90 whitespace-pre-line break-words leading-relaxed">
+            {renderFormattedBody(post.body)}
+          </div>
+        )
       )}
 
       {/* Media Attachments Gallery */}
@@ -377,17 +431,17 @@ export function PostCard({
 
       {/* Action Footer Bar */}
       <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-muted-foreground text-xs select-none">
-        {/* Like Reaction */}
+        {/* Like Reaction Button */}
         <button
           type="button"
           onClick={handleLike}
           className={cn(
-            "flex items-center gap-1.5 py-1 px-2 rounded-md transition-colors group/btn",
+            "flex items-center gap-1.5 py-1 px-2.5 rounded-full transition-colors group/btn",
             liked
-              ? "text-red-500 font-semibold"
+              ? "text-red-500 font-semibold bg-red-500/10"
               : "hover:text-red-500 hover:bg-red-500/10"
           )}
-          aria-label="Like post"
+          aria-label={liked ? "Unlike reflection" : "Like reflection"}
         >
           <Heart
             className={cn(
@@ -398,17 +452,12 @@ export function PostCard({
           <span>{likeCount}</span>
         </button>
 
-        {/* Comment Discussion */}
+        {/* Comment Discussion Button (Opens Comments Drawer / Sheet) */}
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!isDetail) {
-              router.push(`/community/post/${post.id}#replies`);
-            }
-          }}
-          className="flex items-center gap-1.5 py-1 px-2 rounded-md hover:text-primary hover:bg-primary/10 transition-colors group/btn"
-          aria-label="Discussion replies"
+          onClick={handleCommentClick}
+          className="flex items-center gap-1.5 py-1 px-2.5 rounded-full hover:text-primary hover:bg-primary/10 transition-colors group/btn"
+          aria-label={`View comments (${post.counts?.replies || 0})`}
         >
           <MessageCircle className="h-4 w-4 transition-transform duration-150 group-active/btn:scale-110" />
           <span>{post.counts?.replies || 0}</span>
@@ -419,12 +468,12 @@ export function PostCard({
           type="button"
           onClick={handleRepost}
           className={cn(
-            "flex items-center gap-1.5 py-1 px-2 rounded-md transition-colors group/btn",
+            "flex items-center gap-1.5 py-1 px-2.5 rounded-full transition-colors group/btn",
             reposted
-              ? "text-green-500 font-semibold"
+              ? "text-green-500 font-semibold bg-green-500/10"
               : "hover:text-green-500 hover:bg-green-500/10"
           )}
-          aria-label="Repost"
+          aria-label="Repost reflection"
         >
           <Repeat2
             className={cn(
@@ -439,8 +488,8 @@ export function PostCard({
         <button
           type="button"
           onClick={handleShare}
-          className="flex items-center gap-1 py-1 px-2 rounded-md hover:text-foreground hover:bg-muted transition-colors"
-          aria-label="Share post"
+          className="flex items-center gap-1 py-1 px-2.5 rounded-full hover:text-foreground hover:bg-muted transition-colors"
+          aria-label="Share reflection link"
         >
           <Share2 className="h-4 w-4" />
         </button>
@@ -450,10 +499,10 @@ export function PostCard({
           type="button"
           onClick={handleBookmark}
           className={cn(
-            "flex items-center gap-1 py-1 px-2 rounded-md transition-colors",
-            bookmarked ? "text-primary" : "hover:text-primary hover:bg-primary/10"
+            "flex items-center gap-1 py-1 px-2.5 rounded-full transition-colors",
+            bookmarked ? "text-primary bg-primary/10" : "hover:text-primary hover:bg-primary/10"
           )}
-          aria-label="Bookmark"
+          aria-label={bookmarked ? "Remove bookmark" : "Bookmark reflection"}
         >
           <Bookmark className={cn("h-4 w-4", bookmarked && "fill-current")} />
         </button>

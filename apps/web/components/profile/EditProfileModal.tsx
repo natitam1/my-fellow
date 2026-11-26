@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -112,10 +113,14 @@ export function EditProfileModal({
       if (onProfileUpdated) {
         onProfileUpdated(updated);
       }
-      toast.success("Profile updated successfully! ✨");
+      toast.success("Profile updated successfully!");
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update profile. Please try again.");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to update profile. Please try again.";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -157,7 +162,14 @@ export function EditProfileModal({
                         : "border-border hover:border-foreground/50 opacity-80 hover:opacity-100"
                     }`}
                   >
-                    <img src={url} alt="preset" className="h-full w-full object-cover" />
+                    <Image
+                      src={url}
+                      alt={`Preset avatar ${idx + 1}`}
+                      width={28}
+                      height={28}
+                      unoptimized
+                      className="h-full w-full object-cover"
+                    />
                     {profileImage === url && (
                       <div className="absolute inset-0 bg-[#FF6719]/30 flex items-center justify-center">
                         <Check className="h-3 w-3 text-white stroke-[3]" />

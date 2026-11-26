@@ -147,6 +147,34 @@ export function DevotionAudioPlayer({
     seekToPosition(e.clientX);
   };
 
+  const handleSeekKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const totalDuration = duration || audioRef.current?.duration || 0;
+    if (!totalDuration) return;
+
+    let nextTime: number | null = null;
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+      nextTime = Math.min(totalDuration, currentTime + 5);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+      nextTime = Math.max(0, currentTime - 5);
+    } else if (e.key === "PageUp") {
+      nextTime = Math.min(totalDuration, currentTime + 15);
+    } else if (e.key === "PageDown") {
+      nextTime = Math.max(0, currentTime - 15);
+    } else if (e.key === "Home") {
+      nextTime = 0;
+    } else if (e.key === "End") {
+      nextTime = totalDuration;
+    }
+
+    if (nextTime !== null) {
+      e.preventDefault();
+      setCurrentTime(nextTime);
+      if (audioRef.current) {
+        audioRef.current.currentTime = nextTime;
+      }
+    }
+  };
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
@@ -268,10 +296,18 @@ export function DevotionAudioPlayer({
       <div className="py-2">
         <div
           ref={progressBarRef}
+          role="slider"
+          tabIndex={0}
+          aria-label="Audio playback position"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(duration || 0)}
+          aria-valuenow={Math.round(currentTime)}
+          aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
           onClick={(e) => seekToPosition(e.clientX)}
           onMouseDown={handleSeekMouseDown}
-          className="relative h-12 flex items-center justify-between gap-[3px] cursor-pointer group select-none px-1 rounded-lg hover:bg-primary/[0.03] transition-colors"
-          title="Click or drag to scrub audio"
+          onKeyDown={handleSeekKeyDown}
+          className="relative h-12 flex items-center justify-between gap-[3px] cursor-pointer group select-none px-1 rounded-lg hover:bg-primary/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
+          title="Click, drag, or use arrow keys to scrub audio"
         >
           {waveBars.map((heightPercent, idx) => {
             const barRatio = idx / waveBars.length;

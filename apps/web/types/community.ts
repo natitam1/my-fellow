@@ -19,6 +19,8 @@ export interface UserSummary {
   isVerified: boolean;
   fellowshipRole?: string | null;
   ministryBadge?: string | null;
+  department?: string | null;
+  year?: string | number | null;
 }
 
 export interface ActorSummary {
@@ -37,6 +39,8 @@ export interface ActorSummary {
   postCount?: number;
   isFollowing?: boolean;
   following?: boolean;
+  department?: string | null;
+  year?: string | number | null;
 }
 
 export interface MediaAssetVariant {
@@ -85,6 +89,8 @@ export interface Post {
   counts: PostCounts;
   viewer: ViewerInteractions;
   tombstone?: string;
+  scriptureReference?: string | null;
+  scriptureText?: string | null;
 }
 
 export interface FeedResponse {
@@ -99,4 +105,4 @@ export interface ThreadResponse {
   replies: Post[];
 }
 
-export type FeedTab = "all" | "following" | "announcements" | "prayer_requests";
+export type FeedTab = "all" | "following" | "announcements" | "prayer_requests" | "testimonies";

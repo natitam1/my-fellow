@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Navbar from "@/components/Navbar";
 import { siteConfig } from "@/config/siteConfig";
 import {
   FaGithub,
@@ -54,8 +53,7 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-zinc-900 selection:bg-primary/30">
-      <Navbar />
-      <main className="mx-auto max-w-7xl px-4 pt-32 pb-16 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 pt-12 pb-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center mb-16">
           <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl">
             Support the Fellowship
