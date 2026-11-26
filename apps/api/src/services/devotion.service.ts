@@ -2,6 +2,7 @@ import DevotionModel, {
   IDevotion,
   DevotionType,
 } from "../models/devotion.model.js";
+import { escapeRegex } from "../utils/regex.js";
 import {
   uploadImageToCloudinary,
   uploadFileToCloudinary,
@@ -100,9 +101,10 @@ export async function queryDevotions(options: DevotionQueryOptions) {
   }
 
   if (options.search) {
+    const searchRegex = new RegExp(escapeRegex(options.search), "i");
     filter.$or = [
-      { title: { $regex: options.search, $options: "i" } },
-      { author: { $regex: options.search, $options: "i" } },
+      { title: searchRegex },
+      { author: searchRegex },
     ];
   }
 

@@ -10,6 +10,7 @@ import {
 } from "../../platform/serializer.js";
 import { MediaRef, ProfileDetail, UserSummary } from "../../platform/types.js";
 import { routeParam } from "../../utils/routeParam.js";
+import { escapeRegex } from "../../utils/regex.js";
 import { getUserStreak } from "../streaks/streak.service.js";
 import { hydratePosts } from "../posts/post.service.js";
 import { UserModel } from "../../models/user.model.js";
@@ -41,10 +42,11 @@ async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string
   ].includes(normalized);
 
   const isOid = mongoose.Types.ObjectId.isValid(cleanParam);
+  const escapedParam = escapeRegex(cleanParam);
   let actor = await ActorModel.findOne({
     $or: [
       ...(isOid ? [{ _id: new mongoose.Types.ObjectId(cleanParam) }] : []),
-      { handle: new RegExp(`^${cleanParam}$`, "i") },
+      { handle: new RegExp(`^${escapedParam}$`, "i") },
       ...(isOfficial ? [{ type: "official" as const }, { handle: "fellow" }] : []),
     ] as any,
     deletedAt: null,
@@ -59,7 +61,7 @@ async function resolveMongoFallbackProfile(cleanParam: string, viewerId?: string
       user = await UserModel.findOne({
         $or: [
           { telegramUserName: cleanParam },
-          { fullName: new RegExp(`^${cleanParam}$`, "i") },
+          { fullName: new RegExp(`^${escapedParam}$`, "i") },
           { phoneNumber: cleanParam },
         ],
       }).lean();
@@ -198,12 +200,13 @@ router.get("/profiles/:username", optionalAuth, async (req: AuthRequest, res: Re
   try {
     const rawUsername = routeParam(req.params.username);
     const cleanParam = rawUsername.replace(/^@/, "");
+    const escapedParam = escapeRegex(cleanParam);
     const viewerId = req.user?.sub;
 
     let profile = await ProfileModel.findOne({
       $or: [
         { userId: cleanParam },
-        { username: new RegExp(`^${cleanParam}$`, "i") },
+        { username: new RegExp(`^${escapedParam}$`, "i") },
       ],
     }).lean();
 
@@ -371,13 +374,14 @@ router.get("/profiles/:username/posts", optionalAuth, async (req: AuthRequest, r
   try {
     const rawUsername = routeParam(req.params.username);
     const cleanParam = rawUsername.replace(/^@/, "");
+    const escapedParam = escapeRegex(cleanParam);
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const viewerId = req.user?.sub;
 
     let profile = await ProfileModel.findOne({
       $or: [
         { userId: cleanParam },
-        { username: new RegExp(`^${cleanParam}$`, "i") },
+        { username: new RegExp(`^${escapedParam}$`, "i") },
       ],
     }).lean();
 

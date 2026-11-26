@@ -1,4 +1,5 @@
 import { ProfileModel } from "../models/social.models.js";
+import { escapeRegex } from "./regex.js";
 
 /**
  * Normalizes an input string into a safe, valid username format:
@@ -58,7 +59,7 @@ export async function resolveUniqueUsername(
 
   // 1. Try the base name directly
   const existingWithBase = await ProfileModel.findOne({
-    username: new RegExp(`^${base}$`, "i"),
+    username: new RegExp(`^${escapeRegex(base)}$`, "i"),
   }).select("userId").lean();
 
   if (!existingWithBase || (existingWithBase as any).userId === userId) {
@@ -69,7 +70,7 @@ export async function resolveUniqueUsername(
   for (let i = 1; i <= 5; i++) {
     const candidate = `${base}_${i}`;
     const taken = await ProfileModel.findOne({
-      username: new RegExp(`^${candidate}$`, "i"),
+      username: new RegExp(`^${escapeRegex(candidate)}$`, "i"),
     }).select("userId").lean();
     if (!taken || (taken as any).userId === userId) {
       return candidate;
@@ -81,7 +82,7 @@ export async function resolveUniqueUsername(
     const randomNum = Math.floor(10 + Math.random() * 890); // between 10 and 899
     const candidate = `${base}${randomNum}`;
     const taken = await ProfileModel.findOne({
-      username: new RegExp(`^${candidate}$`, "i"),
+      username: new RegExp(`^${escapeRegex(candidate)}$`, "i"),
     }).select("userId").lean();
     if (!taken || (taken as any).userId === userId) {
       return candidate;

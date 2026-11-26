@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { AppError } from "../../platform/errors.js";
+import { escapeRegex } from "../../utils/regex.js";
 import {
   ProfileModel,
   FollowModel,
@@ -29,13 +30,14 @@ export async function followTarget(
   targetParam: string
 ): Promise<FollowResult> {
   const cleanParam = targetParam.trim().replace(/^@/, "");
+  const escapedParam = escapeRegex(cleanParam);
   const isObjectId = mongoose.Types.ObjectId.isValid(cleanParam);
 
   // 1. Check if the target is an Actor (by handle or ObjectId)
   const actor = await ActorModel.findOne({
     $or: [
       ...(isObjectId ? [{ _id: cleanParam }] : []),
-      { handle: new RegExp(`^${cleanParam}$`, "i") },
+      { handle: new RegExp(`^${escapedParam}$`, "i") },
     ],
     deletedAt: null,
   });
@@ -122,7 +124,7 @@ export async function followTarget(
   let targetProfile = await ProfileModel.findOne({
     $or: [
       { userId: cleanParam },
-      { username: new RegExp(`^${cleanParam}$`, "i") },
+      { username: new RegExp(`^${escapedParam}$`, "i") },
     ],
   });
 
@@ -237,13 +239,14 @@ export async function unfollowTarget(
   targetParam: string
 ): Promise<FollowResult> {
   const cleanParam = targetParam.trim().replace(/^@/, "");
+  const escapedParam = escapeRegex(cleanParam);
   const isObjectId = mongoose.Types.ObjectId.isValid(cleanParam);
 
   // 1. Check if target is an Actor
   const actor = await ActorModel.findOne({
     $or: [
       ...(isObjectId ? [{ _id: cleanParam }] : []),
-      { handle: new RegExp(`^${cleanParam}$`, "i") },
+      { handle: new RegExp(`^${escapedParam}$`, "i") },
     ],
     deletedAt: null,
   });
@@ -309,7 +312,7 @@ export async function unfollowTarget(
   const targetLookup = await ProfileModel.findOne({
     $or: [
       { userId: cleanParam },
-      { username: new RegExp(`^${cleanParam}$`, "i") },
+      { username: new RegExp(`^${escapedParam}$`, "i") },
     ],
   }).lean();
   const followeeId = (targetLookup as any)?.userId || cleanParam;

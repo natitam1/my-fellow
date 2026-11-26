@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -33,12 +34,55 @@ const app = express();
 
 app.set("trust proxy", 1);
 
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const incoming = req.headers["x-request-id"];
+  const requestId =
+    typeof incoming === "string" && incoming.trim().length > 0 && incoming.length <= 128
+      ? incoming.trim()
+      : crypto.randomUUID();
+  res.setHeader("x-request-id", requestId);
+  (req as Request & { requestId?: string }).requestId = requestId;
+  next();
+});
+
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );
-app.use(cors());
+
+const explicitAllowedOrigins = new Set(
+  (process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+);
+
+export function isAllowedCorsOrigin(origin: string): boolean {
+  if (explicitAllowedOrigins.has(origin)) return true;
+  if (origin === "https://fellow.primeuat.app") return true;
+  if (/^https:\/\/[a-z0-9-]+\.primeuat\.app$/i.test(origin)) return true;
+  if (/^https:\/\/my-fellow[a-z0-9-]*\.vercel\.app$/i.test(origin)) return true;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true;
+  return false;
+}
+
+const apiCors = cors({
+  origin: (origin, callback) => {
+    // Allow requests with no Origin header (mobile apps, server-to-server, health checks)
+    if (!origin) return callback(null, true);
+    if (isAllowedCorsOrigin(origin)) return callback(null, true);
+    return callback(null, false);
+  },
+  credentials: true,
+});
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith("/assets")) {
+    return next();
+  }
+  return apiCors(req, res, next);
+});
 
 // Static Assets Serving with Cache and CORS headers
 const staticAssetOptions = {
@@ -62,23 +106,40 @@ app.use("/assets", (req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Primary static assets from public/assets
-app.use("/assets", express.static(path.join(process.cwd(), "public/assets"), staticAssetOptions));
-app.use("/assets", express.static(path.join(__dirname, "../public/assets"), staticAssetOptions));
-const cwdPublicAssets = path.resolve(process.cwd(), "my-fellow-api/public/assets");
-if (fs.existsSync(cwdPublicAssets)) {
-  app.use("/assets", express.static(cwdPublicAssets, staticAssetOptions));
+// Primary static assets from public/assets with fallback
+const candidateLocalPaths = [
+  path.join(process.cwd(), "public/assets"),
+  path.join(__dirname, "../public/assets"),
+  path.resolve(process.cwd(), "apps/api/public/assets"),
+  path.resolve(process.cwd(), "my-fellow-api/public/assets"),
+  path.join(process.cwd(), "public"),
+  path.join(__dirname, "../public"),
+  path.resolve(process.cwd(), "apps/api/public"),
+];
+
+const mountedAssetPaths = new Set<string>();
+for (const localPath of candidateLocalPaths) {
+  if (fs.existsSync(localPath) && !mountedAssetPaths.has(localPath)) {
+    mountedAssetPaths.add(localPath);
+    app.use("/assets", express.static(localPath, staticAssetOptions));
+  }
 }
 
-// Fallback static assets from mobile app (mobile/assets/images or my-fellow/assets/images)
-app.use("/assets", express.static(path.resolve(__dirname, "../../mobile/assets/images"), staticAssetOptions));
-app.use("/assets", express.static(path.resolve(process.cwd(), "../mobile/assets/images"), staticAssetOptions));
-app.use("/assets", express.static(path.resolve(process.cwd(), "apps/mobile/assets/images"), staticAssetOptions));
-app.use("/assets", express.static(path.resolve(__dirname, "../../my-fellow/assets/images"), staticAssetOptions));
-app.use("/assets", express.static(path.resolve(process.cwd(), "../my-fellow/assets/images"), staticAssetOptions));
-const rootMobileAssets = path.resolve(process.cwd(), "my-fellow/assets/images");
-if (fs.existsSync(rootMobileAssets)) {
-  app.use("/assets", express.static(rootMobileAssets, staticAssetOptions));
+// Optional fallback static assets from mobile app (only mounted if directory exists)
+const candidateMobilePaths = [
+  path.resolve(__dirname, "../../mobile/assets/images"),
+  path.resolve(process.cwd(), "../mobile/assets/images"),
+  path.resolve(process.cwd(), "apps/mobile/assets/images"),
+  path.resolve(__dirname, "../../my-fellow/assets/images"),
+  path.resolve(process.cwd(), "../my-fellow/assets/images"),
+  path.resolve(process.cwd(), "my-fellow/assets/images"),
+];
+
+for (const mobilePath of candidateMobilePaths) {
+  if (fs.existsSync(mobilePath) && !mountedAssetPaths.has(mobilePath)) {
+    mountedAssetPaths.add(mobilePath);
+    app.use("/assets", express.static(mobilePath, staticAssetOptions));
+  }
 }
 
 const customAuthPaths = [
@@ -88,12 +149,23 @@ const customAuthPaths = [
   "/api/auth/lookup-by-phone",
   "/api/auth/me",
   "/api/auth/profile",
+  "/api/auth/account",
   "/api/auth/update-phone",
   "/api/auth/change-password",
   "/api/auth/request-otp",
   "/api/auth/verify-otp",
   "/api/auth/reset-password",
 ];
+
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate-limit all auth endpoints BEFORE Better Auth handler
+app.use("/api/auth", authLimiter);
 
 // Mount Better Auth handler BEFORE body parsers for non-custom auth requests
 app.all(["/api/auth", "/api/auth/*splat"], (req: Request, res: Response, next: NextFunction) => {
@@ -113,13 +185,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       req.rawBody = buf;
     },
   })(req, res, next);
-});
-
-const authLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
 });
 
 const uploadLimiter = rateLimit({
@@ -178,14 +243,41 @@ const marketplaceLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use("/api/auth", authLimiter, authRoutes);
+const paymentsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
+const adminLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const rbacLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const v1Limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use("/api/auth", authRoutes);
 
 app.use("/api/upload", uploadLimiter, uploadRoutes);
 app.use("/api/events", eventsLimiter, eventsRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/rbac", rbacRoutes);
+app.use("/api/payments", paymentsLimiter, paymentRoutes);
+app.use("/api/admin", adminLimiter, adminRoutes);
+app.use("/api/rbac", rbacLimiter, rbacRoutes);
 app.use("/api/teams", teamLimiter, teamRoutes);
 app.use("/api/join-requests", joinRequestRoutes);
 app.use("/api/programs", programLimiter, programRoutes);
@@ -196,7 +288,7 @@ app.use("/api/marketplace", marketplaceLimiter, marketplaceRoutes);
 app.use("/api/support", supportRoutes);
 
 // 4K Social Platform v1 API
-app.use("/api/v1", v1Router);
+app.use("/api/v1", v1Limiter, v1Router);
 
 app.get("/health", (req, res) => {
   const dbReady = mongoose.connection.readyState === 1;

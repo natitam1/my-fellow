@@ -1,4 +1,5 @@
 import { Product, IProduct } from "../models/product.model.js";
+import { escapeRegex } from "../utils/regex.js";
 
 export class ProductService {
   static async getAll(page: number = 1, limit: number = 20, category?: string) {
@@ -6,7 +7,7 @@ export class ProductService {
     const filter: Record<string, any> = {};
 
     if (category && category !== "All") {
-      filter.category = new RegExp(`^${category}$`, "i");
+      filter.category = new RegExp(`^${escapeRegex(category)}$`, "i");
     }
 
     const [products, total] = await Promise.all([

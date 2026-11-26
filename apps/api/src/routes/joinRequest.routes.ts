@@ -20,7 +20,7 @@ router.post(
 router.get("/my", requireAuth, JoinRequestController.getMyRequests);
 
 // Admin routes
-router.get("/", requireAuth, requirePermission("members.view"), JoinRequestController.getAll);
+router.get("/", requireAuth, requirePermission("teams.manage"), JoinRequestController.getAll);
 
 router.patch(
   "/:requestId/status",

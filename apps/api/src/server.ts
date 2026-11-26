@@ -16,6 +16,15 @@ if (!MONGO_URI) {
   throw new Error("MONGO_URI is not defined in environment variables");
 }
 
+process.on("unhandledRejection", (reason: unknown) => {
+  console.error("[Server] Unhandled promise rejection:", reason);
+});
+
+process.on("uncaughtException", (err: Error) => {
+  console.error("[Server] Uncaught exception:", err);
+  process.exit(1);
+});
+
 Promise.all([
   mongoose.connect(MONGO_URI, {
     maxPoolSize: 50,

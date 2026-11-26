@@ -1,6 +1,7 @@
 import ProgramModel, { IProgram } from "../models/program.model.js";
 import { Program } from "../validators/program.validator.js";
 import { uploadImageToCloudinary } from "./cloudinary.service.js";
+import { escapeRegex } from "../utils/regex.js";
 
 export class ProgramService {
   static async create(
@@ -47,7 +48,7 @@ export class ProgramService {
       filter.category = query.category;
     }
     if (query.search) {
-      filter.title = { $regex: query.search, $options: "i" };
+      filter.title = new RegExp(escapeRegex(query.search), "i");
     }
 
     const programs = await ProgramModel.find(filter)

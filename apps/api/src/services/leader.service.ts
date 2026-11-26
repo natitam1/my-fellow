@@ -1,6 +1,7 @@
 import LeaderModel, { ILeader } from "../models/leader.model.js";
 import { Leader } from "../validators/leader.validator.js";
 import { uploadImageToCloudinary } from "./cloudinary.service.js";
+import { escapeRegex } from "../utils/regex.js";
 
 export class LeaderService {
   static async create(
@@ -43,7 +44,7 @@ export class LeaderService {
       filter.type = query.type;
     }
     if (query.search) {
-      filter.name = { $regex: query.search, $options: "i" };
+      filter.name = new RegExp(escapeRegex(query.search), "i");
     }
 
     const leaders = await LeaderModel.find(filter)

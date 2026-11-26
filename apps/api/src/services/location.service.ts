@@ -1,6 +1,7 @@
 import LocationModel, { ILocation } from "../models/location.model.js";
 import { Location } from "../validators/location.validator.js";
 import { uploadImageToCloudinary } from "./cloudinary.service.js";
+import { escapeRegex } from "../utils/regex.js";
 
 export class LocationService {
   static async create(
@@ -37,7 +38,7 @@ export class LocationService {
     const filter: Record<string, any> = { isDeleted: false };
 
     if (query.search) {
-      filter.name = { $regex: query.search, $options: "i" };
+      filter.name = new RegExp(escapeRegex(query.search), "i");
     }
 
     const locations = await LocationModel.find(filter)

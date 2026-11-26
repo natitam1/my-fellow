@@ -3,6 +3,7 @@ import { requireAuth, AuthRequest } from "../../middleware/auth.middleware.js";
 import { optionalAuth } from "../../platform/auth.js";
 import { hydratePosts } from "../posts/post.service.js";
 import { buildPaginatedResponse, decodeCursor } from "../../platform/pagination.js";
+import { escapeRegex } from "../../utils/regex.js";
 import {
   PostModel,
   FollowModel,
@@ -141,7 +142,7 @@ router.get(["/feed", "/feed/foryou", "/posts"], optionalAuth, async (req: AuthRe
     }
 
     if (tag) {
-      query.body = { $regex: new RegExp(`#${tag}\\b`, "i") };
+      query.body = { $regex: new RegExp(`#${escapeRegex(tag)}\\b`, "i") };
     }
 
     if (cursor) {

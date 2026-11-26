@@ -1,6 +1,7 @@
 import TeamModel from "../models/team.model.js";
 import { Team } from "../validators/team.validator.js";
 import { uploadImageToCloudinary } from "./cloudinary.service.js";
+import { escapeRegex } from "../utils/regex.js";
 
 export class TeamService {
   static async create(
@@ -73,7 +74,7 @@ export class TeamService {
       filter.category = query.category;
     }
     if (query.search) {
-      filter.name = { $regex: query.search, $options: "i" };
+      filter.name = new RegExp(escapeRegex(query.search), "i");
     }
 
     const teams = await TeamModel.find(filter).sort({ createdAt: -1 }).lean();

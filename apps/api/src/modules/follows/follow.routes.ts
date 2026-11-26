@@ -9,6 +9,7 @@ import {
 } from "../../platform/serializer.js";
 import { buildPaginatedResponse, decodeCursor } from "../../platform/pagination.js";
 import { routeParam } from "../../utils/routeParam.js";
+import { escapeRegex } from "../../utils/regex.js";
 import {
   ProfileModel,
   FollowModel,
@@ -80,6 +81,7 @@ router.get("/profiles/:username/followers", optionalAuth, async (req: AuthReques
   try {
     const rawUsername = routeParam(req.params.username);
     const cleanParam = rawUsername.replace(/^@/, "");
+    const escapedParam = escapeRegex(cleanParam);
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = decodeCursor(req.query.cursor as string);
     const viewerId = req.user?.sub;
@@ -88,7 +90,7 @@ router.get("/profiles/:username/followers", optionalAuth, async (req: AuthReques
     const profile = await ProfileModel.findOne({
       $or: [
         { userId: cleanParam },
-        { username: new RegExp(`^${cleanParam}$`, "i") },
+        { username: new RegExp(`^${escapedParam}$`, "i") },
       ],
     }).lean();
 
@@ -99,7 +101,7 @@ router.get("/profiles/:username/followers", optionalAuth, async (req: AuthReques
       const actor = await ActorModel.findOne({
         $or: [
           ...(isObjectId ? [{ _id: cleanParam }] : []),
-          { handle: new RegExp(`^${cleanParam}$`, "i") },
+          { handle: new RegExp(`^${escapedParam}$`, "i") },
         ],
         deletedAt: null,
       }).lean();
@@ -176,6 +178,7 @@ router.get("/profiles/:username/following", optionalAuth, async (req: AuthReques
   try {
     const rawUsername = routeParam(req.params.username);
     const cleanParam = rawUsername.replace(/^@/, "");
+    const escapedParam = escapeRegex(cleanParam);
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = decodeCursor(req.query.cursor as string);
     const viewerId = req.user?.sub;
@@ -184,7 +187,7 @@ router.get("/profiles/:username/following", optionalAuth, async (req: AuthReques
     const profile = await ProfileModel.findOne({
       $or: [
         { userId: cleanParam },
-        { username: new RegExp(`^${cleanParam}$`, "i") },
+        { username: new RegExp(`^${escapedParam}$`, "i") },
       ],
     }).lean();
 
@@ -195,7 +198,7 @@ router.get("/profiles/:username/following", optionalAuth, async (req: AuthReques
       const actor = await ActorModel.findOne({
         $or: [
           ...(isObjectId ? [{ _id: cleanParam }] : []),
-          { handle: new RegExp(`^${cleanParam}$`, "i") },
+          { handle: new RegExp(`^${escapedParam}$`, "i") },
         ],
         deletedAt: null,
       }).lean();
@@ -273,12 +276,13 @@ router.get("/profiles/:username/mutuals", requireAuth, async (req: AuthRequest, 
     const viewerId = req.user!.sub;
     const rawUsername = routeParam(req.params.username);
     const cleanParam = rawUsername.replace(/^@/, "");
+    const escapedParam = escapeRegex(cleanParam);
 
     let targetUserId: string | null = null;
     const profile = await ProfileModel.findOne({
       $or: [
         { userId: cleanParam },
-        { username: new RegExp(`^${cleanParam}$`, "i") },
+        { username: new RegExp(`^${escapedParam}$`, "i") },
       ],
     }).lean();
 
@@ -289,7 +293,7 @@ router.get("/profiles/:username/mutuals", requireAuth, async (req: AuthRequest, 
       const actor = await ActorModel.findOne({
         $or: [
           ...(isObjectId ? [{ _id: cleanParam }] : []),
-          { handle: new RegExp(`^${cleanParam}$`, "i") },
+          { handle: new RegExp(`^${escapedParam}$`, "i") },
         ],
         deletedAt: null,
       }).lean();

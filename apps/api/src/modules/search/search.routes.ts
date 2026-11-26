@@ -3,6 +3,7 @@ import { optionalAuth } from "../../platform/auth.js";
 import { AuthRequest } from "../../middleware/auth.middleware.js";
 import { serializeUserSummary } from "../../platform/serializer.js";
 import { hydratePosts } from "../posts/post.service.js";
+import { escapeRegex } from "../../utils/regex.js";
 import {
   ProfileModel,
   PostModel,
@@ -24,7 +25,7 @@ router.get("/search", optionalAuth, async (req: AuthRequest, res: Response, next
     }
 
     const cleanQ = q.startsWith("#") ? q.slice(1) : q;
-    const regex = new RegExp(cleanQ, "i");
+    const regex = new RegExp(escapeRegex(cleanQ), "i");
 
     const results: any = {};
 
@@ -79,7 +80,7 @@ router.get("/search", optionalAuth, async (req: AuthRequest, res: Response, next
     // Search Tags
     if (type === "all" || type === "tags") {
       const tags = await HashtagModel.find({
-        tag: new RegExp(cleanQ.toLowerCase(), "i"),
+        tag: new RegExp(escapeRegex(cleanQ.toLowerCase()), "i"),
       })
         .limit(15)
         .lean();
@@ -128,7 +129,7 @@ router.get("/search/suggest", async (req, res: Response, next) => {
     }
 
     const cleanQ = q.startsWith("#") ? q.slice(1).toLowerCase() : q.toLowerCase();
-    const regex = new RegExp(cleanQ, "i");
+    const regex = new RegExp(escapeRegex(cleanQ), "i");
 
     const [users, tags] = await Promise.all([
       ProfileModel.find({

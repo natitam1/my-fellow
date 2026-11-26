@@ -14,6 +14,23 @@ router.post(
   EventsController.createEvent,
 );
 router.get("/", optionalAuth, EventsController.getAllEvents);
+router.get(
+  "/registrations",
+  requireAuth,
+  requirePermission("reports.view"),
+  EventsController.getAllRegistrations,
+);
+router.get(
+  "/registrations/:eventId",
+  requireAuth,
+  requirePermission("reports.view"),
+  EventsController.getRegistrationsByEvent,
+);
+router.get(
+  "/registration-status/:eventId",
+  requireAuth,
+  EventsController.checkRegistrationStatus,
+);
 router.get("/:id", optionalAuth, EventsController.getEventById);
 router.patch(
   "/:id/publish",
@@ -38,22 +55,5 @@ router.post(
 );
 router.post("/register", requireAuth, EventsController.registerForEvent);
 router.post("/unregister", requireAuth, EventsController.unregisterFromEvent);
-router.get(
-  "/registrations",
-  requireAuth,
-  requirePermission("reports.view"),
-  EventsController.getAllRegistrations,
-);
-router.get(
-  "/registrations/:eventId",
-  requireAuth,
-  requirePermission("reports.view"),
-  EventsController.getRegistrationsByEvent,
-);
-router.get(
-  "/registration-status/:eventId",
-  requireAuth,
-  EventsController.checkRegistrationStatus,
-);
 
 export default router;
