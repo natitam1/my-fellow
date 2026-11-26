@@ -4,7 +4,13 @@ const TOKEN_KEY = "admin_token";
 const USER_KEY = "admin_user";
 
 export const setToken = (token: string) => {
-  Cookies.set(TOKEN_KEY, token, { expires: 7, path: "/" });
+  Cookies.set(TOKEN_KEY, token, {
+    expires: 7,
+    path: "/",
+    sameSite: "lax",
+    secure:
+      typeof window !== "undefined" && window.location.protocol === "https:",
+  });
 };
 
 export const getToken = () => {
@@ -12,12 +18,16 @@ export const getToken = () => {
 };
 
 export const removeToken = () => {
-  Cookies.remove(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+  Cookies.remove(TOKEN_KEY, { path: "/" });
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(USER_KEY);
+  }
 };
 
-export const setUser = (user: any) => {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+export const setUser = (user: unknown) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
 };
 
 export const getUser = () => {

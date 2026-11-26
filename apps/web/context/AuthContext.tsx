@@ -1,18 +1,27 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { api, getToken, setToken, removeToken } from "@/lib/api";
 
 export interface User {
   id: string;
   _id?: string;
   fullName: string;
+  name?: string;
   phoneNumber: string;
   email?: string;
   role: "super_admin" | "admin" | "leader" | "editor" | "member";
   team?: string;
   department?: string;
   yearOfStudy?: string;
+  year?: string;
   profileImage?: string;
   bio?: string;
   telegramUserName?: string;
@@ -25,11 +34,13 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  login: (phoneNumber: string, password: string) => Promise<any>;
   loginWithPassword: (phoneNumber: string, password: string) => Promise<any>;
   sendPhoneOtp: (phoneNumber: string) => Promise<any>;
   verifyPhoneOtp: (phoneNumber: string, code: string) => Promise<{ isNewUser?: boolean; user: User }>;
   logout: () => void;
   updateProfile: (data: Partial<User> | FormData) => Promise<User>;
+  updateUser: (data: Partial<User> | FormData) => Promise<User>;
   refreshUser: () => Promise<User | null>;
 }
 
@@ -40,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshUser = async (): Promise<User | null> => {
+  const refreshUser = useCallback(async (): Promise<User | null> => {
     try {
       const activeToken = getToken();
       if (!activeToken) {
@@ -65,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -79,9 +90,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     refreshUser();
-  }, []);
+  }, [refreshUser]);
 
-  const loginWithPassword = async (phoneNumber: string, password: string) => {
+  const loginWithPassword = useCallback(async (phoneNumber: string, password: string) => {
     const res = await api.post("/auth/signin", { phoneNumber, password });
     const data = res.data.data || res.data;
     const authToken = data.token;
@@ -93,14 +104,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("fellow_user", JSON.stringify(authUser));
     }
     return data;
-  };
+  }, []);
 
-  const sendPhoneOtp = async (phoneNumber: string) => {
+  const login = loginWithPassword;
+
+  const sendPhoneOtp = useCallback(async (phoneNumber: string) => {
     const res = await api.post("/auth/phone/send-otp", { phoneNumber });
     return res.data;
-  };
+  }, []);
 
-  const verifyPhoneOtp = async (phoneNumber: string, code: string) => {
+  const verifyPhoneOtp = useCallback(async (phoneNumber: string, code: string) => {
     const res = await api.post("/auth/phone/verify-otp", { phoneNumber, code });
     const data = res.data.data || res.data;
     const authToken = data.token;
@@ -112,15 +125,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("fellow_user", JSON.stringify(authUser));
     }
     return { isNewUser: data.isNewUser, user: authUser };
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     removeToken();
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("admin_demo_session");
+      localStorage.removeItem("admin_demo_mode");
+      localStorage.removeItem("fellow_user");
+      localStorage.removeItem("admin_user");
+      localStorage.removeItem("token");
+    }
     setUser(null);
     setTokenState(null);
-  };
+  }, []);
 
-  const updateProfile = async (data: Partial<User> | FormData): Promise<User> => {
+  const updateProfile = useCallback(async (data: Partial<User> | FormData): Promise<User> => {
     let res;
     try {
       res = await api.patch("/auth/profile", data);
@@ -133,26 +153,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("fellow_user", JSON.stringify(updated));
     }
     return updated;
-  };
+  }, []);
 
+  const updateUser = updateProfile;
+
+  const isAuthenticated = !!user;
   const isAdmin = !!(user && (user.role === "admin" || user.role === "super_admin" || user.role === "leader"));
 
+  const contextValue = useMemo(
+    () => ({
+      user,
+      token,
+      isAuthenticated,
+      isLoading,
+      isAdmin,
+      login,
+      loginWithPassword,
+      sendPhoneOtp,
+      verifyPhoneOtp,
+      logout,
+      refreshUser,
+      updateProfile,
+      updateUser,
+    }),
+    [
+      user,
+      token,
+      isAuthenticated,
+      isLoading,
+      isAdmin,
+      login,
+      loginWithPassword,
+      sendPhoneOtp,
+      verifyPhoneOtp,
+      logout,
+      refreshUser,
+      updateProfile,
+      updateUser,
+    ],
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isLoading,
-        isAuthenticated: !!user,
-        isAdmin,
-        loginWithPassword,
-        sendPhoneOtp,
-        verifyPhoneOtp,
-        logout,
-        updateProfile,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

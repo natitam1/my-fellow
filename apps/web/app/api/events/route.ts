@@ -1,46 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-import { INITIAL_EVENTS, isEventPast, isEventUpcoming } from "@/lib/events-data";
+import { getBackendApiUrl } from "@/lib/server/backendUrl";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status"); // upcoming | past | all
-  const team = searchParams.get("team");
-  const category = searchParams.get("category");
-  const search = searchParams.get("search")?.toLowerCase().trim();
+  const apiUrl = getBackendApiUrl();
 
-  let results = [...INITIAL_EVENTS];
-
-  if (status === "upcoming") {
-    results = results.filter((e) => !isEventPast(e.endDate));
-  } else if (status === "past") {
-    results = results.filter((e) => isEventPast(e.endDate));
-  }
-
-  if (team && team !== "all") {
-    results = results.filter(
-      (e) => e.team.toLowerCase() === team.toLowerCase()
-    );
-  }
-
-  if (category && category !== "all") {
-    results = results.filter(
-      (e) => e.category.toLowerCase() === category.toLowerCase()
-    );
-  }
-
-  if (search) {
-    results = results.filter(
-      (e) =>
-        e.title.toLowerCase().includes(search) ||
-        e.shortDescription.toLowerCase().includes(search) ||
-        e.location.name.toLowerCase().includes(search) ||
-        e.speakers.some((s) => s.name.toLowerCase().includes(search))
-    );
-  }
-
-  return NextResponse.json({
-    success: true,
-    total: results.length,
-    data: results,
+  const backendUrl = new URL(`${apiUrl}/events`);
+  searchParams.forEach((value, key) => {
+    backendUrl.searchParams.set(key, value);
   });
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+  const authHeader =
+    req.headers.get("authorization") || req.headers.get("Authorization");
+  if (authHeader) {
+    headers.Authorization = authHeader;
+  }
+
+  try {
+    const res = await fetch(backendUrl.toString(), {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    });
+
+    const data: unknown = await res.json().catch(() => null);
+    if (data !== null) {
+      return NextResponse.json(data, { status: res.status });
+    }
+
+    return NextResponse.json(
+      {
+        success: res.ok,
+        message: res.ok ? "Events retrieved." : "Failed to load events.",
+      },
+      { status: res.status },
+    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Unable to reach events service.";
+    return NextResponse.json(
+      { success: false, message },
+      { status: 502 },
+    );
+  }
 }

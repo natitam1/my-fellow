@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export type GivingCampaign =
+  | "campus_ministry"
+  | "freshmen_welcome"
+  | "charity_fund"
+  | "media_equipment"
+  | "tithe"
+  | "general_offering"
+  | "needy_students"
+  | "conference_support"
+  | string;
+
+export type GivingPaymentMethod = "chapa" | "telebirr" | "cbe_birr" | "bank_transfer";
+
 export interface PaymentInitPayload {
   amount: number;
-  category: "tithe" | "general_offering" | "needy_students" | "conference_support" | string;
+  category: GivingCampaign;
   categoryTitle?: string;
-  paymentMethod: "telebirr" | "cbe_birr" | "bank_transfer";
+  paymentMethod: GivingPaymentMethod;
   phoneNumber: string;
   fullName?: string;
   email?: string;
@@ -72,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     if (!phoneNumber || typeof phoneNumber !== "string" || phoneNumber.trim().length < 9) {
       return NextResponse.json(
-        { success: false, message: "A valid phone number is required for transaction auditing." },
+        { success: false, message: "A valid Ethiopian phone number is required for transaction auditing." },
         { status: 400 },
       );
     }
@@ -84,19 +97,28 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const dateCode = now.toISOString().slice(2, 10).replace(/-/g, "");
     const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const categoryPrefix =
-      category === "tithe"
-        ? "TTH"
-        : category === "needy_students"
-          ? "NDY"
-          : category === "conference_support"
-            ? "CNF"
-            : "GIV";
 
-    const txRef = `MYF-${categoryPrefix}-${dateCode}-${randomHex}`;
+    const categoryPrefixMap: Record<string, string> = {
+      campus_ministry: "CMP",
+      freshmen_welcome: "FRW",
+      charity_fund: "CHR",
+      media_equipment: "MED",
+      tithe: "TTH",
+      general_offering: "OFF",
+      needy_students: "NDY",
+      conference_support: "CNF",
+    };
+    const categoryPrefix = categoryPrefixMap[category] || "GIV";
+    const methodPrefix = paymentMethod === "chapa" ? "CHP" : paymentMethod === "telebirr" ? "TLB" : paymentMethod === "cbe_birr" ? "CBE" : "BNK";
 
-    // Category display resolution
-    const categoryLabels: Record<string, string> = {
+    const txRef = `MYF-${methodPrefix}-${categoryPrefix}-${dateCode}-${randomHex}`;
+
+    // Campaign display resolution
+    const campaignLabels: Record<string, string> = {
+      campus_ministry: "Campus Ministry & Discipleship",
+      freshmen_welcome: "Freshmen Welcome & Campus Orientation",
+      charity_fund: "Charity & Needy Students Welfare Fund",
+      media_equipment: "Fellowship Media & Technical Equipment",
       tithe: "Tithe (10% Dedicated Offering)",
       general_offering: "General Fellowship Offering",
       needy_students: "Charity & Needy Students Fund",
@@ -104,11 +126,15 @@ export async function POST(req: NextRequest) {
     };
 
     const resolvedCategoryTitle =
-      categoryTitle || categoryLabels[category] || "Fellowship Contribution";
+      categoryTitle || campaignLabels[category] || "Fellowship Contribution";
 
     const giverDisplayName = isAnonymous
       ? "Anonymous Fellowship Member"
       : fullName?.trim() || "Fellowship Member";
+
+    const nameParts = giverDisplayName.split(" ");
+    const firstName = nameParts[0] || "Fellowship";
+    const lastName = nameParts.slice(1).join(" ") || "Member";
 
     // Build receipt object
     const receipt = {
@@ -130,11 +156,60 @@ export async function POST(req: NextRequest) {
         "100% of received funds are audited by the AAU 4 Kilo Christian Students Fellowship Executive Body.",
     };
 
-    // If payment method is Telebirr or CBE Birr and upstream Jami or API credentials exist
     let checkoutUrl: string | null = null;
-    const jamiSecret = process.env.JAMI_SECRET_KEY || process.env.JAMI_API_KEY;
 
-    if (jamiSecret && (paymentMethod === "telebirr" || paymentMethod === "cbe_birr")) {
+    // 1. CHAPA PAYMENT INITIATION
+    if (paymentMethod === "chapa") {
+      const chapaKey = process.env.CHAPA_SECRET_KEY || process.env.CHAPA_API_KEY;
+
+      if (chapaKey) {
+        try {
+          const chapaRes = await fetch("https://api.chapa.co/v1/transaction/initialize", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${chapaKey}`,
+            },
+            body: JSON.stringify({
+              amount: amount.toString(),
+              currency: "ETB",
+              email: email || "giving@4kilofellowship.org",
+              first_name: firstName,
+              last_name: lastName,
+              phone_number: cleanPhone,
+              tx_ref: txRef,
+              callback_url: `${req.nextUrl.origin}/api/payments/chapa-callback`,
+              return_url: `${req.nextUrl.origin}/givings?payment=success&tx_ref=${txRef}&amount=${amount}`,
+              customization: {
+                title: "4 Kilo Fellowship Giving",
+                description: `Contribution for ${resolvedCategoryTitle}`,
+              },
+            }),
+          });
+
+          if (chapaRes.ok) {
+            const chapaData = await chapaRes.json();
+            if (chapaData?.data?.checkout_url) {
+              checkoutUrl = chapaData.data.checkout_url;
+            }
+          } else {
+            const errBody = await chapaRes.text();
+            console.warn("Chapa upstream initialization warning:", errBody);
+          }
+        } catch (upstreamErr) {
+          console.warn("Chapa initialization network error, using local verified receipt:", upstreamErr);
+        }
+      }
+
+      // If no live Chapa key is configured or offline development, provide simulated checkout URL
+      if (!checkoutUrl) {
+        checkoutUrl = `${req.nextUrl.origin}/givings?simulated_checkout=chapa&tx_ref=${txRef}&amount=${amount}&campaign=${encodeURIComponent(resolvedCategoryTitle)}`;
+      }
+    }
+
+    // 2. JAMI / TELEBIRR / CBE BIRR UPSTREAM FALLBACK
+    const jamiSecret = process.env.JAMI_SECRET_KEY || process.env.JAMI_API_KEY;
+    if (!checkoutUrl && jamiSecret && (paymentMethod === "telebirr" || paymentMethod === "cbe_birr")) {
       try {
         const jamiRes = await fetch("https://api.jami.bio/v1/checkouts", {
           method: "POST",
@@ -148,7 +223,7 @@ export async function POST(req: NextRequest) {
             phone: cleanPhone,
             email: email || "giving@4kilofellowship.org",
             reason: `Fellowship Giving: ${resolvedCategoryTitle} (${txRef})`,
-            returnUrl: `${req.nextUrl.origin}/payment-success?reference=${txRef}&amount=${amount}`,
+            returnUrl: `${req.nextUrl.origin}/givings?payment=success&reference=${txRef}&amount=${amount}`,
             metadata: {
               txRef,
               category,

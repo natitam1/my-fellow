@@ -1,11 +1,12 @@
 import axios from "axios";
 import { getToken, setToken, removeToken } from "./auth";
 
-const API_URL: string =
-  process.env.NEXT_PUBLIC_API_URL || "https://my-fellow-api.onrender.com/api";
+export const API_BASE_URL: string = (
+  process.env.NEXT_PUBLIC_API_URL || "https://my-fellow-api.onrender.com/api"
+).replace(/\/+$/, "");
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -36,11 +37,12 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       removeToken();
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/signin"
-      ) {
-        window.location.href = "/signin";
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("fellow_user");
+        if (window.location.pathname !== "/signin") {
+          window.location.href = "/signin";
+        }
       }
     }
     return Promise.reject(error);

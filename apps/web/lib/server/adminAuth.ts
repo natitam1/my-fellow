@@ -1,3 +1,4 @@
+import { getBackendApiUrl } from "./backendUrl";
 import { NextRequest } from "next/server";
 
 export function getBearerToken(req: NextRequest) {
@@ -18,10 +19,7 @@ export async function requireAuth(req: NextRequest) {
     };
   }
 
-  const apiUrl =
-    process.env.API_BASE_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "https://my-fellow-api.onrender.com/api";
+  const apiUrl = getBackendApiUrl();
   try {
     const response = await fetch(`${apiUrl}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },

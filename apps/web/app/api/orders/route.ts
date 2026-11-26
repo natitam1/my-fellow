@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendApiUrl } from "@/lib/server/backendUrl";
 
 export interface OrderItemInput {
   productId: string;
@@ -19,79 +20,124 @@ export interface CreateOrderPayload {
   notes?: string;
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body: CreateOrderPayload = await req.json();
+function getAuthHeader(req: NextRequest): string | null {
+  return (
+    req.headers.get("authorization") || req.headers.get("Authorization") || null
+  );
+}
 
-    const { items, customerName, phoneNumber, campusLocation, paymentMethod, notes } = body;
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { success: false, message: "At least one product item is required to place an order." },
-        { status: 400 },
-      );
-    }
-
-    if (!customerName || customerName.trim().length < 2) {
-      return NextResponse.json(
-        { success: false, message: "Please provide your full name for order pickup verification." },
-        { status: 400 },
-      );
-    }
-
-    if (!phoneNumber || phoneNumber.trim().length < 9) {
-      return NextResponse.json(
-        { success: false, message: "Please provide a valid Ethiopian phone number for order updates." },
-        { status: 400 },
-      );
-    }
-
-    if (!campusLocation || campusLocation.trim().length < 2) {
-      return NextResponse.json(
-        { success: false, message: "Please specify your pickup location on AAU 4 Kilo Campus or city." },
-        { status: 400 },
-      );
-    }
-
-    const totalAmount = items.reduce(
-      (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
-      0,
+export async function GET(req: NextRequest) {
+  const authHeader = getAuthHeader(req);
+  if (!authHeader) {
+    return NextResponse.json(
+      { success: false, message: "Authentication required to view orders." },
+      { status: 401 },
     );
+  }
 
-    const now = new Date();
-    const dateCode = now.toISOString().slice(2, 10).replace(/-/g, "");
-    const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const orderNumber = `MYF-ORD-${dateCode}-${randomHex}`;
+  const apiUrl = getBackendApiUrl();
 
-    const orderRecord = {
-      orderNumber,
-      customerName: customerName.trim(),
-      phoneNumber: phoneNumber.trim(),
-      campusLocation: campusLocation.trim(),
-      paymentMethod,
-      items,
-      totalAmount,
-      currency: "ETB",
-      status: "CONFIRMED_PENDING_PICKUP",
-      createdAt: now.toISOString(),
-      pickupLocation: "AAU 4 Kilo Campus, Student Union Building (ECSF Fellowship Office Room 12)",
-      pickupHours: "Daily 12:30 PM - 2:00 PM & Sundays 11:30 AM - 1:00 PM",
-      notes: notes?.trim() || null,
-    };
-
-    return NextResponse.json({
-      success: true,
-      message: "Order placed successfully! We will prepare your fellowship resources.",
-      order: orderRecord,
+  try {
+    const res = await fetch(`${apiUrl}/marketplace/orders/my`, {
+      method: "GET",
+      headers: {
+        Authorization: authHeader,
+        Accept: "application/json",
+      },
+      cache: "no-store",
     });
-  } catch (error: any) {
-    console.error("Error creating store order:", error);
+
+    const data: unknown = await res.json().catch(() => null);
+    if (data !== null) {
+      return NextResponse.json(data, { status: res.status });
+    }
+
+    return NextResponse.json(
+      {
+        success: res.ok,
+        message: res.ok
+          ? "Orders retrieved."
+          : "Failed to retrieve orders from backend.",
+      },
+      { status: res.status },
+    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to reach orders service.";
+    return NextResponse.json(
+      { success: false, message },
+      { status: 502 },
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const authHeader = getAuthHeader(req);
+  if (!authHeader) {
+    return NextResponse.json(
+      { success: false, message: "Authentication required to place an order." },
+      { status: 401 },
+    );
+  }
+
+  let body: Partial<CreateOrderPayload>;
+  try {
+    body = (await req.json()) as Partial<CreateOrderPayload>;
+  } catch {
+    return NextResponse.json(
+      { success: false, message: "Invalid JSON request body." },
+      { status: 400 },
+    );
+  }
+
+  if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
     return NextResponse.json(
       {
         success: false,
-        message: error?.message || "Internal server error occurred while processing your order.",
+        message: "At least one product item is required to place an order.",
       },
-      { status: 500 },
+      { status: 400 },
+    );
+  }
+
+  const apiUrl = getBackendApiUrl();
+
+  try {
+    const res = await fetch(`${apiUrl}/marketplace/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: authHeader,
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+
+    const data: unknown = await res.json().catch(() => null);
+    if (data !== null) {
+      return NextResponse.json(data, { status: res.status });
+    }
+
+    return NextResponse.json(
+      {
+        success: res.ok,
+        message: res.ok
+          ? "Order created."
+          : "Failed to create order on backend.",
+      },
+      { status: res.status },
+    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to reach orders service.";
+    return NextResponse.json(
+      { success: false, message },
+      { status: 502 },
     );
   }
 }

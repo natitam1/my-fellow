@@ -1,121 +1,127 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getEventById,
-  IN_MEMORY_REGISTRATIONS,
-  RegistrationTicket,
-} from "@/lib/events-data";
+import { getBackendApiUrl } from "@/lib/server/backendUrl";
+
+function getAuthHeader(req: NextRequest): string | null {
+  return (
+    req.headers.get("authorization") || req.headers.get("Authorization") || null
+  );
+}
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json().catch(() => ({}));
-    const { eventId, fullName, phoneNumber, team, department, notes } = body;
-
-    if (!eventId) {
-      return NextResponse.json(
-        { success: false, message: "Event ID is required" },
-        { status: 400 }
-      );
-    }
-
-    const event = getEventById(eventId);
-    if (!event) {
-      return NextResponse.json(
-        { success: false, message: "Event not found" },
-        { status: 404 }
-      );
-    }
-
-    if (!fullName || typeof fullName !== "string" || !fullName.trim()) {
-      return NextResponse.json(
-        { success: false, message: "Full Name is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!phoneNumber || typeof phoneNumber !== "string" || !phoneNumber.trim()) {
-      return NextResponse.json(
-        { success: false, message: "Phone number is required" },
-        { status: 400 }
-      );
-    }
-
-    // Capacity verification
-    if (
-      event.registrationLimit &&
-      event.registrationsCount >= event.registrationLimit
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Registration is closed. All seats for this event are fully booked.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const regId = `reg-${Date.now().toString(36)}-${Math.random()
-      .toString(36)
-      .substring(2, 6)}`;
-    const ticketCode = `ECSF-${Math.random()
-      .toString(36)
-      .substring(2, 8)
-      .toUpperCase()}`;
-
-    const newTicket: RegistrationTicket = {
-      ticketNumber: ticketCode,
-      registrationId: regId,
-      eventId: event.id,
-      eventTitle: event.title,
-      startDate: event.startDate,
-      endDate: event.endDate,
-      locationName: event.location.name,
-      room: event.location.room,
-      fullName: fullName.trim(),
-      phoneNumber: phoneNumber.trim(),
-      teamOrDepartment: team || department || "General Fellowship Member",
-      registeredAt: new Date().toISOString(),
-      status: "confirmed",
-      qrCodeValue: `ECSF-REG:${event.id}:${ticketCode}:${encodeURIComponent(
-        fullName.trim()
-      )}`,
-      checkInCode: ticketCode,
-    };
-
-    event.registrationsCount += 1;
-    IN_MEMORY_REGISTRATIONS.unshift(newTicket);
-
+  const authHeader = getAuthHeader(req);
+  if (!authHeader) {
     return NextResponse.json(
-      {
-        success: true,
-        message: "Registration confirmed successfully!",
-        data: newTicket,
-      },
-      { status: 201 }
+      { success: false, message: "Authentication required to register." },
+      { status: 401 },
     );
-  } catch (error: any) {
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await req.json()) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json(
+      { success: false, message: "Invalid JSON request body." },
+      { status: 400 },
+    );
+  }
+
+  if (!body.eventId || typeof body.eventId !== "string") {
+    return NextResponse.json(
+      { success: false, message: "Event ID is required" },
+      { status: 400 },
+    );
+  }
+
+  const apiUrl = getBackendApiUrl();
+
+  try {
+    const res = await fetch(`${apiUrl}/events/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: authHeader,
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+
+    const data: unknown = await res.json().catch(() => null);
+    if (data !== null) {
+      return NextResponse.json(data, { status: res.status });
+    }
+
     return NextResponse.json(
       {
-        success: false,
-        message: error.message || "Failed to process registration",
+        success: res.ok,
+        message: res.ok
+          ? "Registration processed."
+          : "Failed to process registration.",
       },
-      { status: 500 }
+      { status: res.status },
+    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to reach registration service.";
+    return NextResponse.json(
+      { success: false, message },
+      { status: 502 },
     );
   }
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const eventId = searchParams.get("eventId");
-
-  let list = IN_MEMORY_REGISTRATIONS;
-  if (eventId) {
-    list = list.filter((r) => r.eventId === eventId);
+  const authHeader = getAuthHeader(req);
+  if (!authHeader) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
-  return NextResponse.json({
-    success: true,
-    total: list.length,
-    data: list,
-  });
+  const { searchParams } = new URL(req.url);
+  const eventId = searchParams.get("eventId");
+  const apiUrl = getBackendApiUrl();
+
+  const targetUrl = eventId
+    ? `${apiUrl}/events/registrations/${encodeURIComponent(eventId)}`
+    : `${apiUrl}/events/registrations`;
+
+  try {
+    const res = await fetch(targetUrl, {
+      method: "GET",
+      headers: {
+        Authorization: authHeader,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    const data: unknown = await res.json().catch(() => null);
+    if (data !== null) {
+      return NextResponse.json(data, { status: res.status });
+    }
+
+    return NextResponse.json(
+      {
+        success: res.ok,
+        message: res.ok
+          ? "Registrations retrieved."
+          : "Failed to retrieve registrations.",
+      },
+      { status: res.status },
+    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to reach registration service.";
+    return NextResponse.json(
+      { success: false, message },
+      { status: 502 },
+    );
+  }
 }

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendApiUrl } from "@/lib/server/backendUrl";
 
-const apiUrl =
-  process.env.API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://my-fellow-api.onrender.com/api";
+const apiUrl = getBackendApiUrl();
 
 // Simple in-memory fallback store for requests made during session
 const localRequests: any[] = [];

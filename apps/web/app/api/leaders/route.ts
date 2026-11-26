@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FELLOWSHIP_LEADERS } from "@/lib/directory-data";
+import { getBackendApiUrl } from "@/lib/server/backendUrl";
 
-const apiUrl =
-  process.env.API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://my-fellow-api.onrender.com/api";
+const apiUrl = getBackendApiUrl();
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

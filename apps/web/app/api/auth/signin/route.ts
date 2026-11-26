@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendApiUrl } from "@/lib/server/backendUrl";
 
 export async function POST(req: NextRequest) {
-  const apiUrl =
-    process.env.API_BASE_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "https://my-fellow-api.onrender.com/api";
+  const apiUrl = getBackendApiUrl();
   const response = await fetch(`${apiUrl}/auth/signin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -1,39 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
-import { INITIAL_PROGRAMS, DayOfWeek } from "@/lib/programs-data";
+import { getBackendApiUrl } from "@/lib/server/backendUrl";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const day = searchParams.get("day");
-  const category = searchParams.get("category");
-  const search = searchParams.get("search")?.toLowerCase().trim();
+  const apiUrl = getBackendApiUrl();
 
-  let results = [...INITIAL_PROGRAMS];
-
-  if (day && day !== "all") {
-    results = results.filter(
-      (p) => p.day.toLowerCase() === day.toLowerCase()
-    );
-  }
-
-  if (category && category !== "all") {
-    results = results.filter(
-      (p) => p.category.toLowerCase() === category.toLowerCase()
-    );
-  }
-
-  if (search) {
-    results = results.filter(
-      (p) =>
-        p.title.toLowerCase().includes(search) ||
-        p.description.toLowerCase().includes(search) ||
-        p.location.name.toLowerCase().includes(search) ||
-        p.leader.name.toLowerCase().includes(search)
-    );
-  }
-
-  return NextResponse.json({
-    success: true,
-    total: results.length,
-    data: results,
+  const backendUrl = new URL(`${apiUrl}/programs`);
+  searchParams.forEach((value, key) => {
+    backendUrl.searchParams.set(key, value);
   });
+
+  try {
+    const res = await fetch(backendUrl.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    const data: unknown = await res.json().catch(() => null);
+    if (data !== null) {
+      return NextResponse.json(data, { status: res.status });
+    }
+
+    return NextResponse.json(
+      {
+        success: res.ok,
+        message: res.ok ? "Programs retrieved." : "Failed to load programs.",
+      },
+      { status: res.status },
+    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to reach programs service.";
+    return NextResponse.json(
+      { success: false, message },
+      { status: 502 },
+    );
+  }
 }
