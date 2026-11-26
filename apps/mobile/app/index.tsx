@@ -9,10 +9,11 @@ export default function Index() {
   const hasCompletedOnboarding = useAppStore(
     (state) => state.hasCompletedOnboarding,
   );
+  const hasAppHydrated = useAppStore((state) => state._hasHydrated);
   const user = useUserStore((state) => state.user);
-  const hasHydrated = useUserStore((state) => state._hasHydrated);
+  const hasUserHydrated = useUserStore((state) => state._hasHydrated);
 
-  if (authState.authenticated === null || !hasHydrated) {
+  if (authState.authenticated === null || !hasUserHydrated || !hasAppHydrated) {
     return null;
   }
 

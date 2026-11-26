@@ -5,6 +5,13 @@ import {
   setupReactQueryAppStateListener,
 } from "@/queries/queryClient";
 import { useAppStore } from "@/stores/app.store";
+import {
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_900Black,
+} from "@expo-google-fonts/poppins";
 import { Ionicons } from "@expo/vector-icons";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { setAudioModeAsync } from "expo-audio";
@@ -21,6 +28,32 @@ import { NativeDialogProvider } from "@/context/native-dialog-context";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { useNotificationObserver } from "@/notifications";
 import "./global.css";
+
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  const friendlyMessage = __DEV__
+    ? error.message || "An unexpected error occurred."
+    : "We ran into an unexpected issue. Please try again.";
+
+  return (
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "#09090b" }}>
+      <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "bold", marginBottom: 8 }}>
+        Something went wrong
+      </Text>
+      <Text style={{ color: "#a1a1aa", fontSize: 14, textAlign: "center", marginBottom: 20 }}>
+        {friendlyMessage}
+      </Text>
+      <TouchableOpacity
+        onPress={retry}
+        accessibilityRole="button"
+        accessibilityLabel="Try again"
+        accessibilityHint="Retries loading the screen"
+        style={{ backgroundColor: "#ff6719", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 9999 }}
+      >
+        <Text style={{ color: "#ffffff", fontWeight: "bold" }}>Try Again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 SplashScreen.preventAutoHideAsync();
 
@@ -163,6 +196,22 @@ function RootNavigator() {
           animation: "default",
         }}
       />
+      <Stack.Screen
+        name="community/compose"
+        options={{ presentation: "modal", headerShown: false }}
+      />
+      <Stack.Screen
+        name="community/[id]"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="videos/index"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="videos/manage"
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="events/manage" options={{ title: "Manage Event", headerShown: false }} />
       <Stack.Screen name="events/ai-poster" options={{ title: "AI Poster", headerShown: false }} />
       <Stack.Screen name="programs/manage" options={{ title: "Manage Program", headerShown: false }} />
@@ -233,6 +282,11 @@ function RootNavigator() {
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     ...Ionicons.font,
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_900Black,
   });
   const [hasHydrated, setHasHydrated] = useState(
     useAppStore.persist.hasHydrated(),

@@ -1,8 +1,20 @@
+import NetInfo from "@react-native-community/netinfo";
 import {
   focusManager,
+  onlineManager,
   QueryClient,
 } from "@tanstack/react-query";
 import { AppState, AppStateStatus, Platform } from "react-native";
+
+if (Platform.OS !== "web") {
+  onlineManager.setEventListener((setOnline) => {
+    return NetInfo.addEventListener((state) => {
+      setOnline(
+        Boolean(state.isConnected && state.isInternetReachable !== false),
+      );
+    });
+  });
+}
 
 export function onAppStateChange(status: AppStateStatus): void {
   if (Platform.OS !== "web") {

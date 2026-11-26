@@ -1,7 +1,46 @@
 import { API_URL } from "@/constants";
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+} from "axios";
 import type { File as ExpoFileType } from "expo-file-system";
 import * as SecureStore from "expo-secure-store";
+
+const DEFAULT_API_TIMEOUT_MS = 20_000;
+const UPLOAD_TIMEOUT_MS = 30_000;
+
+type UnauthorizedListener = () => void;
+const unauthorizedListeners = new Set<UnauthorizedListener>();
+
+/**
+ * Registers a global listener invoked when a non-auth API request returns HTTP 401.
+ * Returns an unsubscribe function.
+ */
+export function onUnauthorized(listener: UnauthorizedListener): () => void {
+  unauthorizedListeners.add(listener);
+  return () => {
+    unauthorizedListeners.delete(listener);
+  };
+}
+
+function isAuthEndpoint(url?: string): boolean {
+  if (!url) return false;
+  return /\/auth\/(signin|login|signup|register|phone\/|otp|request-otp|verify-otp|reset-password|sign-in|sign-up)/i.test(
+    url,
+  );
+}
+
+function notifyUnauthorized(url?: string): void {
+  if (isAuthEndpoint(url)) return;
+  unauthorizedListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch {
+      // Ignore listener errors to avoid disrupting response handling
+    }
+  });
+}
 
 /**
  * Decodes a base64 string into a Uint8Array without external dependencies.
@@ -170,11 +209,31 @@ const reactNativeFetchAdapter = async (
       ? prepareFormDataForExpoFetch(config.data as FormData)
       : config.data;
 
-  const res = await fetch(url, {
-    method: config.method?.toUpperCase() || "POST",
-    headers,
-    body: body as any,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: config.method?.toUpperCase() || "POST",
+      headers,
+      body: body as any,
+      signal: controller.signal,
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      const timeoutError = new Error(
+        `Request timed out after ${UPLOAD_TIMEOUT_MS}ms`,
+      ) as Error & { code?: string; isAxiosError?: boolean; config?: InternalAxiosRequestConfig };
+      timeoutError.code = "ECONNABORTED";
+      timeoutError.isAxiosError = true;
+      timeoutError.config = config;
+      throw timeoutError;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const json = await res.json().catch(() => null);
 
@@ -235,14 +294,36 @@ export async function uploadFormData<T>(
 
   const preparedFormData = prepareFormDataForExpoFetch(formData);
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: preparedFormData as any,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: preparedFormData as any,
+      signal: controller.signal,
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      const timeoutError = new Error(
+        `Upload timed out after ${UPLOAD_TIMEOUT_MS}ms`,
+      ) as Error & { code?: string; isAxiosError?: boolean };
+      timeoutError.code = "ECONNABORTED";
+      timeoutError.isAxiosError = true;
+      throw timeoutError;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 401) {
+      notifyUnauthorized(endpoint);
+    }
     const error: any = new Error(
       data?.message ||
         data?.detail ||
@@ -259,7 +340,7 @@ export async function uploadFormData<T>(
 
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 59000,
+  timeout: DEFAULT_API_TIMEOUT_MS,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -300,12 +381,35 @@ api.interceptors.request.use(
   (error: unknown): Promise<never> => Promise.reject(error),
 );
 
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+  async (error: AxiosError) => {
+    const originalRequest = error?.config as
+      | RetryableRequestConfig
+      | undefined;
 
-    if (error.code === "ECONNABORTED" && !originalRequest._retry) {
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    if (error.response?.status === 401) {
+      notifyUnauthorized(originalRequest.url);
+    }
+
+    const method = originalRequest.method?.toUpperCase() || "";
+    const isIdempotent = ["GET", "HEAD", "OPTIONS"].includes(method);
+    const isTimeout =
+      error.code === "ECONNABORTED" ||
+      error.code === "ETIMEDOUT" ||
+      (typeof error.message === "string" &&
+        error.message.toLowerCase().includes("timeout"));
+
+    // Restrict timeout retries strictly to idempotent methods (never retry POST, PUT, DELETE, or PATCH)
+    if (isTimeout && !originalRequest._retry && isIdempotent) {
       originalRequest._retry = true;
       return api(originalRequest);
     }

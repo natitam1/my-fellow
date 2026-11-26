@@ -1,6 +1,10 @@
 import { authClient } from "@/lib/auth-client";
-import api from "@/services/api";
+import { queryClient } from "@/queries/queryClient";
+import api, { onUnauthorized } from "@/services/api";
 import { authService } from "@/services/authService";
+import { useCommunityStore } from "@/stores/community.store";
+import { useMarketplaceStore } from "@/stores/marketplace.store";
+import { useNotificationsStore } from "@/stores/notifications.store";
 import { useSignupStore } from "@/stores/signup.store";
 import { useUserStore } from "@/stores/user.store";
 import {
@@ -22,8 +26,19 @@ import {
   VerifyOtpResponse,
 } from "@/types/auth.types";
 import * as SecureStore from "expo-secure-store";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
+
+const FOREGROUND_SYNC_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+
+function clearSessionCaches(): void {
+  queryClient.clear();
+  useUserStore.getState().clearUser();
+  useSignupStore.getState().clear();
+  useNotificationsStore.getState().clearAll();
+  useMarketplaceStore.getState().clearCart();
+  useCommunityStore.getState().clearSearchHistory();
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -40,36 +55,57 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     token: null,
     authenticated: null,
   });
+  const lastForegroundSyncRef = useRef<number>(0);
+  const isHandlingUnauthorizedRef = useRef<boolean>(false);
 
   useEffect(() => {
+    const resetExpiredSession = async (): Promise<void> => {
+      if (isHandlingUnauthorizedRef.current) return;
+      isHandlingUnauthorizedRef.current = true;
+      try {
+        await SecureStore.deleteItemAsync("userToken").catch(() => {});
+        delete api.defaults.headers.common.Authorization;
+        setAuthState({ token: null, authenticated: false });
+        clearSessionCaches();
+      } finally {
+        isHandlingUnauthorizedRef.current = false;
+      }
+    };
+
+    const unsubscribeUnauthorized = onUnauthorized(() => {
+      void resetExpiredSession();
+    });
+
     const loadToken = async (): Promise<void> => {
       try {
         const token = await SecureStore.getItemAsync("userToken");
         if (token) {
           api.defaults.headers.common.Authorization = `Bearer ${token}`;
           setAuthState({ token, authenticated: true });
+          lastForegroundSyncRef.current = Date.now();
           // Fetch fresh user data if we have a token
           authService
             .getCurrentUser()
             .then((user) => {
               useUserStore.getState().setUser(user);
             })
-            .catch(async (err: any) => {
+            .catch(async (err: unknown) => {
+              const maybeErr = err as {
+                message?: string;
+                response?: { status?: number };
+              };
               // If the token is expired or unauthorized, reset auth state
               if (
-                err?.message?.includes("401") ||
-                err?.response?.status === 401
+                maybeErr?.message?.includes("401") ||
+                maybeErr?.response?.status === 401
               ) {
-                await SecureStore.deleteItemAsync("userToken");
-                delete api.defaults.headers.common.Authorization;
-                setAuthState({ token: null, authenticated: false });
-                useUserStore.getState().clearUser();
+                await resetExpiredSession();
               }
             });
         } else {
           setAuthState({ token: null, authenticated: false });
         }
-      } catch (error) {
+      } catch {
         setAuthState({ token: null, authenticated: false });
       }
     };
@@ -77,6 +113,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     const sub = AppState.addEventListener("change", async (nextState) => {
       if (nextState === "active") {
+        const now = Date.now();
+        if (now - lastForegroundSyncRef.current < FOREGROUND_SYNC_COOLDOWN_MS) {
+          return;
+        }
+        lastForegroundSyncRef.current = now;
         try {
           const token = await SecureStore.getItemAsync("userToken");
           if (token) {
@@ -86,12 +127,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             }
           }
         } catch {
-          // Ignore transient foreground sync errors
+          // Ignore transient foreground sync errors (401 handled globally)
         }
       }
     });
 
     return () => {
+      unsubscribeUnauthorized();
       sub.remove();
     };
   }, []);
@@ -180,13 +222,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       await authClient.signOut().catch(() => {});
       await SecureStore.deleteItemAsync("userToken");
 
-      api.defaults.headers.common.Authorization = "";
+      delete api.defaults.headers.common.Authorization;
 
       setAuthState({ token: null, authenticated: false });
-      useUserStore.getState().clearUser();
-      useSignupStore.getState().clear();
-    } catch (error) {
+      clearSessionCaches();
+    } catch {
+      delete api.defaults.headers.common.Authorization;
       setAuthState({ token: null, authenticated: false });
+      clearSessionCaches();
     }
   };
 
@@ -194,10 +237,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     await authService.deleteAccount();
     await authClient.signOut().catch(() => {});
     await SecureStore.deleteItemAsync("userToken");
-    api.defaults.headers.common.Authorization = "";
+    delete api.defaults.headers.common.Authorization;
     setAuthState({ token: null, authenticated: false });
-    useUserStore.getState().clearUser();
-    useSignupStore.getState().clear();
+    clearSessionCaches();
   };
 
   const getCurrentUser = async (): Promise<User> => {
