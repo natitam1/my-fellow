@@ -26,7 +26,7 @@ import {
   Calendar,
   BookOpen,
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 

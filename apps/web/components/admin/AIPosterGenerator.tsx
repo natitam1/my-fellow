@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Loader2, Sparkles, Upload, X, Settings2 } from "lucide-react";
 import api from "@/lib/api";
 

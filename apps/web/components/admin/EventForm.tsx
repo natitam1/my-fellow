@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import { Loader2, Upload, X } from "lucide-react";
 import { AIPosterGenerator } from "./AIPosterGenerator";

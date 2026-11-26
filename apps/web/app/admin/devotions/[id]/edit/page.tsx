@@ -4,7 +4,7 @@ import React, { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { DevotionForm } from "@/components/admin/devotions/DevotionForm";
 import api from "@/lib/api";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface Props {
   params: Promise<{ id: string }>;

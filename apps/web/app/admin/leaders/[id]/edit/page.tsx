@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import api from "@/lib/api";
 import { LeaderForm } from "@/components/LeaderForm";
 import { Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export default function EditLeaderPage() {
   const { id } = useParams();

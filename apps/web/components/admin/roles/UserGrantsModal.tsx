@@ -13,7 +13,7 @@ import {
   Sparkles,
   RefreshCw,
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import {
   PERMISSION_GROUPS,

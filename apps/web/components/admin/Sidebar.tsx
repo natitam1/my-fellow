@@ -25,6 +25,7 @@ import {
   Menu,
   LogOut,
   ArrowLeft,
+  X,
 } from "lucide-react";
 import { useSidebar } from "@/context/admin/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
@@ -60,13 +61,19 @@ function DevotionsIcon({ className, size }: { className?: string; size?: number 
   return <BookOpen className={className} size={size} />;
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const { logout } = useAuth();
 
   const handleSignOut = () => {
+    onMobileClose?.();
     logout();
     router.push("/signin");
   };
@@ -78,24 +85,20 @@ export function Sidebar() {
     return pathname === href || pathname.startsWith(href + "/");
   };
 
-  return (
-    <aside
-      className={cn(
-        "flex flex-col h-screen border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 fixed left-0 top-0 transition-all duration-300 z-50 select-none",
-        isCollapsed ? "w-20" : "w-64",
-      )}
-    >
+  const renderSidebarContent = (collapsed: boolean, isMobileDrawer: boolean) => (
+    <>
       {/* Brand & Toggle Header */}
       <div
         className={cn(
           "flex items-center border-b border-zinc-100 dark:border-zinc-800 h-16 shrink-0",
-          isCollapsed ? "justify-center px-2" : "px-4 justify-between",
+          collapsed ? "justify-center px-2" : "px-4 justify-between",
         )}
       >
-        {!isCollapsed ? (
+        {!collapsed ? (
           <>
             <Link
               href="/admin"
+              onClick={isMobileDrawer ? onMobileClose : undefined}
               className="flex items-center gap-2.5 overflow-hidden group focus-visible:outline-none"
             >
               <div className="w-8 h-8 rounded-lg bg-[#FF6719] flex items-center justify-center text-white font-bold text-sm shadow-xs shrink-0">
@@ -110,13 +113,23 @@ export function Sidebar() {
                 </span>
               </div>
             </Link>
-            <button
-              onClick={toggleSidebar}
-              aria-label="Collapse sidebar"
-              className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-            >
-              <ChevronLeft size={18} />
-            </button>
+            {isMobileDrawer ? (
+              <button
+                onClick={onMobileClose}
+                aria-label="Close navigation menu"
+                className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            ) : (
+              <button
+                onClick={toggleSidebar}
+                aria-label="Collapse sidebar"
+                className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                <ChevronLeft size={18} />
+              </button>
+            )}
           </>
         ) : (
           <button
@@ -133,17 +146,18 @@ export function Sidebar() {
       <div className="p-2 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
         <Link
           href="/"
+          onClick={isMobileDrawer ? onMobileClose : undefined}
           title="Return to Fellowship Web App"
           className={cn(
             "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:text-[#FF6719] dark:hover:text-[#FF6719] hover:bg-[#FF6719]/5 transition-all group",
-            isCollapsed && "justify-center px-0",
+            collapsed && "justify-center px-0",
           )}
         >
           <ArrowLeft
             size={16}
             className="text-zinc-400 group-hover:text-[#FF6719] group-hover:-translate-x-0.5 transition-transform shrink-0"
           />
-          {!isCollapsed && (
+          {!collapsed && (
             <span className="truncate">Return to Fellowship Web App</span>
           )}
         </Link>
@@ -158,13 +172,14 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              title={isCollapsed ? item.label : undefined}
+              onClick={isMobileDrawer ? onMobileClose : undefined}
+              title={collapsed ? item.label : undefined}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative group",
                 active
                   ? "bg-[#FF6719]/10 text-[#FF6719] dark:bg-[#FF6719]/15 dark:text-[#FF6719] font-semibold"
                   : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60",
-                isCollapsed && "justify-center px-0 py-2.5",
+                collapsed && "justify-center px-0 py-2.5",
               )}
             >
               <Icon
@@ -176,12 +191,12 @@ export function Sidebar() {
                     : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300",
                 )}
               />
-              {!isCollapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate">{item.label}</span>}
               {active && (
                 <span
                   className={cn(
                     "absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-[#FF6719]",
-                    isCollapsed && "left-0",
+                    collapsed && "left-0",
                   )}
                 />
               )}
@@ -194,17 +209,45 @@ export function Sidebar() {
       <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 shrink-0 space-y-1">
         <button
           onClick={handleSignOut}
-          title={isCollapsed ? "Sign Out" : undefined}
+          title={collapsed ? "Sign Out" : undefined}
           className={cn(
             "flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer",
-            isCollapsed && "justify-center px-0",
+            collapsed && "justify-center px-0",
           )}
         >
           <LogOut size={18} className="shrink-0" />
-          {!isCollapsed && <span>Sign Out</span>}
+          {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Rail */}
+      <aside
+        className={cn(
+          "hidden md:flex flex-col h-screen border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 fixed left-0 top-0 transition-all duration-300 z-50 select-none",
+          isCollapsed ? "w-20" : "w-64",
+        )}
+      >
+        {renderSidebarContent(isCollapsed, false)}
+      </aside>
+
+      {/* Mobile Drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs"
+            onClick={onMobileClose}
+            aria-hidden="true"
+          />
+          <aside className="relative flex flex-col w-64 max-w-[85vw] h-full border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 z-10 select-none shadow-xl">
+            {renderSidebarContent(false, true)}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
 

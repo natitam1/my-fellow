@@ -5,7 +5,7 @@ import { EventForm } from "@/components/EventForm";
 import api from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import { useParams } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export default function EditEventPage() {
   const params = useParams();

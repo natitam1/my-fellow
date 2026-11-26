@@ -397,7 +397,6 @@ const COORDINATOR_PERMISSIONS = new Set<Permission>([
 ]);
 
 const MEMBER_PERMISSIONS = new Set<Permission>([
-  "members.view",
   "teams.view",
   "events.view",
   "prayer_requests.submit",

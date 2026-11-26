@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/lib/api";
 import {
   Settings,
   User,
@@ -39,7 +40,7 @@ import {
 } from "lucide-react";
 import { getUser, setUser, removeToken } from "@/lib/auth";
 import api from "@/lib/api";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface AdminUser {
   id?: string;
@@ -202,7 +203,7 @@ export default function SettingsOperationsPage() {
       latency: 42,
       uptime: "99.98%",
       description: "Express 5 REST API powering mobile app, web, and admin panel.",
-      endpoint: "my-fellow-api.onrender.com/api",
+      endpoint: API_BASE_URL.replace(/^https?:\/\//, ""),
       meta: {
         Environment: "Render Cloud Web Service",
         SSL: "TLS 1.3 Active",
@@ -651,7 +652,7 @@ export default function SettingsOperationsPage() {
           latency: apiLatency,
           uptime: "99.98%",
           description: "Express 5 REST API powering mobile app, web, and admin panel.",
-          endpoint: "my-fellow-api.onrender.com/api",
+          endpoint: API_BASE_URL.replace(/^https?:\/\//, ""),
           meta: {
             Environment: "Render Cloud Web Service",
             SSL: "TLS 1.3 Active",

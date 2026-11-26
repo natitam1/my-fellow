@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { ProductForm } from "@/components/store/ProductForm";
 import api from "@/lib/api";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface Props {
   params: Promise<{ id: string }>;

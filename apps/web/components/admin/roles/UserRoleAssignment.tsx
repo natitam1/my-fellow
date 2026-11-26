@@ -17,7 +17,7 @@ import {
   CheckCircle2,
   Lock,
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import AdminPagination from "@/components/shared/AdminPagination";
 import UserGrantsModal from "./UserGrantsModal";

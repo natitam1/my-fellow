@@ -83,7 +83,7 @@ export default function GivingsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-700 max-w-(--screen-2xl) mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Givings</h1>
+        <h1 className="text-2xl font-bold text-foreground">Givings</h1>
       </div>
 
       <GivingsFilter
@@ -94,7 +94,7 @@ export default function GivingsPage() {
         onReset={handleReset}
       />
 
-      <div className="border border-gray-100 rounded-xl bg-white overflow-hidden shadow-xs">
+      <div className="border border-border rounded-xl bg-card overflow-hidden shadow-xs">
         <GivingsTable transactions={transactions} loading={loading} />
 
         <AdminPagination
@@ -110,7 +110,7 @@ export default function GivingsPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm font-medium">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm font-medium">
           {error}
         </div>
       )}

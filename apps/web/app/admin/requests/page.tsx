@@ -25,7 +25,7 @@ import {
   XCircle,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 // ─── TYPES ─────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 /**
  * Escapes fields for CSV according to RFC 4180:

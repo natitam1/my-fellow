@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import api from "@/lib/api";
 import { LocationForm } from "@/components/LocationForm";
 import { Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export default function EditLocationPage() {
   const { id } = useParams();

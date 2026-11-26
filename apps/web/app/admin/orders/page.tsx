@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import api from "@/lib/api";
+import { ColumnDef } from "@tanstack/react-table";
+import { format } from "date-fns";
+import Image from "next/image";
 import {
-  Loader2,
   Package,
   CheckCircle2,
   Clock,
   Truck,
   CheckCheck,
   XCircle,
-  Search,
-  Filter,
   Phone,
   User,
   GraduationCap,
@@ -19,288 +19,242 @@ import {
   Calendar,
   DollarSign,
   Eye,
-  X,
   AlertTriangle,
   RefreshCw,
   ExternalLink,
-  ChevronRight,
   Copy,
   Check,
+  CreditCard,
+  ArrowUpDown,
+  MoreHorizontal,
+  FileSpreadsheet,
 } from "lucide-react";
-import { format } from "date-fns";
-import Image from "next/image";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
-export type OrderStatus =
-  | "PENDING"
-  | "CONFIRMED"
-  | "SHIPPED"
-  | "DELIVERED"
-  | "CANCELLED";
+import { DataTable } from "@/components/ui/data-table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MOCK_ORDERS, MockOrder } from "@/lib/mock-data";
 
-export interface OrderBuyer {
-  fullName?: string;
-  phoneNumber?: string;
+export interface OrderItemRecord {
+  id?: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+  imageUrl?: string;
+}
+
+export interface AdminOrder {
+  id: string;
+  customerName: string;
+  phoneNumber: string;
   department?: string;
   yearOfStudy?: number | string;
   telegramUserName?: string;
-}
-
-export interface OrderItem {
-  id?: string;
-  productId: string;
-  quantity: number;
-  unitPrice: number | string;
-  product?: {
-    id?: string;
-    title: string;
-    price?: number | string;
-    imageUrls?: string[];
-    category?: string;
-  };
-}
-
-export interface Order {
-  id: string;
-  userId: string;
-  status: OrderStatus;
-  totalAmount: number | string;
+  items: OrderItemRecord[];
+  itemSummary: string;
+  itemsCount: number;
+  totalAmount: number;
+  paymentMethod: "chapa" | "telebirr" | "cbe_birr" | "cash_on_pickup" | string;
+  paymentStatus: "paid" | "pending" | "failed" | string;
+  status: string;
+  txRef: string;
   createdAt: string;
-  items: OrderItem[];
-  buyer?: OrderBuyer;
 }
 
-// Realistic sample orders for fallback if API is offline or initial setup
-const FALLBACK_ORDERS: Order[] = [
-  {
-    id: "ord-8f921a4e-1284",
-    userId: "usr-bereket-01",
-    status: "PENDING",
-    totalAmount: 1100,
-    createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(), // 35 mins ago
-    items: [
-      {
-        id: "item-1",
-        productId: "prod-bible-01",
-        quantity: 1,
-        unitPrice: 650,
-        product: {
-          title: "Amharic Fellowship Study Bible (Hardcover)",
-          imageUrls: [
-            "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80",
-          ],
-          category: "books",
-        },
-      },
-      {
-        id: "item-2",
-        productId: "prod-tshirt-04",
-        quantity: 1,
-        unitPrice: 450,
-        product: {
-          title: "AAU ECSF Annual Conference T-Shirt (White)",
-          imageUrls: [
-            "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400&q=80",
-          ],
-          category: "apparel",
-        },
-      },
-    ],
-    buyer: {
-      fullName: "Bereket Tadesse",
-      phoneNumber: "+251911223344",
-      department: "Software Engineering",
-      yearOfStudy: 4,
-      telegramUserName: "bereket_t",
-    },
-  },
-  {
-    id: "ord-3c72b11d-8472",
-    userId: "usr-selam-02",
-    status: "CONFIRMED",
-    totalAmount: 950,
-    createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(), // 3 hours ago
-    items: [
-      {
-        id: "item-3",
-        productId: "prod-hoodie-02",
-        quantity: 1,
-        unitPrice: 950,
-        product: {
-          title: "4 Kilo Fellowship Premium Hoodie (Navy)",
-          imageUrls: [
-            "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=400&q=80",
-          ],
-          category: "apparel",
-        },
-      },
-    ],
-    buyer: {
-      fullName: "Selamawit Kebede",
-      phoneNumber: "+251922334455",
-      department: "Electrical Engineering",
-      yearOfStudy: 3,
-      telegramUserName: "selam_k",
-    },
-  },
-  {
-    id: "ord-9b11e4f2-5591",
-    userId: "usr-dani-03",
-    status: "SHIPPED",
-    totalAmount: 560,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(), // Yesterday
-    items: [
-      {
-        id: "item-4",
-        productId: "prod-notebook-03",
-        quantity: 2,
-        unitPrice: 280,
-        product: {
-          title: "Leather Fellowship Devotional Notebook & Pen",
-          imageUrls: [
-            "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=400&q=80",
-          ],
-          category: "stationery",
-        },
-      },
-    ],
-    buyer: {
-      fullName: "Daniel Girma",
-      phoneNumber: "+251933445566",
-      department: "Civil Engineering",
-      yearOfStudy: 5,
-      telegramUserName: "dani_girma",
-    },
-  },
-  {
-    id: "ord-4a02d89c-9912",
-    userId: "usr-ruth-04",
-    status: "DELIVERED",
-    totalAmount: 650,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 50).toISOString(), // 2 days ago
-    items: [
-      {
-        id: "item-5",
-        productId: "prod-bible-01",
-        quantity: 1,
-        unitPrice: 650,
-        product: {
-          title: "Amharic Fellowship Study Bible (Hardcover)",
-          imageUrls: [
-            "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80",
-          ],
-          category: "books",
-        },
-      },
-    ],
-    buyer: {
-      fullName: "Ruth Solomon",
-      phoneNumber: "+251944556677",
-      department: "Biomedical Sciences",
-      yearOfStudy: 2,
-      telegramUserName: "ruth_solo",
-    },
-  },
-  {
-    id: "ord-1e88f72a-3301",
-    userId: "usr-yared-05",
-    status: "CANCELLED",
-    totalAmount: 380,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 75).toISOString(),
-    items: [
-      {
-        id: "item-6",
-        productId: "prod-merch-05",
-        quantity: 1,
-        unitPrice: 380,
-        product: {
-          title: "Stainless Steel Fellowship Thermal Flask (500ml)",
-          imageUrls: [
-            "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&q=80",
-          ],
-          category: "merch",
-        },
-      },
-    ],
-    buyer: {
-      fullName: "Yared Alemu",
-      phoneNumber: "+251955667788",
-      department: "Mechanical Engineering",
-      yearOfStudy: 4,
-      telegramUserName: "yared_alemu",
-    },
-  },
+const ORDER_STATUS_OPTIONS = [
+  { value: "PENDING", label: "Pending" },
+  { value: "CONFIRMED", label: "Confirmed" },
+  { value: "PROCESSING", label: "Processing" },
+  { value: "READY_FOR_PICKUP", label: "Ready for Pickup" },
+  { value: "SHIPPED", label: "Shipped" },
+  { value: "DELIVERED", label: "Delivered / Completed" },
+  { value: "CANCELLED", label: "Cancelled" },
 ];
 
-const ORDER_STATUSES: OrderStatus[] = [
-  "PENDING",
-  "CONFIRMED",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELLED",
-];
-
-const STATUS_FILTERS = [
+const STATUS_FILTER_TABS = [
   { id: "ALL", label: "All Orders" },
-  { id: "PENDING", label: "Pending" },
-  { id: "CONFIRMED", label: "Confirmed" },
-  { id: "SHIPPED", label: "Shipped" },
-  { id: "DELIVERED", label: "Delivered" },
+  { id: "PAID", label: "Paid" },
+  { id: "PENDING_PAYMENT", label: "Pending Payment" },
+  { id: "PENDING_DELIVERY", label: "In Progress" },
+  { id: "COMPLETED", label: "Delivered / Completed" },
   { id: "CANCELLED", label: "Cancelled" },
 ];
 
-export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
+function transformMockOrder(o: MockOrder): AdminOrder {
+  const items: OrderItemRecord[] = o.items.map((it, idx) => ({
+    id: `item-${idx}`,
+    productId: it.productId,
+    productName: it.productName,
+    quantity: it.quantity,
+    price: it.price,
+  }));
+  const itemSummary = items
+    .map((it) => `${it.productName} (x${it.quantity})`)
+    .join(", ");
+  const itemsCount = items.reduce((sum, it) => sum + it.quantity, 0);
+
+  return {
+    id: o._id,
+    customerName: o.customerName,
+    phoneNumber: o.phoneNumber,
+    items,
+    itemSummary,
+    itemsCount,
+    totalAmount: o.totalAmount,
+    paymentMethod: o.paymentMethod || "chapa",
+    paymentStatus: o.paymentStatus || "paid",
+    status: o.status.toUpperCase(),
+    txRef: o.txRef,
+    createdAt: o.createdAt,
+    department: "Engineering Faculty",
+    yearOfStudy: 3,
+  };
+}
+
+function transformApiOrder(o: any): AdminOrder {
+  const items: OrderItemRecord[] = Array.isArray(o.items)
+    ? o.items.map((it: any, idx: number) => ({
+        id: it.id || `item-${idx}`,
+        productId: it.productId || it.product?.id || `prod-${idx}`,
+        productName:
+          it.productName ||
+          it.product?.title ||
+          it.title ||
+          `Fellowship Item #${idx + 1}`,
+        quantity: it.quantity || 1,
+        price: Number(it.price ?? it.unitPrice ?? 0),
+        imageUrl: it.imageUrl || it.product?.imageUrls?.[0],
+      }))
+    : [];
+
+  const itemSummary = items.length
+    ? items.map((it) => `${it.productName} (x${it.quantity})`).join(", ")
+    : "No items";
+  const itemsCount = items.reduce((sum, it) => sum + it.quantity, 0);
+
+  const rawStatus = (o.status || "PENDING").toString().toUpperCase();
+  const rawPayStatus = (
+    o.paymentStatus ||
+    (rawStatus === "DELIVERED" || rawStatus === "CONFIRMED" || rawStatus === "COMPLETED"
+      ? "paid"
+      : "pending")
+  )
+    .toString()
+    .toLowerCase();
+
+  return {
+    id: o.id || o._id || `ord-${Math.random().toString(36).slice(2, 7)}`,
+    customerName:
+      o.customerName ||
+      o.buyer?.fullName ||
+      (o.userId ? `Student #${o.userId.slice(0, 6)}` : "Fellowship Member"),
+    phoneNumber: o.phoneNumber || o.buyer?.phoneNumber || "+251900000000",
+    department: o.department || o.buyer?.department,
+    yearOfStudy: o.yearOfStudy || o.buyer?.yearOfStudy,
+    telegramUserName: o.telegramUserName || o.buyer?.telegramUserName,
+    items,
+    itemSummary,
+    itemsCount,
+    totalAmount: Number(o.totalAmount || 0),
+    paymentMethod: (o.paymentMethod || "chapa").toString().toLowerCase(),
+    paymentStatus: rawPayStatus,
+    status: rawStatus,
+    txRef:
+      o.txRef ||
+      o.paymentTxRef ||
+      `CHP-${(o.id || o._id || "REF").slice(0, 6).toUpperCase()}-AAU`,
+    createdAt: o.createdAt || new Date().toISOString(),
+  };
+}
+
+export default function AdminOrdersPage() {
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOfflineFallback, setIsOfflineFallback] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedStatusTab, setSelectedStatusTab] = useState<string>("ALL");
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get("/marketplace/orders");
       const raw = response.data;
       const ordersData = raw?.data?.orders || raw?.data || [];
+
       if (Array.isArray(ordersData) && ordersData.length > 0) {
-        setOrders(ordersData);
+        setOrders(ordersData.map(transformApiOrder));
         setIsOfflineFallback(false);
       } else {
-        // Fallback to sample fellowship orders
-        setOrders(FALLBACK_ORDERS);
+        // Fallback to MOCK_ORDERS from @/lib/mock-data
+        setOrders(MOCK_ORDERS.map(transformMockOrder));
         setIsOfflineFallback(false);
       }
-    } catch (error) {
-      console.warn("Orders API unreachable, utilizing sample data:", error);
-      setOrders(FALLBACK_ORDERS);
+    } catch {
+      // Offline / API error fallback to MOCK_ORDERS from @/lib/mock-data
+      setOrders(MOCK_ORDERS.map(transformMockOrder));
       setIsOfflineFallback(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
-  const updateStatus = async (id: string, newStatus: OrderStatus) => {
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    toast.success(`Copied ${key}`);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const updateOrderStatus = async (id: string, newStatus: string) => {
     setUpdatingId(id);
+    const upper = newStatus.toUpperCase();
+
     // Optimistic update
     setOrders((prev) =>
-      prev.map((ord) => (ord.id === id ? { ...ord, status: newStatus } : ord)),
+      prev.map((ord) => (ord.id === id ? { ...ord, status: upper } : ord)),
     );
     if (selectedOrder && selectedOrder.id === id) {
-      setSelectedOrder((prev) => (prev ? { ...prev, status: newStatus } : null));
+      setSelectedOrder((prev) => (prev ? { ...prev, status: upper } : null));
     }
 
     try {
       if (!isOfflineFallback) {
-        await api.patch(`/marketplace/orders/${id}/status`, { status: newStatus });
+        await api.patch(`/marketplace/orders/${id}/status`, { status: upper });
       }
-      toast.success(`Order #${id.slice(0, 8)} status set to ${newStatus}`);
+      toast.success(`Order #${id.slice(0, 8)} status set to ${upper}`);
     } catch (error) {
       console.error("Status update error:", error);
       toast.error("Failed to update status on server");
@@ -310,718 +264,801 @@ export default function OrdersPage() {
     }
   };
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedText(label);
-    toast.success(`Copied ${label}`);
-    setTimeout(() => setCopiedText(null), 2000);
+  // CSV Export handler
+  const handleExportCsv = () => {
+    if (!orders.length) {
+      toast.info("No order records to export");
+      return;
+    }
+
+    const headers = [
+      "Order ID",
+      "Customer Name",
+      "Phone Number",
+      "Items Summary",
+      "Total Amount (ETB)",
+      "Payment Method",
+      "Payment Status",
+      "Order Status",
+      "Transaction Ref",
+      "Date Placed",
+    ];
+
+    const rows = orders.map((o) => [
+      `"${o.id}"`,
+      `"${o.customerName.replace(/"/g, '""')}"`,
+      `"${o.phoneNumber}"`,
+      `"${o.itemSummary.replace(/"/g, '""')}"`,
+      o.totalAmount,
+      `"${o.paymentMethod.toUpperCase()}"`,
+      `"${o.paymentStatus.toUpperCase()}"`,
+      `"${o.status}"`,
+      `"${o.txRef}"`,
+      `"${o.createdAt}"`,
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `fellowship_store_orders_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Orders CSV exported successfully");
   };
 
-  // Distinct badge colors per requirement
-  const getStatusBadgeStyle = (status: OrderStatus) => {
-    switch (status) {
+  // Status Badge styles
+  const getOrderStatusBadge = (status: string) => {
+    const s = status.toUpperCase();
+    switch (s) {
       case "PENDING":
-        return "bg-amber-50 text-amber-800 border-amber-200 ring-amber-500/20";
+        return (
+          <Badge
+            variant="outline"
+            className="gap-1 border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-400 font-medium text-xs"
+          >
+            <Clock className="h-3 w-3" />
+            Pending
+          </Badge>
+        );
       case "CONFIRMED":
-        return "bg-blue-50 text-blue-800 border-blue-200 ring-blue-500/20";
+      case "PROCESSING":
+        return (
+          <Badge
+            variant="outline"
+            className="gap-1 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-400 font-medium text-xs"
+          >
+            <CheckCircle2 className="h-3 w-3" />
+            {s === "PROCESSING" ? "Processing" : "Confirmed"}
+          </Badge>
+        );
       case "SHIPPED":
-        return "bg-indigo-50 text-indigo-800 border-indigo-200 ring-indigo-500/20";
+      case "READY_FOR_PICKUP":
+        return (
+          <Badge
+            variant="outline"
+            className="gap-1 border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-400 font-medium text-xs"
+          >
+            <Truck className="h-3 w-3" />
+            {s === "READY_FOR_PICKUP" ? "Ready for Pickup" : "Shipped"}
+          </Badge>
+        );
       case "DELIVERED":
-        return "bg-emerald-50 text-emerald-800 border-emerald-200 ring-emerald-500/20";
+      case "COMPLETED":
+        return (
+          <Badge
+            variant="outline"
+            className="gap-1 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400 font-medium text-xs"
+          >
+            <CheckCheck className="h-3 w-3" />
+            Delivered
+          </Badge>
+        );
       case "CANCELLED":
-        return "bg-rose-50 text-rose-800 border-rose-200 ring-rose-500/20";
+        return (
+          <Badge
+            variant="outline"
+            className="gap-1 border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400 font-medium text-xs"
+          >
+            <XCircle className="h-3 w-3" />
+            Cancelled
+          </Badge>
+        );
       default:
-        return "bg-gray-50 text-gray-800 border-gray-200";
+        return (
+          <Badge variant="outline" className="text-xs">
+            {status}
+          </Badge>
+        );
     }
   };
 
-  const getStatusIcon = (status: OrderStatus) => {
-    switch (status) {
-      case "PENDING":
-        return <Clock size={14} className="text-amber-600" />;
-      case "CONFIRMED":
-        return <CheckCircle2 size={14} className="text-blue-600" />;
-      case "SHIPPED":
-        return <Truck size={14} className="text-indigo-600" />;
-      case "DELIVERED":
-        return <CheckCheck size={14} className="text-emerald-600" />;
-      case "CANCELLED":
-        return <XCircle size={14} className="text-rose-600" />;
-    }
-  };
-
-  // Filtered orders list based on status tab and search query
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      // Status filter tab
-      const matchesStatus =
-        selectedStatus === "ALL" || order.status === selectedStatus;
-
-      // Search query filter (Order ID, Buyer Phone, or Product Title)
-      if (!searchQuery.trim()) return matchesStatus;
-
-      const q = searchQuery.toLowerCase().trim();
-      const matchesId = order.id.toLowerCase().includes(q);
-      const matchesPhone = order.buyer?.phoneNumber
-        ?.toLowerCase()
-        .includes(q);
-      const matchesName = order.buyer?.fullName?.toLowerCase().includes(q);
-      const matchesProductTitle = order.items?.some((item) =>
-        item.product?.title?.toLowerCase().includes(q),
-      );
-
+  const getPaymentMethodBadge = (method: string) => {
+    const m = method.toLowerCase();
+    if (m.includes("chapa")) {
       return (
-        matchesStatus &&
-        (matchesId || matchesPhone || matchesName || matchesProductTitle)
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+          Chapa Pay
+        </span>
       );
-    });
-  }, [orders, selectedStatus, searchQuery]);
+    }
+    if (m.includes("telebirr")) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800">
+          telebirr
+        </span>
+      );
+    }
+    if (m.includes("cbe")) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800">
+          CBE Birr
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+        Campus Pickup
+      </span>
+    );
+  };
 
-  // Status counts for tabs
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { ALL: orders.length };
-    ORDER_STATUSES.forEach((s) => {
-      counts[s] = orders.filter((o) => o.status === s).length;
-    });
-    return counts;
-  }, [orders]);
+  const getPaymentStatusBadge = (status: string) => {
+    const s = status.toLowerCase();
+    if (s === "paid") {
+      return (
+        <Badge
+          variant="outline"
+          className="gap-1 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400 font-medium text-xs"
+        >
+          <CheckCircle2 className="h-3 w-3" />
+          Paid
+        </Badge>
+      );
+    }
+    if (s === "pending") {
+      return (
+        <Badge
+          variant="outline"
+          className="gap-1 border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-400 font-medium text-xs"
+        >
+          <Clock className="h-3 w-3" />
+          Pending
+        </Badge>
+      );
+    }
+    return (
+      <Badge
+        variant="outline"
+        className="gap-1 border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400 font-medium text-xs"
+      >
+        <XCircle className="h-3 w-3" />
+        Failed
+      </Badge>
+    );
+  };
 
-  // Aggregate metrics
-  const totalRevenue = orders
-    .filter((o) => o.status !== "CANCELLED")
-    .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
-  const pendingOrdersCount = orders.filter((o) => o.status === "PENDING").length;
-  const deliveredOrdersCount = orders.filter((o) => o.status === "DELIVERED").length;
+  // Filter orders based on status tab
+  const filteredOrders = useMemo(() => {
+    if (selectedStatusTab === "ALL") return orders;
+    if (selectedStatusTab === "PAID") {
+      return orders.filter((o) => o.paymentStatus.toLowerCase() === "paid");
+    }
+    if (selectedStatusTab === "PENDING_PAYMENT") {
+      return orders.filter((o) => o.paymentStatus.toLowerCase() === "pending");
+    }
+    if (selectedStatusTab === "PENDING_DELIVERY") {
+      return orders.filter(
+        (o) =>
+          o.status === "PENDING" ||
+          o.status === "CONFIRMED" ||
+          o.status === "PROCESSING" ||
+          o.status === "READY_FOR_PICKUP" ||
+          o.status === "SHIPPED",
+      );
+    }
+    if (selectedStatusTab === "COMPLETED") {
+      return orders.filter(
+        (o) => o.status === "DELIVERED" || o.status === "COMPLETED",
+      );
+    }
+    if (selectedStatusTab === "CANCELLED") {
+      return orders.filter((o) => o.status === "CANCELLED");
+    }
+    return orders;
+  }, [orders, selectedStatusTab]);
+
+  // Aggregate stats
+  const totalRevenue = useMemo(
+    () =>
+      orders
+        .filter((o) => o.status !== "CANCELLED" && o.paymentStatus === "paid")
+        .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0),
+    [orders],
+  );
+
+  const pendingOrdersCount = useMemo(
+    () => orders.filter((o) => o.status === "PENDING" || o.paymentStatus === "pending").length,
+    [orders],
+  );
+
+  const deliveredCount = useMemo(
+    () => orders.filter((o) => o.status === "DELIVERED" || o.status === "COMPLETED").length,
+    [orders],
+  );
+
+  // TanStack DataTable Columns
+  const columns = useMemo<ColumnDef<AdminOrder>[]>(
+    () => [
+      {
+        accessorKey: "customerName",
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="-ml-3 h-8 text-xs font-semibold hover:bg-muted"
+            >
+              Customer & Phone
+              <ArrowUpDown className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          );
+        },
+        cell: ({ row }) => {
+          const order = row.original;
+          const initials = order.customerName
+            ? order.customerName
+                .split(" ")
+                .map((n) => n[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()
+            : "EC";
+
+          return (
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-primary dark:bg-orange-950/60 dark:text-orange-400">
+                {initials}
+              </div>
+              <div className="min-w-0 max-w-[200px]">
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {order.customerName}
+                </p>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                  <Phone className="h-3 w-3 text-muted-foreground/70" />
+                  <a
+                    href={`tel:${order.phoneNumber}`}
+                    className="hover:underline hover:text-primary"
+                  >
+                    {order.phoneNumber}
+                  </a>
+                </div>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "itemSummary",
+        header: "Items Ordered",
+        cell: ({ row }) => {
+          const order = row.original;
+          const firstItem = order.items[0];
+          const hasMore = order.items.length > 1;
+
+          return (
+            <div className="min-w-0 max-w-[240px] py-1">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-xs font-medium text-foreground">
+                  {firstItem?.productName || "Store item"}
+                </span>
+                <span className="text-[11px] text-muted-foreground shrink-0">
+                  x{firstItem?.quantity || 1}
+                </span>
+              </div>
+              {hasMore && (
+                <p className="text-[11px] text-primary font-medium">
+                  +{order.items.length - 1} other item{order.items.length - 1 > 1 ? "s" : ""} ({order.itemsCount} total units)
+                </p>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "totalAmount",
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="-ml-3 h-8 text-xs font-semibold hover:bg-muted"
+            >
+              Total (ETB)
+              <ArrowUpDown className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          );
+        },
+        cell: ({ row }) => {
+          const amount = Number(row.getValue("totalAmount")) || 0;
+          return (
+            <div className="whitespace-nowrap text-sm font-bold text-foreground">
+              {amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+              <span className="text-xs font-medium text-primary">ETB</span>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "paymentMethod",
+        header: "Payment Method",
+        cell: ({ row }) => {
+          return getPaymentMethodBadge(row.original.paymentMethod);
+        },
+      },
+      {
+        accessorKey: "paymentStatus",
+        header: "Payment Status",
+        cell: ({ row }) => {
+          return getPaymentStatusBadge(row.original.paymentStatus);
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "Order Status",
+        cell: ({ row }) => {
+          return getOrderStatusBadge(row.original.status);
+        },
+      },
+      {
+        accessorKey: "txRef",
+        header: "Chapa TxRef",
+        cell: ({ row }) => {
+          const txRef = row.original.txRef;
+          const isCopied = copiedKey === txRef;
+
+          return (
+            <div className="flex items-center gap-1.5 font-mono text-xs">
+              <span className="rounded bg-muted px-2 py-0.5 text-muted-foreground text-[11px] max-w-[125px] truncate">
+                {txRef}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => copyToClipboard(txRef, txRef)}
+                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted"
+                title="Copy Transaction Reference"
+              >
+                {isCopied ? (
+                  <Check className="h-3 w-3 text-emerald-600" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+                <span className="sr-only">Copy TxRef</span>
+              </Button>
+            </div>
+          );
+        },
+      },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => {
+          const order = row.original;
+
+          return (
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedOrder(order);
+                  setIsDetailDialogOpen(true);
+                }}
+                className="h-8 gap-1 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Details
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel className="text-xs">Order Actions</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setIsDetailDialogOpen(true);
+                    }}
+                    className="gap-2 cursor-pointer text-xs"
+                  >
+                    <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                    View Full Details
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[11px] text-muted-foreground">
+                    Update Status
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => updateOrderStatus(order.id, "CONFIRMED")}
+                    className="gap-2 cursor-pointer text-xs"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+                    Set Confirmed
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => updateOrderStatus(order.id, "READY_FOR_PICKUP")}
+                    className="gap-2 cursor-pointer text-xs"
+                  >
+                    <Truck className="h-3.5 w-3.5 text-indigo-600" />
+                    Ready for Pickup
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => updateOrderStatus(order.id, "DELIVERED")}
+                    className="gap-2 cursor-pointer text-xs"
+                  >
+                    <CheckCheck className="h-3.5 w-3.5 text-emerald-600" />
+                    Mark Delivered
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => updateOrderStatus(order.id, "CANCELLED")}
+                    className="gap-2 cursor-pointer text-xs text-destructive"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    Cancel Order
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orders, copiedKey],
+  );
 
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Package className="text-[#ff6719]" size={26} />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            <Package className="h-6 w-6 text-primary" />
             Fellowship Store Orders
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Track student orders, verify member contacts, and manage delivery status
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Track student merchandise orders, verify Chapa & telebirr payments, and update delivery status
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchOrders}
             disabled={loading}
-            className="p-2.5 text-gray-600 hover:text-gray-900 bg-white border border-gray-300 rounded-lg shadow-2xs hover:bg-gray-50 transition-colors"
-            title="Refresh orders"
+            className="h-9 gap-1.5"
+            title="Refresh Orders"
           >
-            <RefreshCw
-              size={18}
-              className={loading ? "animate-spin text-[#ff6719]" : ""}
-            />
-          </button>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-primary" : ""}`} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCsv}
+            disabled={!orders.length}
+            className="h-9 gap-1.5"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+            Export Orders CSV
+          </Button>
         </div>
       </div>
 
       {/* Offline banner notification if active */}
       {isOfflineFallback && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center justify-between text-amber-800 text-sm">
+        <div className="bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/50 p-3.5 rounded-xl flex items-center justify-between text-amber-800 dark:text-amber-300 text-sm">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={18} className="text-amber-600 shrink-0" />
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>
-              Connected in demo/offline preview mode with sample fellowship orders.
+              Connected in demo preview mode. Displaying realistic fellowship student orders.
             </span>
           </div>
-          <button
+          <Button
+            variant="link"
+            size="sm"
             onClick={fetchOrders}
-            className="text-xs font-semibold underline hover:text-amber-900"
+            className="text-xs font-semibold text-amber-900 dark:text-amber-200 underline h-auto p-0"
           >
             Retry Connection
-          </button>
+          </Button>
         </div>
       )}
 
       {/* KPI Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center gap-4">
-          <div className="p-3 bg-orange-50 rounded-lg text-[#ff6719]">
-            <Package size={22} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500">Total Orders</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5">
-              {orders.length}
-            </p>
-          </div>
-        </div>
+        <Card className="rounded-xl border border-border shadow-xs bg-card">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 bg-orange-50 dark:bg-orange-950/40 text-primary rounded-xl">
+              <Package className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Total Orders</p>
+              <p className="text-xl font-bold text-foreground mt-0.5">{orders.length}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center gap-4">
-          <div className="p-3 bg-amber-50 rounded-lg text-amber-600">
-            <Clock size={22} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500">Pending Orders</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5">
-              {pendingOrdersCount}
-            </p>
-          </div>
-        </div>
+        <Card className="rounded-xl border border-border shadow-xs bg-card">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-xl">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Pending Action</p>
+              <p className="text-xl font-bold text-foreground mt-0.5">{pendingOrdersCount}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 rounded-lg text-emerald-600">
-            <CheckCheck size={22} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500">Delivered</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5">
-              {deliveredOrdersCount}
-            </p>
-          </div>
-        </div>
+        <Card className="rounded-xl border border-border shadow-xs bg-card">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <CheckCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Delivered Orders</p>
+              <p className="text-xl font-bold text-foreground mt-0.5">{deliveredCount}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center gap-4">
-          <div className="p-3 bg-blue-50 rounded-lg text-blue-600">
-            <DollarSign size={22} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500">Total Revenue</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5">
-              ETB {totalRevenue.toLocaleString()}
-            </p>
-          </div>
-        </div>
+        <Card className="rounded-xl border border-border shadow-xs bg-card">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl">
+              <DollarSign className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Collected Revenue</p>
+              <p className="text-xl font-bold text-foreground mt-0.5">
+                {totalRevenue.toLocaleString()}{" "}
+                <span className="text-xs font-medium text-muted-foreground">ETB</span>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Search & Filter Toolbar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs space-y-4">
-        {/* Search Input Bar */}
-        <div className="relative">
-          <Search
-            size={18}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          />
-          <input
-            type="text"
-            placeholder="Search by Order ID, buyer phone (+251...), buyer name, or product title..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-12 py-2.5 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#ff6719] focus:border-[#ff6719]"
-          />
-          {searchQuery && (
+      {/* Filter Tabs by Status */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground mr-1">Status Filter:</span>
+        {STATUS_FILTER_TABS.map((tab) => {
+          const isSelected = selectedStatusTab === tab.id;
+          return (
             <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-medium"
+              key={tab.id}
+              onClick={() => setSelectedStatusTab(tab.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                isSelected
+                  ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+              }`}
             >
-              Clear
+              {tab.label}
             </button>
-          )}
-        </div>
-
-        {/* Quick Filter Tabs by Status */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-100">
-          <span className="text-xs font-semibold text-gray-500 mr-1 flex items-center gap-1">
-            <Filter size={13} />
-            Status:
-          </span>
-          {STATUS_FILTERS.map((tab) => {
-            const isSelected = selectedStatus === tab.id;
-            const count = statusCounts[tab.id] || 0;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedStatus(tab.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  isSelected
-                    ? "bg-[#ff6719] text-white shadow-2xs font-semibold"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {tab.label} ({count})
-              </button>
-            );
-          })}
-        </div>
+          );
+        })}
       </div>
 
-      {/* Orders List Table */}
-      {loading ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-16 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="animate-spin text-[#ff6719] h-8 w-8" />
-          <p className="text-sm text-gray-500 font-medium">
-            Fetching fellowship orders...
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white shadow-xs overflow-hidden rounded-xl border border-gray-200">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider text-left">
-                <tr>
-                  <th scope="col" className="px-6 py-3.5">
-                    Order / Buyer
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Items Ordered
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Total Amount
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Order Status
-                  </th>
-                  <th scope="col" className="px-6 py-3.5 text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredOrders.map((order) => {
-                  const itemCount =
-                    order.items?.reduce((sum, it) => sum + it.quantity, 0) || 0;
-                  const firstItem = order.items?.[0];
-                  const hasMoreItems = (order.items?.length || 0) > 1;
+      {/* TanStack DataTable */}
+      <DataTable
+        columns={columns}
+        data={filteredOrders}
+        searchKey="customerName"
+        searchPlaceholder="Search orders by customer name..."
+        isLoading={loading}
+        onExportCsv={handleExportCsv}
+        emptyMessage="No fellowship orders match your current filter."
+      />
 
-                  return (
-                    <tr
-                      key={order.id}
-                      className="hover:bg-gray-50/70 transition-colors group cursor-pointer"
-                      onClick={() => setSelectedOrder(order)}
-                    >
-                      {/* Order ID & Buyer Contact */}
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-[#ff6719] bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
-                              #{order.id.slice(0, 8).toUpperCase()}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {format(new Date(order.createdAt), "MMM d, yyyy • HH:mm")}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 pt-1">
-                            <div className="h-7 w-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold shrink-0">
-                              {order.buyer?.fullName
-                                ? order.buyer.fullName.charAt(0).toUpperCase()
-                                : "U"}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate">
-                                {order.buyer?.fullName || `User #${order.userId.slice(0, 6)}`}
-                              </p>
-                              {order.buyer?.phoneNumber && (
-                                <p className="text-xs text-gray-500 flex items-center gap-1 font-mono">
-                                  <Phone size={11} className="text-gray-400" />
-                                  {order.buyer.phoneNumber}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Items Ordered with Thumbnail */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="shrink-0 h-12 w-12 relative bg-gray-100 rounded-md overflow-hidden border border-gray-200 shadow-2xs">
-                            {firstItem?.product?.imageUrls &&
-                            firstItem.product.imageUrls.length > 0 ? (
-                              <Image
-                                src={firstItem.product.imageUrls[0]}
-                                alt={firstItem.product.title || "Item"}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center h-full w-full text-gray-400">
-                                <Package size={18} />
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0 max-w-xs">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {firstItem?.product?.title || "Product item"}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Qty: {firstItem?.quantity || 1}
-                              {hasMoreItems && (
-                                <span className="text-[#ff6719] font-medium ml-1.5">
-                                  +{order.items.length - 1} more item
-                                  {order.items.length - 1 > 1 ? "s" : ""}
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Total Amount in ETB */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-bold text-gray-900">
-                          {Number(order.totalAmount).toLocaleString()}{" "}
-                          <span className="text-xs font-semibold text-gray-500">
-                            ETB
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-gray-400">
-                          {itemCount} total unit{itemCount === 1 ? "" : "s"}
-                        </p>
-                      </td>
-
-                      {/* Status Dropdown / Badge */}
-                      <td
-                        className="px-6 py-4 whitespace-nowrap"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadgeStyle(
-                              order.status,
-                            )}`}
-                          >
-                            {getStatusIcon(order.status)}
-                            {order.status}
-                          </span>
-
-                          {/* Quick inline status select */}
-                          <select
-                            value={order.status}
-                            onChange={(e) =>
-                              updateStatus(
-                                order.id,
-                                e.target.value as OrderStatus,
-                              )
-                            }
-                            disabled={updatingId === order.id}
-                            className="text-xs border border-gray-300 rounded-md py-1 px-2 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#ff6719]"
-                          >
-                            {ORDER_STATUSES.map((st) => (
-                              <option key={st} value={st}>
-                                {st}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:text-[#ff6719] transition-colors shadow-2xs"
-                        >
-                          <Eye size={14} />
-                          Details
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {filteredOrders.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center">
-                      <div className="max-w-sm mx-auto flex flex-col items-center">
-                        <Search className="h-10 w-10 text-gray-300 mb-3" />
-                        <p className="text-gray-700 font-semibold text-base">
-                          No matching orders found
-                        </p>
-                        <p className="text-gray-400 text-xs mt-1">
-                          Try searching with another keyword or change your status filter tab.
-                        </p>
-                        <button
-                          onClick={() => {
-                            setSearchQuery("");
-                            setSelectedStatus("ALL");
-                          }}
-                          className="mt-3 text-xs font-semibold text-[#ff6719] hover:underline"
-                        >
-                          Reset Filters
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ORDER DETAIL MODAL */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl border border-gray-200 animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-gray-100">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-bold text-gray-900">
+      {/* Order Details Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="sm:max-w-[620px]">
+          {selectedOrder && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="flex items-center gap-2 text-foreground text-lg">
+                    <Package className="h-5 w-5 text-primary" />
                     Order Details
-                  </h3>
-                  <span className="font-mono text-xs font-bold text-[#ff6719] bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                  </DialogTitle>
+                  <span className="font-mono text-xs font-bold text-primary bg-orange-50 dark:bg-orange-950/50 px-2 py-0.5 rounded border border-orange-200 dark:border-orange-800">
                     #{selectedOrder.id.slice(0, 8).toUpperCase()}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                  <span className="flex items-center gap-1">
-                    <Calendar size={13} />
-                    {format(
-                      new Date(selectedOrder.createdAt),
-                      "MMMM d, yyyy • HH:mm",
-                    )}
-                  </span>
-                  <button
-                    onClick={() =>
-                      copyToClipboard(selectedOrder.id, "Full Order ID")
-                    }
-                    className="text-gray-400 hover:text-gray-700 flex items-center gap-1 font-mono"
-                    title="Copy Full ID"
-                  >
-                    <Copy size={12} />
-                    {copiedText === "Full Order ID" ? "Copied!" : "Copy ID"}
-                  </button>
-                </div>
-              </div>
+                <DialogDescription className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Placed on {format(new Date(selectedOrder.createdAt), "MMMM d, yyyy • HH:mm")}
+                </DialogDescription>
+              </DialogHeader>
 
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Status Selector Bar */}
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-600">
-                  Current Status:
-                </span>
-                <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadgeStyle(
-                    selectedOrder.status,
-                  )}`}
-                >
-                  {getStatusIcon(selectedOrder.status)}
-                  {selectedOrder.status}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label
-                  htmlFor="modal-status-select"
-                  className="text-xs font-medium text-gray-500"
-                >
-                  Change Status:
-                </label>
-                <select
-                  id="modal-status-select"
-                  value={selectedOrder.status}
-                  onChange={(e) =>
-                    updateStatus(
-                      selectedOrder.id,
-                      e.target.value as OrderStatus,
-                    )
-                  }
-                  disabled={updatingId === selectedOrder.id}
-                  className="text-xs font-semibold border border-gray-300 rounded-lg py-1.5 px-3 bg-white text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#ff6719]"
-                >
-                  {ORDER_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Buyer Contact Information */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Buyer Contact Information
-              </h4>
-              <div className="p-4 bg-white rounded-xl border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                    <User size={18} />
+              <div className="grid gap-4 py-2">
+                {/* Status and Action banner */}
+                <div className="p-3.5 bg-muted/50 rounded-xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Order Status:</span>
+                    {getOrderStatusBadge(selectedOrder.status)}
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">Buyer Name</p>
-                    <p className="text-sm font-bold text-gray-900 mt-0.5">
-                      {selectedOrder.buyer?.fullName || "Unspecified"}
-                    </p>
-                    <span className="text-[10px] text-gray-400 font-mono">
-                      User ID: {selectedOrder.userId.slice(0, 10)}...
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                    <Phone size={18} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">Phone Number</p>
-                    {selectedOrder.buyer?.phoneNumber ? (
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <a
-                          href={`tel:${selectedOrder.buyer.phoneNumber}`}
-                          className="text-sm font-bold text-emerald-700 hover:underline font-mono"
-                        >
-                          {selectedOrder.buyer.phoneNumber}
-                        </a>
-                        <button
-                          onClick={() =>
-                            copyToClipboard(
-                              selectedOrder.buyer?.phoneNumber || "",
-                              "Phone",
-                            )
-                          }
-                          className="text-gray-400 hover:text-gray-600"
-                          title="Copy Phone"
-                        >
-                          <Copy size={12} />
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-400 italic mt-0.5">
-                        Not provided
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                    <GraduationCap size={18} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">
-                      Department & Academic Year
-                    </p>
-                    <p className="text-sm font-semibold text-gray-900 mt-0.5">
-                      {selectedOrder.buyer?.department || "AAU Student"}
-                      {selectedOrder.buyer?.yearOfStudy
-                        ? ` • Year ${selectedOrder.buyer.yearOfStudy}`
-                        : ""}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-sky-50 text-sky-600 rounded-lg">
-                    <Send size={18} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">Telegram</p>
-                    {selectedOrder.buyer?.telegramUserName ? (
-                      <a
-                        href={`https://t.me/${selectedOrder.buyer.telegramUserName.replace("@", "")}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sm font-bold text-sky-600 hover:underline flex items-center gap-1 mt-0.5"
-                      >
-                        @{selectedOrder.buyer.telegramUserName.replace("@", "")}
-                        <ExternalLink size={12} />
-                      </a>
-                    ) : (
-                      <p className="text-sm text-gray-400 italic mt-0.5">
-                        No handle linked
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Items Ordered List */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Items Ordered ({selectedOrder.items?.length || 0})
-              </h4>
-              <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
-                {selectedOrder.items?.map((item, idx) => {
-                  const lineTotal =
-                    Number(item.unitPrice) * Number(item.quantity);
-
-                  return (
-                    <div
-                      key={item.id || idx}
-                      className="p-3.5 bg-white flex items-center justify-between gap-4"
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Update:</span>
+                    <Select
+                      value={selectedOrder.status}
+                      onValueChange={(val) => updateOrderStatus(selectedOrder.id, val)}
+                      disabled={updatingId === selectedOrder.id}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-14 w-14 relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 shrink-0">
-                          {item.product?.imageUrls &&
-                          item.product.imageUrls.length > 0 ? (
-                            <Image
-                              src={item.product.imageUrls[0]}
-                              alt={item.product.title}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="flex items-center justify-center h-full w-full text-gray-400">
-                              <Package size={20} />
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-gray-900 truncate">
-                            {item.product?.title || "Product item"}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
-                            <span>
-                              Unit Price:{" "}
-                              <strong className="text-gray-700">
-                                {Number(item.unitPrice).toFixed(2)} ETB
-                              </strong>
-                            </span>
-                            <span>•</span>
-                            <span>
-                              Quantity:{" "}
-                              <strong className="text-gray-700">
-                                {item.quantity}
-                              </strong>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                      <SelectTrigger className="h-8 w-40 text-xs">
+                        <SelectValue placeholder="Change status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ORDER_STATUS_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-bold text-gray-900">
-                          {lineTotal.toLocaleString()} ETB
+                {/* Customer and Contact Card */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-card rounded-xl border border-border">
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-2 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-lg">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium text-muted-foreground">Buyer Name</p>
+                      <p className="text-sm font-semibold text-foreground mt-0.5">
+                        {selectedOrder.customerName}
+                      </p>
+                      {selectedOrder.department && (
+                        <p className="text-xs text-muted-foreground">
+                          {selectedOrder.department}
+                          {selectedOrder.yearOfStudy ? ` • Year ${selectedOrder.yearOfStudy}` : ""}
                         </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium text-muted-foreground">Phone Number</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <a
+                          href={`tel:${selectedOrder.phoneNumber}`}
+                          className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline font-mono"
+                        >
+                          {selectedOrder.phoneNumber}
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => copyToClipboard(selectedOrder.phoneNumber, "Phone")}
+                          className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                          title="Copy phone"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                  </div>
+                </div>
 
-            {/* Total Summary Footer */}
-            <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 font-medium">Order Total</p>
-                <p className="text-2xl font-extrabold text-[#ff6719]">
-                  {Number(selectedOrder.totalAmount).toLocaleString()}{" "}
-                  <span className="text-sm font-semibold text-gray-600">
-                    ETB
-                  </span>
-                </p>
+                {/* Payment information */}
+                <div className="p-3.5 bg-card rounded-xl border border-border grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-[11px] font-medium text-muted-foreground">Payment Method</p>
+                    <div className="mt-1">
+                      {getPaymentMethodBadge(selectedOrder.paymentMethod)}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-medium text-muted-foreground">Payment Status</p>
+                    <div className="mt-1">
+                      {getPaymentStatusBadge(selectedOrder.paymentStatus)}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-medium text-muted-foreground">Tx Reference</p>
+                    <div className="flex items-center gap-1 mt-1 font-mono text-xs">
+                      <span className="truncate max-w-[120px] text-foreground font-semibold">
+                        {selectedOrder.txRef}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyToClipboard(selectedOrder.txRef, "TxRef")}
+                        className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                        title="Copy TxRef"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Items Ordered List */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Ordered Items ({selectedOrder.items.length})
+                  </h4>
+                  <div className="divide-y divide-border rounded-xl border border-border overflow-hidden bg-card">
+                    {selectedOrder.items.map((it, idx) => (
+                      <div key={it.id || idx} className="p-3 flex items-center justify-between gap-3 text-sm">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">
+                              {it.productName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {Number(it.price).toFixed(2)} ETB &times; {it.quantity} unit{it.quantity > 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 font-semibold text-foreground">
+                          {(Number(it.price) * Number(it.quantity)).toLocaleString()} ETB
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Total sum */}
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <span className="text-sm font-medium text-muted-foreground">Total Order Amount</span>
+                  <div className="text-xl font-bold text-foreground">
+                    {Number(selectedOrder.totalAmount).toLocaleString()}{" "}
+                    <span className="text-xs font-semibold text-primary">ETB</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedOrder(null)}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl transition-colors"
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDetailDialogOpen(false)}
                 >
                   Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
